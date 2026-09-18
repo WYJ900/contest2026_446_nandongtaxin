@@ -1,0 +1,58 @@
+diff --git a/graphics/lvgl/CMakeLists.txt b/graphics/lvgl/CMakeLists.txt
+index d985a89c8..70426f6ad 100644
+--- a/graphics/lvgl/CMakeLists.txt
++++ b/graphics/lvgl/CMakeLists.txt
+@@ -97,6 +97,12 @@ if(CONFIG_GRAPHICS_LVGL)
+          "/draw/vg_lite_vector_optimize/.*\\.(c|cpp)$")
+   endif()
+ 
++  # SiFli EPIC 2.5D GPU backend; needs the vendor/sifli HAL headers and the
++  # drv_epic driver, absent on non-SiFli targets.
++  if(NOT CONFIG_LV_USE_DRAW_EPIC)
++    list(FILTER SRCS EXCLUDE REGEX "/draw/sf32lb_epic/.*\\.(c|cpp)$")
++  endif()
++
+   # NXP i.MX RT VG-Lite / PXP backends.
+   if(NOT CONFIG_LV_USE_DRAW_VGLITE)
+     list(FILTER SRCS EXCLUDE REGEX "/draw/nxp/vglite/.*\\.(c|cpp)$")
+@@ -150,6 +156,27 @@ if(CONFIG_GRAPHICS_LVGL)
+       lvgl PRIVATE ${NUTTX_APPS_DIR}/../${CONFIG_LV_DRAW_VG_LITE_INCLUDE})
+   endif()
+ 
++  # SiFli EPIC 2.5D GPU backend: the draw unit calls drv_epic (vendor
++  # driver) which drags in the bf0 HAL headers. Macro set and include
++  # order mirror vendor/sifli/chips/sf32lb52/CMakeLists.txt (also see
++  # apps/examples/epicbench/CMakeLists.txt which pioneered this).
++  if(CONFIG_LV_USE_DRAW_EPIC)
++    set(SIFLI_DIR ${NUTTX_APPS_DIR}/../vendor/sifli)
++    target_compile_definitions(lvgl PRIVATE SOC_BF0_HCPU SF32LB52X
++                                            HAL_TICK_PER_SECOND=1000
++                                            USE_HAL_DRIVER)
++    target_include_directories(
++      lvgl
++      PRIVATE ${SIFLI_DIR}/chips/drivers/epic
++              ${SIFLI_DIR}/chips/sf32lb52
++              ${SIFLI_DIR}/chips/sf32lb52/include
++              ${SIFLI_DIR}/chips/drivers/Include
++              ${SIFLI_DIR}/chips/drivers/cmsis/Include
++              ${SIFLI_DIR}/chips/drivers/cmsis/sf32lb52x
++              ${SIFLI_DIR}/chips/external/CMSIS/Include
++              ${SIFLI_DIR}/chips/boards/include/config/sf32lb52x)
++  endif()
++
+   if(NOT CONFIG_LV_ASSERT_HANDLER_INCLUDE STREQUAL "")
+     target_compile_definitions(lvgl PRIVATE "LV_ASSERT_HANDLER=ASSERT(0)\;")
+   endif()
+diff --git a/system/libuv/CMakeLists.txt b/system/libuv/CMakeLists.txt
+index bc0e72de0..9781b6c5e 100644
+--- a/system/libuv/CMakeLists.txt
++++ b/system/libuv/CMakeLists.txt
+@@ -105,7 +105,7 @@ if(CONFIG_LIBUV)
+     ${LIBUV_UNIX_DIR}/loop-watcher.c
+     ${LIBUV_UNIX_DIR}/signal.c
+     ${LIBUV_UNIX_DIR}/stream.c
+-    ${LIBUV_SRC_DIR}/threadpool.c
++    ${CMAKE_CURRENT_LIST_DIR}/nuttx_threadpool.c
+     ${LIBUV_UNIX_DIR}/async.c
+     ${LIBUV_UNIX_DIR}/pipe.c
+     ${LIBUV_UNIX_DIR}/fs.c

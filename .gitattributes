@@ -1,0 +1,21 @@
+* text=auto
+
+*.c text eol=lf
+*.h text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.ps1 text eol=lf
+*.md text eol=lf
+*.patch text eol=lf
+*.sh text eol=lf
+*.xml text eol=lf
+
+*.bin binary
+*.inc text eol=lf
+*.png binary
+*.pptx binary
+
+# Patch payloads and generated bitmap fonts preserve upstream/generated spacing.
+*.patch -whitespace
+app/velaride/velaride_font_cn_*.c -whitespace

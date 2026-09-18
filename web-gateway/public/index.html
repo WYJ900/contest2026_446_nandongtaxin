@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07131b" />
+    <title>VelaRide 骑行网关</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <p class="eyebrow">VELARIDE AI</p>
+          <h1>骑行安全网关</h1>
+          <p class="subtitle">浏览器连接手表，提供校时、骑行数据和 AI 复盘。</p>
+        </div>
+        <span id="connectionBadge" class="badge offline">未连接</span>
+      </header>
+
+      <section class="hero card">
+        <div class="watch-preview">
+          <div class="watch-screen">
+            <span id="clock">--:--</span>
+            <strong id="speedValue">0.0</strong>
+            <small>km/h</small>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button id="demoButton" class="primary">录入真实手表结果</button>
+          <button id="connectButton" class="secondary" disabled>BLE 无线连接（开发中）</button>
+          <button id="serialButton" class="secondary" disabled>USB 运行时连接（已停用）</button>
+          <p id="supportHint" class="hint"></p>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <div class="card-title"><span>01</span><h2>手表时间</h2></div>
+          <p id="timeText" class="metric">手表独立骑行</p>
+          <button id="syncTimeButton" disabled>校时将在 BLE 完成后启用</button>
+        </article>
+
+        <article class="card">
+          <div class="card-title"><span>02</span><h2>骑行数据</h2></div>
+          <p class="hint">骑行全程在手表操作。结束后照着“本次骑行记录”页填写。</p>
+          <label>总时长（秒）</label>
+          <input id="elapsedInput" type="number" min="1" step="1" placeholder="例如 1260" />
+          <label>运动时长（秒）</label>
+          <input id="movingInput" type="number" min="0" step="1" placeholder="照手表填写" />
+          <label>静止时长（秒）</label>
+          <input id="stillInput" type="number" min="0" step="1" placeholder="照手表填写" />
+          <label>距离（km）</label>
+          <input id="distanceInput" type="number" min="0" step="0.01" placeholder="可选；没有可填 0" />
+          <label>暂停次数</label>
+          <input id="pauseInput" type="number" min="0" step="1" placeholder="照手表填写" />
+          <label>冲击次数</label>
+          <input id="impactInput" type="number" min="0" step="1" placeholder="照手表填写" />
+          <input id="speedInput" type="hidden" value="18.6" />
+          <output id="speedOutput" hidden>18.6 km/h</output>
+          <button id="sendDataButton" disabled>设备数据回传（BLE 开发中）</button>
+        </article>
+
+        <article class="card wide">
+          <div class="card-title"><span>03</span><h2>录入预览</h2></div>
+          <div class="status-grid">
+            <div><small>状态</small><strong id="rideState">未获取</strong></div>
+            <div><small>总时长</small><strong id="elapsedValue">0 秒</strong></div>
+            <div><small>运动</small><strong id="movingValue">0 秒</strong></div>
+            <div><small>冲击</small><strong id="impactValue">0 次</strong></div>
+          </div>
+          <button id="statusButton" disabled>自动读取（BLE 开发中）</button>
+        </article>
+
+        <article class="card wide review-card">
+          <div class="card-title"><span>04</span><h2>AI 骑行复盘</h2></div>
+          <textarea id="reviewText" rows="4" placeholder="结束骑行后点击生成复盘"></textarea>
+          <div class="button-row">
+            <button id="generateButton">生成复盘</button>
+            <button id="sendReviewButton" disabled>回传手表（BLE 开发中）</button>
+          </div>
+          <p id="aiSource" class="hint"></p>
+        </article>
+      </section>
+
+      <section class="card log-card">
+        <div class="card-title"><span>LOG</span><h2>演示日志</h2></div>
+        <pre id="log"></pre>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

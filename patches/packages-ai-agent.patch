@@ -1,0 +1,67 @@
+diff --git a/src/tools/skill_loader.c b/src/tools/skill_loader.c
+index ea21931..e5c2f50 100644
+--- a/src/tools/skill_loader.c
++++ b/src/tools/skill_loader.c
+@@ -195,6 +195,25 @@ static const char *TAG = "skills";
+     "- Add: get_current_time, then edit_file/write_file to append: - [ ] [YYYY-MM-DD] desc\n" \
+     "- Complete: edit_file to change - [ ] to - [x]\n"
+ 
++#define BUILTIN_RIDE_SAFETY \
++    "# VelaRide 骑行安全助手\n\n" \
++    "根据手表采集的骑行状态提供安全建议，并执行用户明确确认的暂停或继续操作。\n\n" \
++    "## 何时使用\n" \
++    "当收到骑行状态、静止、冲击、休息提醒或骑行结束复盘请求时使用。\n\n" \
++    "## 数据与工具\n" \
++    "- run_shell command=\"velaride ride-status\"：读取当前骑行状态。\n" \
++    "- run_shell command=\"velaride ride-latest\"：读取最近一次完成记录。\n" \
++    "- run_shell command=\"velaride ride-pause\"：仅在用户明确确认休息/暂停后执行。\n" \
++    "- run_shell command=\"velaride ride-resume\"：仅在用户明确确认继续后执行。\n\n" \
++    "## 决策边界\n" \
++    "1. 冲击后静止属于高优先级事件，先询问用户是否安全；不要自行结束骑行。\n" \
++    "2. 休息和长时间静止提醒保持简短，给出暂停或继续两个明确动作。\n" \
++    "3. 没有用户确认时不得改变骑行状态。\n" \
++    "4. 工具或网络失败时说明 AI 增强暂不可用；不得覆盖手表本地计时、提醒或记录。\n" \
++    "5. 复盘必须引用真实记录字段，不得虚构速度、距离、心率或定位数据。\n\n" \
++    "## 输出\n" \
++    "腕上提醒优先一到两句话；结束复盘包含概况、异常/休息情况和一条下次建议。\n"
++
+ /* Built-in skill registry */
+ typedef struct {
+     const char *filename;   /* e.g. "weather" */
+@@ -212,6 +231,7 @@ static const builtin_skill_t s_builtins[] = {
+     { "news-digest",    BUILTIN_NEWS_DIGEST    },
+     { "feishu-test",    BUILTIN_FEISHU_TEST    },
+     { "task-manager",   BUILTIN_TASK_MANAGER   },
++    { "ride-safety",    BUILTIN_RIDE_SAFETY    },
+ };
+ 
+ #define NUM_BUILTINS (sizeof(s_builtins) / sizeof(s_builtins[0]))
+diff --git a/src/tools/tool_shell.c b/src/tools/tool_shell.c
+index 1acc875..5b38fe5 100644
+--- a/src/tools/tool_shell.c
++++ b/src/tools/tool_shell.c
+@@ -90,6 +90,9 @@ static const char *s_allowed[] = {
+     "set_gateway", "set_mqtt",
+     "session_list", "memory_read",
+     "mcp_list", "mcp_discover",
++
++    /* VelaRide exposes only four explicitly validated business commands. */
++    "velaride",
+     
+     NULL
+ };
+@@ -158,6 +161,14 @@ static int is_blocked(const char *cmd)
+     const char *basename = strrchr(first, '/');
+     const char *name = basename ? basename + 1 : first;
+ 
++    /* Never grant the Agent access to VelaRide maintenance commands such as
++     * persist-format.  Only these exact read/control operations are allowed. */
++    if (strcmp(name, "velaride") == 0)
++        return strcmp(cmd, "velaride ride-status") != 0 &&
++               strcmp(cmd, "velaride ride-pause") != 0 &&
++               strcmp(cmd, "velaride ride-resume") != 0 &&
++               strcmp(cmd, "velaride ride-latest") != 0;
++
+     /* Check whitelist first */
+     for (int k = 0; s_allowed[k]; k++) {
+         if (strcmp(name, s_allowed[k]) == 0)

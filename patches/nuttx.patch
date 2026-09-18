@@ -1,0 +1,32 @@
+diff --git a/drivers/mtd/mtd_config_nvs.c b/drivers/mtd/mtd_config_nvs.c
+index 60ee18982d8..8eb4afe3b8f 100644
+--- a/drivers/mtd/mtd_config_nvs.c
++++ b/drivers/mtd/mtd_config_nvs.c
+@@ -2502,7 +2502,13 @@ int mtdconfig_register_by_path(FAR struct mtd_dev_s *mtd,
+   FAR struct nvs_fs *fs;
+   int rc;
+ 
+-  fs = kmm_malloc(sizeof(struct nvs_fs));
++  /* poll state (`fds`/`events`) and cache bookkeeping must start at zero.
++   * The first successful write calls mtdconfig_notify(); an uninitialized
++   * `fds` pointer from kmm_malloc is otherwise passed to poll_notify and can
++   * hard-fault even though the flash write itself completed successfully.
++   */
++
++  fs = kmm_zalloc(sizeof(struct nvs_fs));
+   if (fs == NULL)
+     {
+       return -ENOMEM;
+diff --git a/include/nuttx/lcd/lcd_dev.h b/include/nuttx/lcd/lcd_dev.h
+index 91f455b2905..d0431b82ee9 100644
+--- a/include/nuttx/lcd/lcd_dev.h
++++ b/include/nuttx/lcd/lcd_dev.h
+@@ -65,6 +65,8 @@
+ #define LCDDEVIO_GETFRAMERATE _LCDIOC(16) /* Arg: int* */
+ 
+ #define LCDDEVIO_GETAREAALIGN _LCDIOC(17) /* Arg: struct lcddev_area_align_s* */
++#define LCDDEVIO_PUTAREA_ASYNC _LCDIOC(18) /* Arg: const struct lcddev_area_s* */
++#define LCDDEVIO_WAITAREA      _LCDIOC(19) /* Arg: timeout in milliseconds */
+ 
+ /****************************************************************************
+  * Public Data

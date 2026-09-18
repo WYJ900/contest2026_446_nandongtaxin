@@ -1,0 +1,41 @@
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# Local credentials and environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node dependencies and logs
+node_modules/
+npm-debug.log*
+*.log
+
+# Local build and validation output
+build/
+out/
+cmake_out/
+.codex-finalizer/
+.submission-build/
+submission-preview/
+submission/VelaRide_AI_作品介绍.pptx
+*.o
+*.a
+*.elf
+*.hex
+*.map
+
+# Unused VelaRide prototypes and generated intermediates
+app/velaride/velaride.c
+app/velaride/velaride_mickey_390.png
+app/velaride/velaride_mickey_rgb565.inc
+app/velaride/velaride_dial_png.inc
+app/velaride/velaride_dial_rgb565.bin
+app/velaride/velaride_sport_face_rgb565.bin
+
+# AI Coding logs are intentionally NOT ignored.

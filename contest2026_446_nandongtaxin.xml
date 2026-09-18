@@ -9,8 +9,7 @@
   <include name="openvela.xml"/>
 
   <project path="contest2026_446_nandongtaxin" name="contest2026_446_nandongtaxin">
-    <linkfile src="app/hello_app" dest="packages/demos/contest2026_446_hello_app"/>
-    <linkfile src="quickapp/hello_quickapp" dest="packages/apps/contest2026_446_hello_quickapp"/>
-    <linkfile src="board/contest_board" dest="vendor/openvela/boards/contest2026_446_board"/>
+    <linkfile src="app/velaride" dest="apps/examples/velaride"/>
+    <linkfile src="agent_skills/ride-safety.md" dest="packages/ai_agent/agent_skills/ride-safety.md"/>
   </project>
 </manifest>

@@ -1,0 +1,67 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #05090d;
+  color: #f3f8fa;
+  --lime: #b7ff22;
+  --cyan: #56d9ff;
+  --card: rgba(14, 27, 35, 0.86);
+  --line: rgba(183, 255, 34, 0.16);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(86, 217, 255, 0.13), transparent 32%),
+    radial-gradient(circle at 90% 20%, rgba(183, 255, 34, 0.09), transparent 28%),
+    #05090d;
+}
+.shell { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 64px; }
+header { display: flex; align-items: start; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.eyebrow { color: var(--lime); letter-spacing: .22em; font-size: 12px; margin: 0 0 8px; }
+h1 { font-size: clamp(34px, 6vw, 64px); letter-spacing: -.04em; margin: 0; }
+h2 { margin: 0; font-size: 18px; }
+.subtitle, .hint { color: #8da1ad; line-height: 1.6; }
+.badge { border: 1px solid; border-radius: 999px; padding: 9px 14px; font-size: 13px; }
+.badge.offline { color: #ff8e8e; border-color: #6e3030; }
+.badge.online { color: var(--lime); border-color: #507313; background: #152408; }
+.card { border: 1px solid var(--line); border-radius: 24px; padding: 24px; background: var(--card); box-shadow: 0 22px 70px rgba(0,0,0,.25); backdrop-filter: blur(14px); }
+.hero { display: flex; align-items: center; justify-content: center; gap: clamp(30px, 8vw, 100px); margin-bottom: 20px; min-height: 330px; }
+.watch-preview { width: 220px; height: 255px; padding: 17px; border: 2px solid #303b42; border-radius: 58px; background: linear-gradient(145deg, #293139, #090d10 62%); box-shadow: inset 0 0 0 6px #090c0f, 0 24px 60px #000; }
+.watch-screen { height: 100%; border-radius: 43px; background: radial-gradient(circle at 50% 28%, #19383f, #020405 63%); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.watch-screen span { color: #9eb0b8; font-size: 17px; }
+.watch-screen strong { color: var(--lime); font-size: 70px; line-height: 1; margin-top: 20px; }
+.watch-screen small { color: #7e929c; }
+.hero-actions { display: grid; gap: 12px; width: min(360px, 100%); }
+button { min-height: 46px; border: 1px solid #35505c; border-radius: 14px; background: #14242c; color: #effbff; font-weight: 700; padding: 0 17px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--lime); transform: translateY(-1px); }
+button:disabled { opacity: .38; cursor: not-allowed; }
+button.primary { min-height: 58px; background: var(--lime); color: #071006; border-color: var(--lime); }
+button.secondary { background: transparent; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.wide { grid-column: 1 / -1; }
+.card-title { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+.card-title span { color: var(--lime); font: 700 12px/1 monospace; }
+.metric { font-size: 24px; font-weight: 700; min-height: 36px; }
+label { display: flex; justify-content: space-between; color: #a9bbc4; margin: 14px 0 8px; }
+input, textarea { width: 100%; border: 1px solid #2b414b; border-radius: 12px; background: #081116; color: white; padding: 12px; }
+input[type="range"] { accent-color: var(--lime); padding: 0; }
+.status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.status-grid div { border-radius: 16px; padding: 16px; background: #09151b; }
+.status-grid small { display: block; color: #78909b; margin-bottom: 10px; }
+.status-grid strong { font-size: 18px; }
+.button-row { display: flex; gap: 12px; margin-top: 14px; }
+.button-row button { flex: 1; }
+.log-card { margin-top: 20px; }
+pre { min-height: 120px; max-height: 250px; overflow: auto; color: #a7e5f7; white-space: pre-wrap; margin: 0; font-size: 12px; }
+@media (max-width: 720px) {
+  .shell { width: min(100% - 20px, 1080px); padding-top: 24px; }
+  header, .hero { flex-direction: column; align-items: stretch; }
+  .hero { padding: 26px 18px; }
+  .watch-preview { margin: 0 auto; }
+  .grid { grid-template-columns: 1fr; }
+  .wide { grid-column: auto; }
+  .status-grid { grid-template-columns: repeat(2, 1fr); }
+}

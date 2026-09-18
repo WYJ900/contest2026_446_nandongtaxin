@@ -1,0 +1,1020 @@
+diff --git a/boards/sf32lb52/drivers/input/ft6146.c b/boards/sf32lb52/drivers/input/ft6146.c
+index 321f729..6508ec8 100644
+--- a/boards/sf32lb52/drivers/input/ft6146.c
++++ b/boards/sf32lb52/drivers/input/ft6146.c
+@@ -31,6 +31,7 @@
+ #include <stdint.h>
+ #include <unistd.h>
+ 
++#include <nuttx/clock.h>
+ #include <nuttx/input/touchscreen.h>
+ #include <nuttx/i2c/i2c_master.h>
+ #include <nuttx/kmalloc.h>
+@@ -55,6 +56,12 @@
+ #define FT6146_REG_ID_H        0xa3
+ #define FT6146_REG_ID_L        0x9f
+ 
++#define FT6146_EVENT_DOWN       0
++#define FT6146_EVENT_UP         1
++#define FT6146_EVENT_CONTACT    2
++#define FT6146_EVENT_RESERVED   3
++#define FT6146_POLL_INTERVAL_MS 8
++
+ /****************************************************************************
+  * Private Types
+  ****************************************************************************/
+@@ -69,6 +76,8 @@ struct ft6146_touch_lowerhalf_s
+   uint32_t pin_irq;
+   uint16_t last_x;
+   uint16_t last_y;
++  uint8_t last_id;
++  bool contact_active;
+ };
+ 
+ /****************************************************************************
+@@ -83,6 +92,18 @@ static ssize_t ft6146_touch_write(FAR struct touch_lowerhalf_s *input_lower,
+                                   size_t buflen);
+ static void ft6146_irq_handler(void *arg);
+ 
++static int ft6146_irq_enable(struct ft6146_touch_lowerhalf_s *ft6146,
++                             bool enable)
++{
++  if (!enable)
++    {
++      return sifli_gpio_set_event(ft6146->pin_irq, false, false, NULL, NULL);
++    }
++
++  return sifli_gpio_set_event(ft6146->pin_irq, false, true,
++                              ft6146_irq_handler, ft6146);
++}
++
+ /****************************************************************************
+  * Private Functions
+  ****************************************************************************/
+@@ -115,34 +136,83 @@ static void ft6146_data_worker(void *param)
+     (struct ft6146_touch_lowerhalf_s *)param;
+   struct touch_sample_s sample;
+   uint8_t buf[5] = {0};
++  uint8_t event;
+   uint8_t touch_num;
++  uint16_t x;
++  uint16_t y;
++  bool report = false;
+   int ret;
+ 
+   ret = ft6146_i2c_read(ft6146->i2c, FT6146_REG_TD_STATUS, buf, sizeof(buf));
+   if (ret < 0)
+     {
+       ierr("ft6146: read touch data failed: %d\n", ret);
+-      return;
++      goto out;
+     }
+ 
+   touch_num = buf[0] & 0x0f;
+ 
++  memset(&sample, 0, sizeof(sample));
+   sample.npoints = 1;
+   if (touch_num > 0)
+     {
+-      ft6146->last_x = ((uint16_t)(buf[1] & 0x0f) << 8) | buf[2];
+-      ft6146->last_y = ((uint16_t)(buf[3] & 0x0f) << 8) | buf[4];
+-      sample.point[0].flags = TOUCH_DOWN;
++      /* FT6146 point layout: XH(event[7:6]), XL, YH(id[7:4]), YL. */
++      event = buf[1] >> 6;
++      if (event == FT6146_EVENT_RESERVED)
++        {
++          goto out;
++        }
++
++      x = ((uint16_t)(buf[1] & 0x0f) << 8) | buf[2];
++      y = ((uint16_t)(buf[3] & 0x0f) << 8) | buf[4];
++      ft6146->last_id = buf[3] >> 4;
++
++      if (event == FT6146_EVENT_UP)
++        {
++          sample.point[0].flags = TOUCH_UP;
++          report = ft6146->contact_active;
++          ft6146->contact_active = false;
++        }
++      else if (!ft6146->contact_active)
++        {
++          sample.point[0].flags = TOUCH_DOWN;
++          report = true;
++          ft6146->contact_active = true;
++        }
++      else
++        {
++          sample.point[0].flags = TOUCH_MOVE;
++          report = x != ft6146->last_x || y != ft6146->last_y;
++        }
++
++      ft6146->last_x = x;
++      ft6146->last_y = y;
++      sample.point[0].flags |= TOUCH_ID_VALID | TOUCH_POS_VALID;
+     }
+   else
+     {
+-      sample.point[0].flags = TOUCH_UP;
++      sample.point[0].flags = TOUCH_UP | TOUCH_ID_VALID | TOUCH_POS_VALID;
++      report = ft6146->contact_active;
++      ft6146->contact_active = false;
+     }
+ 
++  sample.point[0].id = ft6146->last_id;
+   sample.point[0].x = ft6146->last_x;
+   sample.point[0].y = ft6146->last_y;
++  sample.point[0].timestamp = touch_get_time();
++
++  if (report)
++    {
++      touch_event(ft6146->lower.priv, &sample);
++    }
+ 
+-  touch_event(ft6146->lower.priv, &sample);
++out:
++  ret = work_queue(HPWORK, &ft6146->work, ft6146_data_worker, ft6146,
++                   MSEC2TICK(FT6146_POLL_INTERVAL_MS));
++  if (ret < 0)
++    {
++      ierr("ft6146: requeue polling worker failed: %d\n", ret);
++    }
+ }
+ 
+ static void ft6146_irq_handler(void *arg)
+@@ -151,8 +221,18 @@ static void ft6146_irq_handler(void *arg)
+     (struct ft6146_touch_lowerhalf_s *)arg;
+   int ret;
+ 
++  /* Match the official SiFli driver: serialize IRQ and I2C handling.  A
++   * second work_queue() on the same work_s can replace pending work and lose
++   * an intermediate sample.
++   */
++
++  ft6146_irq_enable(ft6146, false);
+   ret = work_queue(HPWORK, &ft6146->work, ft6146_data_worker, ft6146, 0);
+-  DEBUGASSERT(ret == OK);
++  if (ret < 0)
++    {
++      ierr("ft6146: queue touch worker failed: %d\n", ret);
++      ft6146_irq_enable(ft6146, true);
++    }
+ }
+ 
+ static int ft6146_hw_init(struct ft6146_touch_lowerhalf_s *ft6146)
+@@ -189,12 +269,11 @@ static int ft6146_hw_init(struct ft6146_touch_lowerhalf_s *ft6146)
+     }
+ 
+   iinfo("ft6146 id_h=0x%02x id_l=0x%02x\n", id_h, id_l);
+-
+-  ret = sifli_gpio_set_event(ft6146->pin_irq, false, true,
+-                             ft6146_irq_handler, ft6146);
++  ret = work_queue(HPWORK, &ft6146->work, ft6146_data_worker, ft6146,
++                   MSEC2TICK(FT6146_POLL_INTERVAL_MS));
+   if (ret < 0)
+     {
+-      ierr("ft6146: irq event setup failed: %d\n", ret);
++      ierr("ft6146: polling worker setup failed: %d\n", ret);
+       return ret;
+     }
+ 
+diff --git a/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c b/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c
+index 66fcfc6..86b36ba 100644
+--- a/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c
++++ b/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c
+@@ -25,6 +25,7 @@
+ 
+ #include <sys/types.h>
+ #include <stdint.h>
++#include <inttypes.h>
+ #include <stdbool.h>
+ #include <time.h>
+ #include <unistd.h>
+@@ -73,6 +74,29 @@ const void *_lcd_drv_ref_ili8688e
+  ****************************************************************************/
+ #define lcd_debug_print lcdinfo
+ 
++/* 每次 DMA 送屏的最大行数。
++ *
++ * 原值 24 会把一帧全屏（450 行）切成 19 次 setarea + DMA + sem_timedwait
++ * 串行往返，命令与同步开销占了绝大部分时间，是滑动卡顿的首要原因。
++ *
++ * LCDC 的 LAYER0_SIZE.MAX_LINE 位宽是 11 bit（0x7FF = 2047 行），
++ * 450 行远在硬件上限内，无需软件分片。保留这个宏是为了排障时能快速调回
++ * 小值对比，正常情况下不该改动。
++ */
++
++#define SF32LB_LCD_CHUNK_ROWS 512
++
++/* 送屏调用统计：每满 SF32LB_LCD_FLUSH_WINDOW 次 putarea 往串口打一行。
++ *
++ * 局部刷新模式下一次 LVGL refresh 可能调用多次 putarea，因此这里只表示
++ * 送屏调用率和单次送屏耗时，不能当作显示 FPS 或跟手性指标。
++ *
++ * 打印用 lcdwarn 而非 lcdinfo：lcdinfo 需要开 CONFIG_DEBUG_LCD_INFO，
++ * 那会把 setarea/wrram 的每次调用都刷出来，串口直接被淹。
++ */
++
++#define SF32LB_LCD_FLUSH_WINDOW 5
++
+ struct sf32lb_lcd_dev_s
+ {
+     struct lcd_dev_s dev;
+@@ -83,6 +107,8 @@ struct sf32lb_lcd_dev_s
+ 
+     FAR sem_t init_sem;
+     FAR sem_t draw_sem;
++    volatile bool async_busy;
++    volatile int async_result;
+ 
+     int power;
+     uint8_t bpp;
+@@ -227,6 +253,7 @@ static void SendLayerDataCpltCbk(LCDC_HandleTypeDef *lcdc)
+ 
+ 
+        struct sf32lb_lcd_dev_s *p_drvlcd = container_of(lcdc, struct sf32lb_lcd_dev_s, hlcdc);
++       p_drvlcd->async_result = OK;
+        sem_post(&p_drvlcd->draw_sem);
+    }
+ 
+@@ -234,7 +261,76 @@ static void SendLayerDataCpltCbk(LCDC_HandleTypeDef *lcdc)
+ 
+ static void SendLayerDataErrCbk(LCDC_HandleTypeDef *lcdc)
+ {
+-    lcdinfo("SendLayerDataErrCbk \r\n");
++    struct sf32lb_lcd_dev_s *dev =
++      container_of(lcdc, struct sf32lb_lcd_dev_s, hlcdc);
++
++    lcdc->XferCpltCallback = NULL;
++    lcdc->XferErrorCallback = NULL;
++    dev->async_result = -EIO;
++    sem_post(&dev->draw_sem);
++}
++
++static int sf32lb_lcd_start_xfer(FAR struct sf32lb_lcd_dev_s *dev,
++                                 FAR const uint8_t *buffer,
++                                 uint16_t x0, uint16_t y0,
++                                 uint16_t x1, uint16_t y1)
++{
++  size_t pixels;
++  size_t xfer_bytes;
++
++  if (dev->async_busy)
++    {
++      return -EBUSY;
++    }
++
++  while (sem_trywait(&dev->draw_sem) == 0)
++    {
++    }
++
++  pixels = (size_t)(x1 - x0 + 1) * (size_t)(y1 - y0 + 1);
++  xfer_bytes = pixels * ((size_t)dev->bpp >> 3);
++  up_clean_dcache((uintptr_t)buffer, (uintptr_t)buffer + xfer_bytes);
++
++  dev->async_result = -EINPROGRESS;
++  dev->async_busy = true;
++  dev->hlcdc.XferCpltCallback = SendLayerDataCpltCbk;
++  dev->hlcdc.XferErrorCallback = SendLayerDataErrCbk;
++  dev->hlcdc.debug_cnt0++;
++  dev->p_drv_ops->p_ops->WriteMultiplePixels(&dev->hlcdc, buffer,
++                                              x0, y0, x1, y1);
++  return OK;
++}
++
++static int sf32lb_lcd_wait_xfer(FAR struct sf32lb_lcd_dev_s *dev,
++                                unsigned int timeout_ms)
++{
++  struct timespec ts;
++  int ret;
++
++  if (!dev->async_busy)
++    {
++      return OK;
++    }
++
++  clock_gettime(CLOCK_REALTIME, &ts);
++  ts.tv_sec += timeout_ms / 1000;
++  ts.tv_nsec += (long)(timeout_ms % 1000) * 1000000L;
++  if (ts.tv_nsec >= 1000000000L)
++    {
++      ts.tv_sec++;
++      ts.tv_nsec -= 1000000000L;
++    }
++
++  ret = sem_timedwait(&dev->draw_sem, &ts);
++  if (ret < 0)
++    {
++      lcdwarn("lcd xfer wait timeout: %d", errno);
++      return -errno;
++    }
++
++  ret = dev->async_result;
++  dev->async_busy = false;
++  return ret;
+ }
+ 
+ 
+@@ -246,8 +342,6 @@ static void sf32lb_lcd_wrram(FAR struct sf32lb_lcd_dev_s *dev, FAR const uint8_t
+    		  && dev->p_drv_ops->p_ops->WriteMultiplePixels)
+    {
+        uint16_t new_x0, new_x1, new_y0, new_y1;
+-  size_t pixels;
+-  size_t xfer_bytes;
+ 
+        DEBUGASSERT((x0 <= x1) && (y0 <= y1));
+ 
+@@ -264,43 +358,11 @@ static void sf32lb_lcd_wrram(FAR struct sf32lb_lcd_dev_s *dev, FAR const uint8_t
+        DEBUGASSERT((new_x1 - new_x0 + 1) <= dev->p_drv_ops->lcd_horizonal_res);
+        DEBUGASSERT((new_y1 - new_y0 + 1) <= dev->p_drv_ops->lcd_vertical_res);
+ 
+-        /* Ensure DMA reads the latest pixel data from memory. */
+-
+-        pixels = (size_t)(new_x1 - new_x0 + 1) * (size_t)(new_y1 - new_y0 + 1);
+-        xfer_bytes = pixels * ((size_t)dev->bpp >> 3);
+-        if (buffer != NULL && xfer_bytes > 0)
+-        {
+-          up_clean_dcache((uintptr_t)buffer, (uintptr_t)buffer + xfer_bytes);
+-        }
+-       
+-        /* Drain stale completion tokens before starting a new transfer. */
+-        while (sem_trywait(&(dev->draw_sem)) == 0)
+-        {
+-        }
+-
+-        dev->hlcdc.XferCpltCallback = SendLayerDataCpltCbk;
+-        dev->hlcdc.XferErrorCallback = SendLayerDataErrCbk;
+-        dev->hlcdc.debug_cnt0++;
+-
+-
+-        dev->p_drv_ops->p_ops->WriteMultiplePixels(&dev->hlcdc, buffer, new_x0, new_y0, new_x1, new_y1);
+-        //enable_low_power(&drv_lcd);
+-        /* --------- Wait send complete (bounded wait) -----------------*/
+-        {
+-          struct timespec ts;
+-          clock_gettime(CLOCK_REALTIME, &ts);
+-          ts.tv_nsec += 200 * 1000 * 1000; /* 200ms */
+-          if (ts.tv_nsec >= 1000000000L)
+-          {
+-            ts.tv_sec += 1;
+-            ts.tv_nsec -= 1000000000L;
+-          }
+-
+-          if (sem_timedwait(&(dev->draw_sem), &ts) < 0)
++        if (sf32lb_lcd_start_xfer(dev, buffer, new_x0, new_y0,
++                                  new_x1, new_y1) == OK)
+           {
+-            lcdwarn("lcd xfer wait timeout: %d", errno);
++            sf32lb_lcd_wait_xfer(dev, 200);
+           }
+-        }
+ 
+    }
+ }
+@@ -403,12 +465,20 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
+   FAR struct sf32lb_lcd_dev_s *priv = (FAR struct sf32lb_lcd_dev_s *)dev;
+   size_t bytes_per_pixel;
+   size_t row_bytes;
++  struct timespec flush_t0;
++  bool flush_timed;
+ 
+   if (s_fb_registering || !s_lcd_hw_ready)
+     {
+       return OK;
+     }
+ 
++  /* 记录本帧起始时刻，函数尾部据此累计送屏耗时。
++   * 取不到时钟就跳过统计，不影响送屏本身。
++   */
++
++  flush_timed = (clock_gettime(CLOCK_MONOTONIC, &flush_t0) == 0);
++
+   bytes_per_pixel = priv->bpp >> 3;
+   row_bytes = (size_t)(col_end - col_start + 1) * bytes_per_pixel;
+ 
+@@ -458,7 +528,7 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
+   if ((size_t)stride == row_bytes)
+     {
+       fb_coord_t y = row_start;
+-      const fb_coord_t chunk_rows = 24;
++      const fb_coord_t chunk_rows = SF32LB_LCD_CHUNK_ROWS;
+ 
+       while (y <= row_end)
+         {
+@@ -495,6 +565,64 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
+ 
+   sf32lb_lcd_ensure_display_on(priv);
+ 
++  /* 送屏统计。累计窗口内的送屏耗时，满窗口打一行：
++   *
++   *   LCD_FLUSH: 52.3 calls/s  flush_avg=8ms  (window=5)
++   *
++   * flush_avg 是 putarea 自身的平均耗时（setarea + DMA + 等完成），
++   * rate 是 putarea 调用率。两者只用于定位驱动吞吐，端到端帧率应在
++   * LV_EVENT_REFR_READY 等刷新事务边界另行统计。
++   */
++
++  if (flush_timed)
++    {
++      static uint32_t flush_calls;
++      static uint64_t flush_total_us;
++      static struct timespec flush_win_start;
++      struct timespec now;
++
++      if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
++        {
++          flush_total_us +=
++            (uint64_t)(now.tv_sec - flush_t0.tv_sec) * 1000000 +
++            (now.tv_nsec - flush_t0.tv_nsec) / 1000;
++
++          if (flush_calls == 0)
++            {
++              flush_win_start = flush_t0;
++            }
++
++          if (++flush_calls >= SF32LB_LCD_FLUSH_WINDOW)
++            {
++              uint64_t win_us =
++                (uint64_t)(now.tv_sec - flush_win_start.tv_sec) * 1000000 +
++                (now.tv_nsec - flush_win_start.tv_nsec) / 1000;
++
++              if (win_us > 0)
++                {
++                  /* 定点计算调用率，避免为一行日志引入浮点格式化 */
++
++                  uint32_t rate_x10 =
++                    (uint32_t)((uint64_t)flush_calls * 10000000 / win_us);
++
++                  /* 用 _warn 而不是 lcdwarn：lcdwarn 受 CONFIG_DEBUG_LCD
++                   * 控制，本板没开，会被编成空宏。_warn 只依赖
++                   * CONFIG_DEBUG_WARN（已开）。
++                   */
++
++                  _warn("LCD_FLUSH: %" PRIu32 ".%" PRIu32
++                        " calls/s  flush_avg=%" PRIu32 "ms  (window=%d)\n",
++                        rate_x10 / 10, rate_x10 % 10,
++                        (uint32_t)(flush_total_us / flush_calls / 1000),
++                        SF32LB_LCD_FLUSH_WINDOW);
++                }
++
++              flush_calls = 0;
++              flush_total_us = 0;
++            }
++        }
++    }
++
+   return OK;
+ }
+ 
+@@ -717,6 +845,43 @@ static int sf32lb_lcd_getalignment(FAR struct lcd_dev_s *dev,
+     return OK;
+ }
+ 
++static int sf32lb_lcd_ioctl(FAR struct lcd_dev_s *dev, int cmd,
++                            unsigned long arg)
++{
++  FAR struct sf32lb_lcd_dev_s *priv =
++    (FAR struct sf32lb_lcd_dev_s *)dev;
++
++  if (cmd == LCDDEVIO_PUTAREA_ASYNC)
++    {
++      FAR struct lcddev_area_s *area = (FAR struct lcddev_area_s *)arg;
++      size_t row_bytes;
++
++      if (area == NULL || priv->bpp != 16)
++        {
++          return -EINVAL;
++        }
++
++      row_bytes = (size_t)(area->col_end - area->col_start + 1) * 2;
++      if ((size_t)area->stride != row_bytes)
++        {
++          return -ENOTSUP;
++        }
++
++      sf32lb_lcd_setarea(priv, area->col_start, area->row_start,
++                         area->col_end, area->row_end);
++      return sf32lb_lcd_start_xfer(priv, area->data,
++                                   area->col_start, area->row_start,
++                                   area->col_end, area->row_end);
++    }
++
++  if (cmd == LCDDEVIO_WAITAREA)
++    {
++      return sf32lb_lcd_wait_xfer(priv, arg > 0 ? (unsigned int)arg : 200);
++    }
++
++  return -ENOTTY;
++}
++
+ static int lcdc1_isr(int irq, void *context, void *arg)
+ {
+     HAL_LCDC_IRQHandler((LCDC_HandleTypeDef *)arg);
+@@ -783,8 +948,16 @@ static int lcd_init_thread_entry(int argc, FAR char *argv[])
+   bool lcd_registered = false;
+   int retry;
+ 
+-	BSP_LCD_PowerUp();
+-	
++  /* sftool and CH340 reset only the HCPU; the panel rails may remain on and
++   * retain a black/sleep state. Cycle the real board VSYS/3V3/VADD gates so
++   * software reset has the same deterministic panel state as USB unplug.
++   */
++
++  BSP_LCD_PowerDown();
++  usleep(100000);
++  BSP_LCD_PowerUp();
++  usleep(5000);
++
+ 	p_drv_ops = find_right_driver();
+ 
+ #ifdef CONFIG_LCD_USING_CO5300
+@@ -971,6 +1144,7 @@ struct lcd_dev_s *board_lcd_getdev(int devno)
+     g_lcd->getcontrast  = sf32lb_lcd_getcontrast;
+     g_lcd->setcontrast  = sf32lb_lcd_setcontrast;
+     g_lcd->getareaalign = sf32lb_lcd_getalignment;
++    g_lcd->ioctl        = sf32lb_lcd_ioctl;
+   #if 0
+   g_lcd = st7789_lcdinitialize(g_spidev);
+   if (!g_lcd)
+@@ -1003,4 +1177,3 @@ void board_lcd_uninitialize(void)
+     sem_destroy(&(s_drv_lcd.draw_sem));
+ 
+ }
+-
+diff --git a/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig b/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig
+index bca291d..a8935c5 100644
+--- a/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig
++++ b/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig
+@@ -21,7 +21,7 @@
+ # CONFIG_LIBUV_BACKEND_EPOLL is not set
+ CONFIG_ADC=y
+ CONFIG_ALLOW_BSD_COMPONENTS=y
+-CONFIG_ALLSYMS=y
++# CONFIG_ALLSYMS is not set
+ CONFIG_ANALOG=y
+ CONFIG_ARCH="arm"
+ CONFIG_ARCH_BOARD_CUSTOM=y
+@@ -59,14 +59,26 @@ CONFIG_BSP_USING_SPI=y
+ CONFIG_BSP_USING_TIM=y
+ CONFIG_BSP_USING_UART1=y
+ CONFIG_BSP_USING_UART2=y
++# VelaRide uses the ZBlue host API directly.  Do not enable the higher-level
++# Bluetooth Framework here: its libuv service loop is incompatible with
++# callbacks running from ZBlue's Zephyr-compatible system work queue.
++# CONFIG_BLUETOOTH is not set
+ CONFIG_BT=y
+ CONFIG_BT_CLASSIC=y
+ CONFIG_BT_DEVICE_NAME_DYNAMIC=y
+ CONFIG_BT_GATT_CLIENT=y
+ CONFIG_BT_GATT_DYNAMIC_DB=y
+ CONFIG_BT_H4=y
++CONFIG_BT_H4_NO_RESET=y
++# CONFIG_BT_MC_DEVICE_INST is not set
++CONFIG_BT_EXT_ADV=y
++CONFIG_BT_PERIPHERAL=y
++CONFIG_BT_MAX_CONN=1
++CONFIG_BT_UART_ON_DEV_NAME="/dev/ttyHCI0"
++CONFIG_BT_DEVICE_NAME="VelaRide"
+ CONFIG_BT_POWER_MODE_CONTROL=y
+ CONFIG_BT_PRIVACY=y
++# CONFIG_BT_CENTRAL is not set
+ CONFIG_BUILTIN=y
+ CONFIG_CANCELLATION_POINTS=y
+ CONFIG_CDCACM=y
+@@ -88,21 +100,7 @@ CONFIG_DRIVERS_VIDEO=y
+ CONFIG_DRIVERS_WIRELESS=y
+ CONFIG_ELF=y
+ CONFIG_ETC_ROMFS=y
+-CONFIG_EXAMPLES_ADC=y
+-CONFIG_EXAMPLES_ADC_SWTRIG=y
+-CONFIG_EXAMPLES_BUTTONS=y
+-CONFIG_EXAMPLES_BUTTONS_NAME0="PA43_KEY2"
+-CONFIG_EXAMPLES_BUTTONS_NAMES=y
+-CONFIG_EXAMPLES_BUTTONS_POLL=y
+-CONFIG_EXAMPLES_BUTTONS_QTD=1
+-CONFIG_EXAMPLES_FB=y
+-CONFIG_EXAMPLES_GPIO=y
+-CONFIG_EXAMPLES_HELLO=y
+-CONFIG_EXAMPLES_LSM6DSL_READER=y
+-CONFIG_EXAMPLES_LVGLDEMO=y
+-CONFIG_EXAMPLES_PWM=y
+-CONFIG_EXAMPLES_TIMER=y
+-CONFIG_EXAMPLES_WATCHDOG=y
++CONFIG_EXAMPLES_VELARIDE=y
+ CONFIG_FEATURE_FRAMEWORK=y
+ CONFIG_FS_FAT=y
+ CONFIG_FS_LARGEFILE=y
+@@ -125,6 +123,10 @@ CONFIG_INPUT_FT6146=y
+ CONFIG_INPUT_TOUCHSCREEN=y
+ CONFIG_INTERPRETERS_QUICKJS=y
+ CONFIG_KVDB=y
++CONFIG_KVDB_DIRECT=y
++CONFIG_KVDB_NVS=y
++CONFIG_KVDB_PERSIST_PATH="/dev/config0"
++CONFIG_KVDB_TEMPORARY_PATH="/data/kvdb"
+ CONFIG_LCD=y
+ CONFIG_LCD_DEV=y
+ CONFIG_LCD_FRAMEBUFFER=y
+@@ -148,9 +150,14 @@ CONFIG_LV_FONT_MONTSERRAT_48=y
+ CONFIG_LV_USE_CLIB_MALLOC=y
+ CONFIG_LV_USE_CLIB_SPRINTF=y
+ CONFIG_LV_USE_CLIB_STRING=y
+-CONFIG_LV_USE_DEMO_WIDGETS=y
+ CONFIG_LV_USE_FREETYPE=y
+ CONFIG_LV_USE_LIBPNG=y
++CONFIG_LV_NUTTX_LCD_BUFFER_SIZE=60
++CONFIG_LV_NUTTX_LCD_CUSTOM_BUFFER=y
++CONFIG_LV_NUTTX_LCD_PARTIAL_BUFFER_COUNT=2
++CONFIG_LV_NUTTX_LCD_STATIC_SRAM_BUFFER=y
++CONFIG_LV_NUTTX_VSYNC_TIMER_PERIOD=16
++CONFIG_LV_USE_DRAW_EPIC=y
+ CONFIG_LV_USE_LOG=y
+ CONFIG_LV_USE_NUTTX=y
+ CONFIG_LV_USE_NUTTX_LCD=y
+@@ -162,6 +169,10 @@ CONFIG_MMCSD=y
+ CONFIG_MM_REGIONS=2
+ CONFIG_MTD=y
+ CONFIG_MTD_BYTE_WRITE=y
++CONFIG_MTD_CONFIG_NVS=y
++CONFIG_MTD_CONFIG_NAMED=y
++CONFIG_MTD_CONFIG_NAME_LEN=32
++CONFIG_MTD_CONFIG_CACHE_SIZE=16
+ CONFIG_NET=y
+ CONFIG_NETDB_DNSCLIENT=y
+ CONFIG_NETDEV_IFINDEX=y
+@@ -179,10 +190,10 @@ CONFIG_PIPES=y
+ CONFIG_PROTOBUF_C=y
+ CONFIG_PWM=y
+ CONFIG_QUICKAPP=y
+-CONFIG_QUICKAPP_JSHEAPSIZE=1048576
+-CONFIG_QUICKAPP_JSSTACKSIZE=262144
++CONFIG_QUICKAPP_JSHEAPSIZE=4194304
++CONFIG_QUICKAPP_JSSTACKSIZE=524288
+ CONFIG_QUICKAPP_LOG_LEVEL=2
+-CONFIG_QUICKAPP_THREADSTACKSIZE=65536
++CONFIG_QUICKAPP_THREADSTACKSIZE=1048576
+ CONFIG_QUICKAPP_VAPP=y
+ CONFIG_RAW_BINARY=y
+ CONFIG_RR_INTERVAL=10
+@@ -209,9 +220,6 @@ CONFIG_SYSTEM_I2CTOOL=y
+ CONFIG_SYSTEM_NSH=y
+ CONFIG_SYSTEM_WORKQUEUE_NO_YIELD=y
+ CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE=32768
+-CONFIG_TESTING_MM=y
+-CONFIG_TESTING_OSTEST=y
+-CONFIG_TESTING_OSTEST_STACKSIZE=16384
+ CONFIG_TIMER=y
+ CONFIG_TIMER_ARCH=y
+ CONFIG_TLS_NCLEANUP=4
+@@ -220,6 +228,7 @@ CONFIG_TLS_TASK_NELEM=4
+ CONFIG_TOUCH_IRQ_PIN=41
+ CONFIG_UART_BAUD=1000000
+ CONFIG_UART_BUFSZ=1024
++CONFIG_UART_BTH4=y
+ CONFIG_UART_SERIAL_CONSOLE=y
+ CONFIG_UIKIT=y
+ CONFIG_UIKIT_FONT_LIB_PATH="/etc/data/"
+@@ -228,3 +237,7 @@ CONFIG_UTILS_CURL=y
+ CONFIG_VIDEO_FB=y
+ CONFIG_WATCHDOG=y
+ CONFIG_WIDGET_LOG_LEVEL=2
++CONFIG_EXAMPLES_AI_AGENT_VELA=y
++CONFIG_SYSTEM_SYSTEM=y
++CONFIG_LIBC_POPEN=y
++CONFIG_SYSTEM_POPEN=y
+diff --git a/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c b/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c
+index 52c2ea7..a51a353 100644
+--- a/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c
++++ b/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c
+@@ -7,6 +7,8 @@
+ 
+ #ifdef LCD_USING_CO5300
+     #define LCD_VADD_EN             (1)
++    #define LCD_VSYS_EN             (38)
++    #define LCD_VCC_3V3_EN          (26)
+ #endif
+ 
+ 
+@@ -19,20 +21,28 @@ void BSP_LCD_Reset(uint8_t high1_low0)
+ 
+ void BSP_LCD_PowerDown(void)
+ {
+-    // TODO: LCD power down
++    BSP_PIN_LCD();
+     BSP_GPIO_Set(LCD_RESET_PIN, 0, 1);
+ #ifdef LCD_USING_CO5300
+-    BSP_GPIO_Set(LCD_VADD_EN, 0, 1); //POwer down VADD EN
++    BSP_GPIO_Set(LCD_VADD_EN, 0, 1);
++    HAL_Delay_us(1000);
++    BSP_GPIO_Set(LCD_VCC_3V3_EN, 0, 1);
++    BSP_GPIO_Set(LCD_VSYS_EN, 0, 1);
+ #endif
+ }
+ 
+ void BSP_LCD_PowerUp(void)
+ {
+     BSP_PIN_LCD();
+-    HAL_Delay_us(500);      // lcd power on finish ,need 500us
+ 
+ #ifdef LCD_USING_CO5300
+-    BSP_GPIO_Set(LCD_VADD_EN, 1, 1); //POwer up VADD EN
++    BSP_GPIO_Set(LCD_RESET_PIN, 0, 1);
++    BSP_GPIO_Set(LCD_VSYS_EN, 1, 1);
++    HAL_Delay_us(5000);
++    BSP_GPIO_Set(LCD_VCC_3V3_EN, 1, 1);
++    HAL_Delay_us(5000);
++    BSP_GPIO_Set(LCD_VADD_EN, 1, 1);
++    HAL_Delay_us(5000);
+ #endif
+ }
+ 
+diff --git a/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS b/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS
+index 4a36786..9f983a1 100644
+--- a/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS
++++ b/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS
+@@ -1,2 +1,4 @@
+ sleep 3
+-vapp hap://app/com.application.lyra.demo &
++ai_agent &
++sleep 1
++velaride &
+diff --git a/chips/drivers/hal/bf0_hal.c b/chips/drivers/hal/bf0_hal.c
+index ef0cf5b..e0599b4 100644
+--- a/chips/drivers/hal/bf0_hal.c
++++ b/chips/drivers/hal/bf0_hal.c
+@@ -355,7 +355,8 @@ __weak uint32_t HAL_GetTick(void)
+     BNE     6 cycles
+ */
+ #define WAIT_US_LOOP_CYCLE 12
+-__weak void HAL_Delay_us_(__IO uint32_t us)
++__weak void __attribute__((section(".ramfunc")))
++HAL_Delay_us_(__IO uint32_t us)
+ {
+     //TODO: replaced by SystemCoreClock?
+     static uint32_t sysclk_m;
+@@ -394,7 +395,8 @@ __weak void HAL_Delay_us_(__IO uint32_t us)
+ }
+ 
+ // Use systick to get more accurate us level delay.
+-__weak void HAL_Delay_us2_(__IO uint32_t us)
++__weak void __attribute__((section(".ramfunc")))
++HAL_Delay_us2_(__IO uint32_t us)
+ {
+     uint32_t reload = SysTick->LOAD;
+     uint32_t told, tnow, tcnt = 0;
+@@ -424,7 +426,8 @@ __weak void HAL_Delay_us2_(__IO uint32_t us)
+ }
+ 
+ #define MAX_US_DELAY    10000
+-__weak void HAL_Delay_us(uint32_t us)
++__weak void __attribute__((section(".ramfunc")))
++HAL_Delay_us(uint32_t us)
+ {
+     uint32_t ticks;
+ 
+@@ -465,7 +468,8 @@ __weak void HAL_Delay_us(uint32_t us)
+   * @param Delay  specifies the delay time length, in milliseconds.
+   * @retval None
+   */
+-__weak void HAL_Delay(__IO uint32_t Delay)
++__weak void __attribute__((section(".ramfunc")))
++HAL_Delay(__IO uint32_t Delay)
+ {
+ #if 1
+     while (Delay > 0)
+@@ -596,4 +600,4 @@ __HAL_ROM_USED uint32_t HAL_GetLXTEnabled(void)
+ 
+ /**
+  * @} BF0_HAL_Driver
+- */
+\ No newline at end of file
++ */
+diff --git a/chips/sf32lb52/CMakeLists.txt b/chips/sf32lb52/CMakeLists.txt
+index d0195d9..58c7718 100644
+--- a/chips/sf32lb52/CMakeLists.txt
++++ b/chips/sf32lb52/CMakeLists.txt
+@@ -50,6 +50,12 @@ if(CONFIG_SF32LB52_USBDEV)
+     list(APPEND SRCS sf32lb_usbdev.c)
+ endif()
+ 
++# EPIC 2.5D GPU 驱动（LVGL EPIC draw unit 的底层）。
++# 驱动本身不依赖 LVGL，跟着 LV_USE_DRAW_EPIC 一起启用即可。
++if(CONFIG_LV_USE_DRAW_EPIC)
++    list(APPEND SRCS ${NUTTX_CHIP_ABS_DIR}/../drivers/epic/drv_epic.c)
++endif()
++
+ set(IPC_QUEUE_SRCS
+     ${NUTTX_CHIP_ABS_DIR}/ipc_queue/common/circular_buf.c
+     ${NUTTX_CHIP_ABS_DIR}/ipc_queue/common/ipc_hw.c
+@@ -98,6 +104,7 @@ target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/../drivers/cmsis/s
+ target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/../external/CMSIS/Include)
+ target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/../boards/include/config/sf32lb52x)
+ target_include_directories(arch PRIVATE ${NUTTX_BOARD_ABS_DIR}/include)
++target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/../drivers/epic)
+ target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/ipc_queue)
+ target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/ipc_queue/common)
+ target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/ipc_queue/porting/os/vela)
+diff --git a/chips/sf32lb52/sf32lb_flash.c b/chips/sf32lb52/sf32lb_flash.c
+index a1f17e9..42866fa 100644
+--- a/chips/sf32lb52/sf32lb_flash.c
++++ b/chips/sf32lb52/sf32lb_flash.c
+@@ -23,6 +23,9 @@
+ #include <nuttx/irq.h>
+ #include <nuttx/kmalloc.h>
+ #include <nuttx/mtd/mtd.h>
++#ifdef CONFIG_MTD_CONFIG_NAMED
++#  include <nuttx/mtd/configdata.h>
++#endif
+ #include <nuttx/mutex.h>
+ 
+ #include "register.h"
+@@ -40,6 +43,7 @@
+ #define SF32LB_NOR_ERASE_SIZE          QSPI_NOR_SECT_SIZE
+ #define SF32LB_NOR_PAGE_SHIFT          (12)
+ #define SF32LB_NOR_PAGE_SIZE           (1U << SF32LB_NOR_PAGE_SHIFT)
++#define SF32LB_NOR_PROGRAM_SIZE        (256U)
+ #define SF32LB_NOR_TOTAL_SIZE          (16U * 1024U * 1024U)
+ #define SF32LB_NOR_MIN_VALID_SIZE      (2U * 1024U * 1024U)
+ #define SF32LB_NOR_CLK_DIV             (2)
+@@ -192,6 +196,14 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+ 
+   hflash = &g_spi_nor_flash_ctx.handle;
+ 
++  /* Prime the RAM-resident delay helper while XIP is still fully readable.
++   * HAL_FLASH_PreInit is ROM code but calls HAL_Delay while switching the
++   * active QSPI controller.  The full delay call chain must stay in SRAM and
++   * must not query the XIP-resident RCC helpers after that switch begins.
++   */
++
++  HAL_Delay_us_(0);
++
+   memset(&g_spi_nor_flash_ctx, 0, sizeof(g_spi_nor_flash_ctx));
+   memset(&g_spi_nor_flash_dma_handle, 0, sizeof(g_spi_nor_flash_dma_handle));
+ 
+@@ -240,29 +252,15 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+   hflash->Mode = HAL_FLASH_QMODE;
+   HAL_FLASH_SET_QUAL_SPI(hflash, true);
+ 
+-  /* HAL_FLASH_PreInit sets hflash->dma = NULL but HAL_QSPIEX_WRITE_PAGE
+-   * requires DMA for reliable page-program operations.  Configure DMA
+-   * manually, mirroring what HAL_FLASH_Init would do.
++  /* HAL_FLASH_PreInit intentionally leaves DMA detached.  Keep it that way:
++   * HAL_QSPIEX_WRITE_PAGE then uses the vendor's synchronous FIFO polling
++   * path (WREN + FIFO + status polling).  A partially configured DMA handle
++   * can report completion without transferring bytes because the board's
++   * DMA clock/IRQ/callback setup normally lives in the full RT-Thread flash
++   * driver, which is not present in this NuttX runtime-preinit path.
+    */
+ 
+-#ifdef CONFIG_BSP_QSPI2_USING_DMA
+-  hflash->dma = &g_spi_nor_flash_dma_handle;
+-  hflash->dma->Instance                 = FLASH2_DMA_INSTANCE;
+-  hflash->dma->Init.Request             = FLASH2_DMA_REQUEST;
+-  hflash->dma->Init.Direction           = DMA_MEMORY_TO_PERIPH;
+-  hflash->dma->Init.PeriphInc           = DMA_PINC_DISABLE;
+-  hflash->dma->Init.MemInc              = DMA_MINC_ENABLE;
+-  hflash->dma->Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+-  hflash->dma->Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+-  hflash->dma->Init.Mode                = DMA_NORMAL;
+-  hflash->dma->Init.Priority            = DMA_PRIORITY_MEDIUM;
+-  hflash->dma->Init.BurstSize           = 1;
+-  HAL_FLASH_SET_TXSLOT(hflash, hflash->dma->Init.BurstSize);
+-
+-#else
+-  syslog(LOG_WARNING,
+-         "WARN: CONFIG_BSP_QSPI2_USING_DMA not enabled, NOR writes may fail\n");
+-#endif
++  hflash->dma = NULL;
+ 
+   /* Ensure NOR is writable -- clear status register protection bits. */
+ 
+@@ -1206,9 +1204,15 @@ static int sf32lb_nor_ioctl(FAR struct mtd_dev_s *dev, int cmd,
+                 }
+ 
+               memset(geo, 0, sizeof(*geo));
+-              geo->blocksize = SF32LB_NOR_PAGE_SIZE;
++              /* NOR page-program granularity is 256 B while sector erase is
++               * 4 KiB.  Reporting both as 4 KiB makes NVS align each ATE
++               * scratch buffer to 4 KiB and overflow the bring-up stack.
++               */
++
++              geo->blocksize = SF32LB_NOR_PROGRAM_SIZE;
+               geo->erasesize = SF32LB_NOR_PAGE_SIZE;
+               geo->neraseblocks = priv->nsectors;
++              sf32lb_flash_restore_ahb_read(priv->spi_flash_handle);
+               ret = OK;
+             }
+         }
+@@ -1240,6 +1244,7 @@ static int sf32lb_nor_ioctl(FAR struct mtd_dev_s *dev, int cmd,
+               info->sectorsize = SF32LB_NOR_PAGE_SIZE;
+               info->startsector = priv->offset;
+               info->parent[0] = '\0';
++              sf32lb_flash_restore_ahb_read(priv->spi_flash_handle);
+               ret = OK;
+             }
+         }
+@@ -1381,7 +1386,11 @@ int sf32lb_nor_automount(int minor, int block_offset, int block_count)
+           return -ENODEV;
+         }
+ 
++#ifdef CONFIG_MTD_CONFIG_NAMED
++      ret = mtdconfig_register_by_path(mtd, devname);
++#else
+       ret = register_mtddriver(devname, mtd, 0, mtd);
++#endif
+       if (ret < 0)
+         {
+           syslog(LOG_ERR, "ERROR: register_mtddriver(%s) failed: %d\n",
+diff --git a/chips/sf32lb52/sf32lb_rtc.c b/chips/sf32lb52/sf32lb_rtc.c
+index 5b237ec..dec3998 100644
+--- a/chips/sf32lb52/sf32lb_rtc.c
++++ b/chips/sf32lb52/sf32lb_rtc.c
+@@ -27,6 +27,7 @@
+ #include <assert.h>
+ #include <debug.h>
+ #include <errno.h>
++#include <inttypes.h>
+ #include <string.h>
+ #include <time.h>
+ 
+@@ -195,7 +196,24 @@ static int sf32lb_rdtime(FAR struct rtc_lowerhalf_s *lower,
+   rtctime->tm_mday = rtc_date.Date;
+   rtctime->tm_mon = rtc_date.Month - 1;
+   rtctime->tm_wday = rtc_date.WeekDay - 1;
+-  rtctime->tm_year = rtc_date.Year;
++  /* SiFli's RTC calendar stores a two-digit year plus a century flag,
++   * while struct tm stores years since 1900.  HAL_RTC_GetDate() may consume
++   * the century flag when reading years 2000..2069, so a returned 00..69
++   * must be mapped back to struct tm's 100..169 range.
++   */
++
++  if ((rtc_date.Year & RTC_CENTURY_BIT) != 0)
++    {
++      rtctime->tm_year = rtc_date.Year & ~RTC_CENTURY_BIT;
++    }
++  else if (rtc_date.Year < 70)
++    {
++      rtctime->tm_year = rtc_date.Year + 100;
++    }
++  else
++    {
++      rtctime->tm_year = rtc_date.Year;
++    }
+ 
+ #if defined(CONFIG_RTC_HIRES) || defined(CONFIG_ARCH_HAVE_RTC_SUBSECONDS)
+   rtctime->tm_nsec = rtc_time.SubSeconds * 1000000 / 256 * 1000;
+@@ -220,6 +238,14 @@ static int sf32lb_settime(FAR struct rtc_lowerhalf_s *lower,
+ 
+   rtc_date.Date = rtctime->tm_mday;
+   rtc_date.Month = rtctime->tm_mon + 1;
++  /* SiFli HAL accepts struct tm's 0..199 year range and encodes its
++   * century bit in date_2_reg(). */
++
++  if (rtctime->tm_year < 0 || rtctime->tm_year > 199)
++    {
++      return -ERANGE;
++    }
++
+   rtc_date.Year = rtctime->tm_year;
+   rtc_date.WeekDay = rtctime->tm_wday + 1;
+ 
+@@ -442,6 +468,8 @@ int up_rtc_getdatetime(FAR struct tm *tp)
+ 
+ int up_rtc_initialize(void)
+ {
++  uint32_t init_mode;
++
+   rtcinfo("RTC initialization\n");
+ 
+   g_rtc_lowerhalf.rtc_handler.Instance = hwp_rtc;
+@@ -450,11 +478,29 @@ int up_rtc_initialize(void)
+   g_rtc_lowerhalf.rtc_handler.Init.DivB = 0x100;
+   g_rtc_lowerhalf.rtc_handler.Init.HourFormat = RTC_HOURFORMAT_24;
+ 
+-  if (HAL_RTC_Init(&g_rtc_lowerhalf.rtc_handler, 0) != HAL_OK)
++  /* Follow SiFli's reference RTC driver: initialize the calendar only once.
++   * On subsequent software resets, RTC_INIT_SKIP preserves the running
++   * calendar instead of re-entering normal init mode and losing it.
++   */
++
++  if (SystemPowerOnModeGet() == PM_COLD_BOOT &&
++      HAL_Get_backup(RTC_BACKUP_INITIALIZED) == 0)
++    {
++      init_mode = RTC_INIT_NORMAL;
++    }
++  else
+     {
++      init_mode = RTC_INIT_SKIP;
++    }
++
++  if (HAL_RTC_Init(&g_rtc_lowerhalf.rtc_handler, init_mode) != HAL_OK)
++    {
++      _err("ERROR: HAL_RTC_Init failed (mode=%" PRIu32 ")\n", init_mode);
+       return -EIO;
+     }
+ 
++  HAL_Set_backup(RTC_BACKUP_INITIALIZED, 1);
++
+ #if defined(CONFIG_RTC_ALARM) || defined(CONFIG_RTC_PERIODIC)
+   irq_attach(RTC_IRQn + 16, sf32lb_alarm_callback, &g_rtc_lowerhalf);
+   up_enable_irq(RTC_IRQn + 16);

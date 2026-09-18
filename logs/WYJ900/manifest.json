@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "team_id": "contest2026_446_nandongtaxin",
+  "github_login": "WYJ900",
+  "generator": "claude-code-collector@1.3.0",
+  "updated_at": "2026-09-18T02:24:54.071Z",
+  "sessions": [
+    {
+      "session_id": "57252213-5f44-47d6-b9a9-fe38f3630594",
+      "tool": "claude-code",
+      "started_at": "2026-08-27T10:05:32.604Z",
+      "last_event_at": "2026-09-18T02:24:54.094Z",
+      "event_count": 1147,
+      "raw_event_count": 1884,
+      "file_path": "logs/WYJ900/2026-08-27/claude-code__57252213-5f44-47d6-b9a9-fe38f3630594.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "mimo-v2.5-pro",
+      "mimo_events": 438,
+      "assistant_events": 444
+    },
+    {
+      "session_id": "9056b532-03c5-44ba-8c3e-99de364553ee",
+      "tool": "claude-code",
+      "started_at": "2026-08-27T10:09:29.880Z",
+      "last_event_at": "2026-09-18T02:24:54.101Z",
+      "event_count": 343,
+      "raw_event_count": 597,
+      "file_path": "logs/WYJ900/2026-08-27/claude-code__9056b532-03c5-44ba-8c3e-99de364553ee.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "claude-opus-5",
+      "mimo_events": 62,
+      "assistant_events": 136
+    },
+    {
+      "session_id": "c598de9f-50b1-43e3-9643-0afb6782134d",
+      "tool": "claude-code",
+      "started_at": "2026-08-27T04:04:40.034Z",
+      "last_event_at": "2026-09-18T02:24:54.112Z",
+      "event_count": 749,
+      "raw_event_count": 1297,
+      "file_path": "logs/WYJ900/2026-08-27/claude-code__c598de9f-50b1-43e3-9643-0afb6782134d.jsonl",
+      "collection_mode": "cli",
+      "health": "ok",
+      "model": "<synthetic>",
+      "mimo_events": 259,
+      "assistant_events": 260
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_VELARIDE
+	tristate "VelaRide AI card flow (LVGL C)"
+	default n
+	depends on GRAPHICS_LVGL
+	depends on LV_USE_NUTTX_LIBUV
+	depends on LV_USE_NUTTX_TOUCHSCREEN
+	---help---
+		VelaRide AI 卡片流的 LVGL C 实现。
+
+		快应用版的 <swiper> 滑动由 JS 引擎驱动。本程序用 LVGL 原生滚动，
+		并通过 NuttX libuv poll 以事件驱动方式读取触摸设备；显示使用独立
+		16ms libuv 帧定时器，避开始终报告可写的 LCD fd poll。
+
+		做法照官方 watch_v9 的蜂窝菜单：LV_SCROLL_SNAP_CENTER 吸附 +
+		只允许竖向滚动。
+
+if EXAMPLES_VELARIDE
+
+config EXAMPLES_VELARIDE_PROGNAME
+	string "Program name"
+	default "velaride"
+
+config EXAMPLES_VELARIDE_PRIORITY
+	int "Task priority"
+	default 100
+
+config EXAMPLES_VELARIDE_STACKSIZE
+	int "Stack size"
+	default 40960
+	---help---
+		LVGL 要求可用栈至少 32768 字节。实际可用值比这里配的小
+		（任务结构本身占几百字节），配 32768 时实测只有 32664，
+		仍会报 "Stack size is too small"，所以留余量。
+
+endif

@@ -2,13 +2,14 @@
 
 存放你在开发中与 AI 工具的对话日志，和作品代码一并提交。
 
-> 本目录现在是**示例**，请替换成你自己导出的真实日志（删掉示例的 `your-github-login/` 目录）。
+> 本仓已删除官方示例日志。队员 GitHub 用户名为 `WYJ900`，正式日志只能由大赛
+> 官方采集工具导出，不得手工构造或修改 JSONL 内容。
 
 ## 目录结构
 
 ```text
 logs/
-└── <github_login>/              # 你的 GitHub 用户名，一人一目录
+└── WYJ900/                      # 报名时提交的 GitHub 用户名
     ├── manifest.json            # 会话清单
     └── <date>/                  # 日期 YYYY-MM-DD
         └── <tool>__<sid>.jsonl  # 一个会话一个文件（工具名与 session id 用 __ 连接）
