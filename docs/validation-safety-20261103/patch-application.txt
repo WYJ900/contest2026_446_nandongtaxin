@@ -1,0 +1,7 @@
+patching file velaride_ble.c
+Hunk #1 succeeded at 212 (offset -4 lines).
+Hunk #2 succeeded at 296 (offset -4 lines).
+Hunk #3 succeeded at 327 (offset -4 lines).
+patching file velaride_ride_session.c
+patching file velaride_ride_session.h
+patching file velaride_sport_ui.c

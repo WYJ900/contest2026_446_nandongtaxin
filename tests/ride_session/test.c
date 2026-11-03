@@ -203,6 +203,8 @@ static void test_recent_impact_and_priority(void)
   feed(20, false);
   assert(g_ride.state.alert == VELARIDE_ALERT_IMPACT);
   velaride_ride_session_ack_alert();
+  assert(g_ride.state.alert == VELARIDE_ALERT_IMPACT);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_OK) == 0);
   assert(g_ride.state.alert == VELARIDE_ALERT_NONE);
 }
 
@@ -443,6 +445,105 @@ static void test_v1_record_migration(void)
   assert(velaride_ride_session_load_latest(&loaded) == -EBADMSG);
 }
 
+static void test_safety_choices_and_timeout(void)
+{
+  struct velaride_ride_record_s record;
+  struct velaride_ride_record_s loaded;
+
+  assert(sizeof(struct ride_record_disk_s) * 2 <= 255);
+  begin(0);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_HELP) == -EALREADY);
+  impact();
+  feed(3, false);
+  assert(g_ride.state.safety.checks == 1 && g_ride.state.safety_remaining_s == 30);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_UNANSWERED) == -EINVAL);
+  feed(30, false);
+  assert(g_ride.state.alert == VELARIDE_ALERT_IMPACT && g_ride.state.active);
+  assert(!g_ride.state.paused && g_ride.state.safety.unanswered == 1);
+  feed(30, false);
+  assert(g_ride.state.safety.unanswered == 1 && g_ride.state.safety.help == 0);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_OK) == 0);
+  assert(g_ride.state.safety.confirmed == 1 && !g_ride.state.paused);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_OK) == -EALREADY);
+
+  sample.x_data = 0;
+  impact(); /* Change the reading to create a fresh impact. */
+  sample.x_data = 0;
+  velaride_ride_session_sensor_tick();
+  feed(3, false);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_PAUSE) == 0);
+  assert(g_ride.state.paused && g_ride.state.safety.pauses == 1);
+  velaride_ride_session_set_paused(false);
+  feed(3, true);
+  sample.x_data = 1000;
+  velaride_ride_session_sensor_tick();
+  feed(3, false);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_HELP) == 0);
+  assert(g_ride.state.paused && g_ride.state.safety.help == 1);
+  assert(g_ride.state.safety.last_action == VELARIDE_SAFETY_HELP);
+  assert(velaride_ride_session_finish(&record) == 0);
+  memset(&g_ride.state, 0, sizeof(g_ride.state));
+  assert(velaride_ride_session_load_latest(&loaded) == 0);
+  assert(loaded.safety.version == 1 && loaded.safety.checks == 3);
+  assert(loaded.safety.confirmed == 1 && loaded.safety.pauses == 1);
+  assert(loaded.safety.help == 1 && loaded.safety.unanswered == 1);
+  assert(loaded.safety.last_elapsed_s <= loaded.elapsed_s);
+
+  begin(0);
+  impact(); feed(3, false);
+  assert(velaride_ride_session_finish(&record) == 0);
+  assert(record.safety.unanswered == 1);
+  assert(record.safety.last_action == VELARIDE_SAFETY_UNANSWERED);
+  velaride_ride_session_start();
+  assert(g_ride.state.safety.checks == 0 && g_ride.state.safety_remaining_s == 0);
+
+  /* No wrap or impossible sums after the 16-bit recording limit. */
+  begin(0);
+  g_ride.state.safety.checks = UINT16_MAX;
+  g_ride.state.safety.confirmed = UINT16_MAX;
+  impact(); feed(3, false);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_HELP) == 0);
+  assert(g_ride.state.safety.checks == UINT16_MAX && g_ride.state.safety.help == 0);
+
+  begin(0);
+  impact(); feed(3, false);
+  velaride_ride_session_set_paused(true);
+  feed(30, false);
+  assert(g_ride.state.safety.unanswered == 1 && g_ride.state.alert == VELARIDE_ALERT_IMPACT);
+  assert(g_ride.state.elapsed_s == 3);
+  assert(velaride_ride_session_respond_safety(VELARIDE_SAFETY_PAUSE) == 0);
+  assert(g_ride.state.pause_count == 1);
+  assert(velaride_ride_session_finish(&record) == 0);
+  record.safety.version = 0;
+  assert(velaride_ride_session_save_record(&record) == -EINVAL);
+  record.safety.version = 1;
+  record.safety.help = 2;
+  assert(velaride_ride_session_save_record(&record) == -EINVAL);
+}
+
+static void test_v2_record_migration(void)
+{
+  struct ride_record_disk_v2_s old;
+  struct velaride_ride_record_s loaded;
+  unsigned char before[sizeof(old)];
+  begin(0);
+  memset(&old, 0, sizeof(old));
+  old.magic = RIDE_RECORD_MAGIC; old.version = 2; old.size = sizeof(old);
+  old.record.sequence = 12; old.record.elapsed_s = 60;
+  old.record.gps.time_ms = 10000; old.record.gps.distance_m = 50;
+  old.record.gps.avg_speed_centi = 1800; old.record.gps.max_speed_centi = 2000;
+  old.crc32 = ride_crc32(&old, offsetof(struct ride_record_disk_v2_s, crc32));
+  assert(property_set_buffer(RIDE_RECORD_KEY, &old, sizeof(old)) == 0);
+  assert(velaride_ride_session_load_latest(&loaded) == 0);
+  assert(loaded.sequence == 12 && loaded.gps.distance_m == 50);
+  assert(loaded.safety.version == 0 && loaded.safety.checks == 0);
+  assert(property_get_buffer(RIDE_RECORD_KEY, before, sizeof(before)) == sizeof(old));
+  assert(memcmp(before, &old, sizeof(old)) == 0);
+  old.crc32 ^= 1;
+  assert(property_set_buffer(RIDE_RECORD_KEY, &old, sizeof(old)) == 0);
+  assert(velaride_ride_session_load_latest(&loaded) == -EBADMSG);
+}
+
 int main(void)
 {
   test_goal_and_pause();
@@ -457,6 +558,8 @@ int main(void)
   test_phone_pair_consistency();
   test_ride_gps_accounting();
   test_v1_record_migration();
-  puts("PASS: 12 ride-session scenarios including per-ride GPS boundaries, V1 migration, V2 roundtrip and concurrent phone snapshots");
+  test_safety_choices_and_timeout();
+  test_v2_record_migration();
+  puts("PASS: 14 ride-session scenarios including safety choices, timeout, V1/V2 migration, V3 roundtrip, GPS and concurrency");
   return 0;
 }

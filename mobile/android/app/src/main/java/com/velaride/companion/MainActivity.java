@@ -87,7 +87,8 @@ public final class MainActivity extends Activity {
                             store.getLong("synced_at", 0), "");
                     boolean alreadySaved = false;
                     for (RideHistory.Entry saved : history.snapshot()) if (saved.sameRide(migrated)) {
-                        alreadySaved = !migrated.gps.available() || saved.gps.available(); break;
+                        alreadySaved = (!migrated.gps.available() || saved.gps.available())
+                                && (!migrated.safety.available() || saved.safety.available()); break;
                     }
                     if (!alreadySaved) worker.execute(() -> {
                         String failure = null;
@@ -243,7 +244,11 @@ public final class MainActivity extends Activity {
         JSONObject response = ask(epoch, json("ride_status"), "ride_status");
         String summary = response.optBoolean("active") ?
                 (response.optBoolean("paused") ? "骑行暂停中" : "正在骑行") + " · " + time(response.optLong("elapsed_s")) : "手表待机中 · 时间已同步";
-        main.post(() -> { if (epoch == session) live.setText(summary); });
+        if (response.optBoolean("safety_pending")) summary += "\n手表正在等待安全确认，请在腕上处理。";
+        else if (response.optBoolean("active") && response.optInt("safety_last_action") == 3)
+            summary += "\n已记录求助意向，尚未发送消息；请使用手机联系他人。";
+        final String display = summary;
+        main.post(() -> { if (epoch == session) live.setText(display); });
     }
     private void readLatest(long epoch) throws Exception {
         String device = store.getString("watch_address", "legacy-unknown");
@@ -263,7 +268,7 @@ public final class MainActivity extends Activity {
         moving.setText("运动时间  " + time(record.optLong("moving_s")));
         recordDetail.setText("暂停  " + record.optInt("pause_count") + " 次    休息提醒  " + record.optInt("rest_count") + " 次\n"
                 + "静止  " + time(record.optLong("still_s")) + "    冲击提醒  " + record.optInt("impacts") + " 次\n"
-                + rideGpsText(parseRideGps(record)));
+                + rideGpsText(parseRideGps(record)) + "\n\n" + parseRideSafety(record).summary());
         cachedLabel.setText((cached ? "手机已保存" : "刚刚同步") + " · 第 " + record.optLong("sequence") + " 次记录");
         updateButtons();
         showHistorySummary();
@@ -279,6 +284,8 @@ public final class MainActivity extends Activity {
         if (record.getLong("moving_s") + record.getLong("still_s") > record.getLong("elapsed_s"))
             throw new IOException("手表记录时长不一致，请重新同步");
         parseRideGps(record);
+        RideSafety safety = parseRideSafety(record);
+        if (safety.lastElapsed > record.getLong("elapsed_s")) throw new IOException("安全确认时间异常");
     }
     private static String time(long seconds) {
         return String.format(Locale.ROOT, "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60);
@@ -287,7 +294,24 @@ public final class MainActivity extends Activity {
         if (device.isEmpty()) device = "legacy-unknown";
         return new RideHistory.Entry(device, record.optLong("sequence"), record.optLong("elapsed_s"),
                 record.optLong("moving_s"), record.optLong("still_s"), record.optLong("pause_count"),
-                record.optLong("rest_count"), record.optLong("impacts"), syncedAt, syncedAt, memo, parseRideGps(record));
+                record.optLong("rest_count"), record.optLong("impacts"), syncedAt, syncedAt, memo,
+                parseRideGps(record), parseRideSafety(record));
+    }
+    private RideSafety parseRideSafety(JSONObject record) {
+        String[] keys = {"safety_version", "safety_checks", "safety_confirmed", "safety_pauses", "safety_help",
+                "safety_unanswered", "safety_last_action", "safety_last_elapsed_s"};
+        boolean any = false; for (String key : keys) any |= record.has(key);
+        if (!any) return RideSafety.NONE;
+        long[] values = new long[keys.length];
+        for (int i = 0; i < keys.length; i++) {
+            Object value = record.opt(keys[i]);
+            if (!(value instanceof Number)) throw new IllegalArgumentException("安全确认字段不完整");
+            double number = ((Number)value).doubleValue();
+            if (!Double.isFinite(number) || number < 0 || number > 4294967295.0 || number != Math.rint(number))
+                throw new IllegalArgumentException("安全确认数值异常");
+            values[i] = ((Number)value).longValue();
+        }
+        return new RideSafety(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7]);
     }
     private RideGps parseRideGps(JSONObject record) {
         String[] keys = {"gps_time_ms", "gps_distance_m", "gps_avg_centi", "gps_max_centi"};
@@ -345,6 +369,7 @@ public final class MainActivity extends Activity {
                 + " 次\n\n首次同步  " + syncDate(entry.firstSync) + "\n最近同步  " + syncDate(entry.lastSync)
                 + "\n同步时间不代表骑行发生时间。"
                 + "\n\n" + rideGpsText(entry.gps)
+                + "\n\n" + entry.safety.summary()
                 + (entry.note.isEmpty() ? "" : "\n\n已回传的备注\n" + entry.note);
     }
     private void showHistoryDetail(RideHistory.Entry entry) {

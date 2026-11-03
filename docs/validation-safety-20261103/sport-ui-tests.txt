@@ -1,0 +1,1 @@
+PASS: ride flow (goal presets, countdown cancel, real swipes between three views, lock, real hold to end), alerts, summary scroll, night light, stopwatch, level, empty state, save retry

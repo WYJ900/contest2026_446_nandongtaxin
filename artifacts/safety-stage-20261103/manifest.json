@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-03",
+  "checkpoint_commit": "7f16229",
+  "checkpoint_tag": "checkpoint-before-safety-20261103",
+  "parent_firmware_sha256": "9041c538529b46f3419c06f46bf70cfdd2570c0d20a58f704b31f9b147f7c0ef",
+  "firmware_sha256": "9308cce7e800daea6c5bd512306d2c3271b013b7d930c7980d8be27f2383c410",
+  "firmware_bytes": 9768744,
+  "application_space_remaining_bytes": 258264,
+  "apk_version": "0.1.5",
+  "apk_sha256": "4ce90606d2b489afb70a1c6dad6cefcd48cfeec5f5f0d9452f06cf3d255af4e8",
+  "passed": {
+    "firmware_build": true,
+    "unchanged_parent_config": true,
+    "ride_scenarios_asan_ubsan": 14,
+    "actual_stage_lvgl_asan_ubsan": true,
+    "lvgl_render_visually_checked": true,
+    "actual_ble_format_and_max_size": true,
+    "android_wire_handshake_gps_history": true,
+    "independent_v1_v2_migration": true,
+    "v3_roundtrip_and_csv": true,
+    "apk_signature_valid_and_same_signer_as_014": true
+  },
+  "hardware_operations_performed": false,
+  "candidate_installed": false,
+  "phone_candidate_installed": false,
+  "audio_playback_performed": false,
+  "synthetic_device_ride_written": false,
+  "pending": [
+    "User physical validation of original GPS candidate",
+    "Safety candidate installation after that checkpoint",
+    "Physical UI and baseline regression",
+    "Safe sensor-trigger validation and false positives",
+    "New V3 record reboot persistence and Android 0.1.5 sync/export on phone"
+  ],
+  "limitations": [
+    "Help is intent only; no external message, call or background listener",
+    "Summary counts, not a complete event timeline",
+    "Current ride not recoverable after reboot before finish",
+    "Phone GPS remains foreground-only",
+    "Old firmware/APK cannot read newly saved V3/VRH3 data",
+    "Not a verified clean full-source reproducible build"
+  ],
+  "files": {
+    "android-0.1.5-source.zip": "d04dad6b0b09e43dc9c1ad172d19385f9609e62ef9d0788a9ac28e8cb02af1b5",
+    "app-source.tar.gz": "151d6d524f9eca3251d946a693484d0aa1b15169bc0174999e49a2cd61b2c753",
+    "build_safety_stage.sh": "378677db1a27497ce8264a9982e1a096cea9e901177834afedf39863888eeb6d",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "firmware.bin": "9308cce7e800daea6c5bd512306d2c3271b013b7d930c7980d8be27f2383c410",
+    "package_safety_stage.py": "8bf626f37cbfefe7ef8e385f795a24617b4cd825534ddb1b39a7c018d2ad5487",
+    "safety.patch": "a41550105f5ae5922ce2e0aa838eeb62f2fe3affa11816d64da98155276b8884",
+    "test_safety_stage_ui.sh": "1f771951f07c1f2d8aec7e83b717f7880c3ad9663fbea200866f682ba66187e2",
+    "validation-source.zip": "5761a04ac708c9eb4759c7ce5e396522d6bdf088bb9178022dc267d99834f6be",
+    "VelaRide-0.1.5-debug.apk": "4ce90606d2b489afb70a1c6dad6cefcd48cfeec5f5f0d9452f06cf3d255af4e8"
+  }
+}

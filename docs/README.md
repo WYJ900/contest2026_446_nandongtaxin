@@ -1,6 +1,8 @@
 # VelaRide AI 文档索引
 
-- **[2026-11-01 每次骑行 GPS 统计与安卓 0.1.4（最新，先读）](HANDOFF_RIDE_GPS_20261101.md)**
+- **[2026-11-03 安全确认候选与安卓 0.1.5（已构建，未刷入）](HANDOFF_SAFETY_20261103.md)**
+- [开发前 Git 检查点](CHECKPOINT_BEFORE_SAFETY_20261103.md)
+- **[2026-11-01 每次骑行 GPS 统计与安卓 0.1.4（手表保留此版，用户待测）](HANDOFF_RIDE_GPS_20261101.md)**
 - [2026-11-01 GPS 页面遗漏修正（用户已确认基本功能）](HANDOFF_PHONE_GPS_UI_20261101.md)
 - [2026-11-01 手机 GPS 与安卓 0.1.3](HANDOFF_PHONE_GPS_20261101.md)
 - [2026-10-28 安卓 0.1.2：骑行历史与导出](HANDOFF_ANDROID_20261028.md)

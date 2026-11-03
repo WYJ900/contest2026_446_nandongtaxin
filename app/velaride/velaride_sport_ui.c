@@ -68,6 +68,8 @@ enum sport_page_e
   SPORT_PAGE_ACTIVE,
   SPORT_PAGE_CONFIRM,
   SPORT_PAGE_ALERT,
+  SPORT_PAGE_HELP_CONFIRM,
+  SPORT_PAGE_HELP_RESULT,
   SPORT_PAGE_GOAL_DONE,
   SPORT_PAGE_REVIEW,
   SPORT_PAGE_INFO,
@@ -106,6 +108,7 @@ struct sport_ui_s
   lv_obj_t *scroll;
   lv_obj_t *review_card;
   lv_obj_t *review_button;
+  lv_obj_t *safety_status;
   lv_timer_t *hold_timer;
   uint32_t hold_start;
   float heading;
@@ -322,6 +325,7 @@ static void clear_page_state(enum sport_page_e page)
   g_sport.scroll = NULL;
   g_sport.review_card = NULL;
   g_sport.review_button = NULL;
+  g_sport.safety_status = NULL;
   lv_obj_set_style_bg_color(g_sport.root, lv_color_hex(BG_COLOR), 0);
   lv_obj_set_style_bg_grad_dir(g_sport.root, LV_GRAD_DIR_NONE, 0);
 }
@@ -995,11 +999,24 @@ static void root_gesture_cb(lv_event_t *event)
 static void alert_cb(lv_event_t *event)
 {
   intptr_t action = (intptr_t)lv_event_get_user_data(event);
+  struct velaride_ride_snapshot_s ride;
 
-  velaride_ride_session_ack_alert();
-  if (action == 1)
+  velaride_ride_session_get(&ride);
+  if (ride.alert == VELARIDE_ALERT_IMPACT)
     {
-      velaride_ride_session_set_paused(true);
+      if (velaride_ride_session_respond_safety(action == 1 ?
+            VELARIDE_SAFETY_PAUSE : VELARIDE_SAFETY_OK) < 0)
+        {
+          return;
+        }
+    }
+  else
+    {
+      velaride_ride_session_ack_alert();
+      if (action == 1)
+        {
+          velaride_ride_session_set_paused(true);
+        }
     }
 
   g_sport.ride_view = RIDE_VIEW_DATA;
@@ -1034,6 +1051,58 @@ static void alert_page(enum sport_page_e page, uint32_t tint, uint32_t color,
         30, 198, SPORT_W - 60);
 }
 
+static void update_safety_status(void)
+{
+  struct velaride_ride_snapshot_s ride;
+  char text[96];
+
+  if (g_sport.safety_status == NULL) return;
+  velaride_ride_session_get(&ride);
+  if (ride.safety_remaining_s > 0)
+    {
+      snprintf(text, sizeof(text), "请确认安全  %u s", ride.safety_remaining_s);
+    }
+  else
+    {
+      snprintf(text, sizeof(text), "尚未确认，不会自动求助");
+    }
+  set_label(g_sport.safety_status, text);
+}
+
+static void safety_help_cb(lv_event_t *event)
+{
+  intptr_t action = (intptr_t)lv_event_get_user_data(event);
+
+  if (action == 1)
+    {
+      if (velaride_ride_session_respond_safety(VELARIDE_SAFETY_HELP) < 0)
+        {
+          return;
+        }
+      alert_page(SPORT_PAGE_HELP_RESULT, 0x3b0d0a, VR_DANGER,
+                 VR_ICON_SAFETY, "!", "请求已记录",
+                 "尚未发送求助消息\n请使用手机联系他人");
+      pill("返回骑行", BTN_SECONDARY, 330, safety_help_cb, 3);
+    }
+  else if (action == 2)
+    {
+      show_alert(VELARIDE_ALERT_IMPACT);
+    }
+  else if (action == 3)
+    {
+      g_sport.ride_view = RIDE_VIEW_DATA;
+      show_active();
+    }
+  else
+    {
+      alert_page(SPORT_PAGE_HELP_CONFIRM, 0x3b0d0a, VR_DANGER,
+                 VR_ICON_SAFETY, "!", "需要帮助？",
+                 "这里只记录请求，不会发送消息\n确认后暂停骑行");
+      pill("确认并暂停", BTN_DANGER, 280, safety_help_cb, 1);
+      pill("返回确认", BTN_SECONDARY, 356, safety_help_cb, 2);
+    }
+}
+
 static void show_alert(enum velaride_alert_e alert)
 {
   g_sport.locked = false;
@@ -1041,12 +1110,18 @@ static void show_alert(enum velaride_alert_e alert)
   if (alert == VELARIDE_ALERT_IMPACT)
     {
       alert_page(SPORT_PAGE_ALERT, 0x3b0d0a, VR_DANGER, VR_ICON_SAFETY, "!",
-                 "检测到剧烈冲击", "你还好吗？");
-      lv_obj_t *ok = pill("我没事", BTN_SECONDARY, 280, alert_cb, 0);
+                 "安全确认", "冲击后持续静止，你还好吗？");
+      g_sport.safety_status = label(g_sport.root, "", VR_WARN,
+                                    &velaride_font_cn_20, 20, 226, 350);
+      update_safety_status();
+      lv_obj_t *ok = button("我没事", BTN_SECONDARY, 30, 264,
+                            SPORT_W - 60, 50, alert_cb, 0);
       lv_obj_set_style_bg_color(ok, lv_color_white(), 0);
       lv_obj_set_style_text_color(lv_obj_get_child(ok, 0),
                                   lv_color_black(), 0);
-      pill("暂停记录", BTN_DANGER, 356, alert_cb, 1);
+      button("暂停休息", BTN_WARN, 30, 322, SPORT_W - 60, 50, alert_cb, 1);
+      button("需要帮助", BTN_DANGER, 30, 380, SPORT_W - 60, 50,
+             safety_help_cb, 0);
     }
   else if (alert == VELARIDE_ALERT_STILL)
     {
@@ -1427,6 +1502,26 @@ static void show_review(void)
   else
     {
       left_label(scroll, "GPS  --", MUTED_COLOR,
+                 &velaride_font_cn_20, 40, y);
+      y += 40;
+    }
+
+  if (rec->safety.version == 1)
+    {
+      snprintf(text, sizeof(text), "安全确认 %u / 我没事 %u",
+               rec->safety.checks, rec->safety.confirmed);
+      left_label(scroll, text, ACCENT_COLOR, &velaride_font_cn_20, 40, y);
+      snprintf(text, sizeof(text), "暂停休息 %u / 求助意向 %u",
+               rec->safety.pauses, rec->safety.help);
+      left_label(scroll, text, TEXT_COLOR, &velaride_font_cn_20, 40, y + 30);
+      snprintf(text, sizeof(text), "未及时确认 %u（不代表已求助）",
+               rec->safety.unanswered);
+      left_label(scroll, text, MUTED_COLOR, &velaride_font_cn_20, 40, y + 60);
+      y += 100;
+    }
+  else
+    {
+      left_label(scroll, "安全确认 --（旧记录）", MUTED_COLOR,
                  &velaride_font_cn_20, 40, y);
       y += 40;
     }
@@ -2633,7 +2728,8 @@ static void update_info(void)
     {
       snprintf(text, sizeof(text), "本地提醒无需联网\n\n"
                "冲击后短时持续静止\n连续静止 15 秒\n累计运动 45 分钟\n\n"
-               "收到提醒后，可选择我没事或暂停记录。这里只提醒，不会自动求救。");
+               "收到冲击提醒后请确认安全。30 秒未确认会记录，提醒继续保留。\n"
+               "求助只记录意向并暂停，不会发送消息。");
     }
   else
     {
@@ -2675,6 +2771,11 @@ static void session_timer_cb(lv_timer_t *timer)
 
   velaride_ride_session_second_tick();
   velaride_ride_session_get(&ride);
+  if (g_sport.page == SPORT_PAGE_ALERT &&
+      ride.alert == VELARIDE_ALERT_IMPACT)
+    {
+      update_safety_status();
+    }
   if (ride.alert != VELARIDE_ALERT_NONE &&
       (g_sport.page == SPORT_PAGE_ACTIVE ||
        g_sport.page == SPORT_PAGE_GOAL_DONE ||
@@ -2733,8 +2834,20 @@ void velaride_sport_ui_back(void)
         show_active();
         break;
       case SPORT_PAGE_ALERT:
+        {
+          struct velaride_ride_snapshot_s ride;
+
+          velaride_ride_session_get(&ride);
+          if (ride.alert == VELARIDE_ALERT_IMPACT) break;
+        }
         velaride_ride_session_ack_alert();
         g_sport.ride_view = RIDE_VIEW_DATA;
+        show_active();
+        break;
+      case SPORT_PAGE_HELP_CONFIRM:
+        show_alert(VELARIDE_ALERT_IMPACT);
+        break;
+      case SPORT_PAGE_HELP_RESULT:
         show_active();
         break;
       case SPORT_PAGE_INFO:

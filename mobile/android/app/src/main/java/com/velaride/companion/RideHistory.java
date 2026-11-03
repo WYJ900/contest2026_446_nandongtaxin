@@ -8,7 +8,7 @@ import java.util.zip.CRC32;
 /** Phone-owned history. No fabricated ride date, GPS or watch identity. */
 public final class RideHistory {
     public static final int MAX_RECORDS = 5000, MAX_BYTES = 4 * 1024 * 1024;
-    private static final int MAGIC_V1 = 0x56524831, MAGIC = 0x56524832;
+    private static final int MAGIC_V1 = 0x56524831, MAGIC_V2 = 0x56524832, MAGIC = 0x56524833;
     public interface Storage {
         byte[] read() throws IOException; // null means absent, not unreadable
         void write(byte[] data) throws IOException; // commit atomically or throw
@@ -17,12 +17,18 @@ public final class RideHistory {
         public final String device, note;
         public final long sequence, elapsed, moving, still, pauses, rests, impacts, firstSync, lastSync;
         public final RideGps gps;
+        public final RideSafety safety;
         public Entry(String device, long sequence, long elapsed, long moving, long still,
                      long pauses, long rests, long impacts, long firstSync, long lastSync, String note) {
             this(device, sequence, elapsed, moving, still, pauses, rests, impacts, firstSync, lastSync, note, RideGps.NONE);
         }
         public Entry(String device, long sequence, long elapsed, long moving, long still,
                      long pauses, long rests, long impacts, long firstSync, long lastSync, String note, RideGps gps) {
+            this(device, sequence, elapsed, moving, still, pauses, rests, impacts, firstSync, lastSync, note, gps, RideSafety.NONE);
+        }
+        public Entry(String device, long sequence, long elapsed, long moving, long still,
+                     long pauses, long rests, long impacts, long firstSync, long lastSync, String note,
+                     RideGps gps, RideSafety safety) {
             if (device == null || device.isEmpty() || device.length() > 64 || note == null
                     || note.getBytes(StandardCharsets.UTF_8).length > 1024 || firstSync < 0 || lastSync < firstSync)
                 throw new IllegalArgumentException("骑行历史字段异常");
@@ -32,10 +38,12 @@ public final class RideHistory {
             this.device = device; this.sequence = sequence; this.elapsed = elapsed; this.moving = moving;
             this.still = still; this.pauses = pauses; this.rests = rests; this.impacts = impacts;
             if (gps == null) throw new IllegalArgumentException("骑行 GPS 数据缺失");
+            if (safety == null || safety.lastElapsed > elapsed) throw new IllegalArgumentException("安全确认时间异常");
+            this.safety = safety;
             this.firstSync = firstSync; this.lastSync = lastSync; this.note = note; this.gps = gps;
         }
         public Entry withNote(String value) {
-            return new Entry(device, sequence, elapsed, moving, still, pauses, rests, impacts, firstSync, lastSync, value, gps);
+            return new Entry(device, sequence, elapsed, moving, still, pauses, rests, impacts, firstSync, lastSync, value, gps, safety);
         }
         // Sequence can restart after a factory reset. Keep different summaries with the same number.
         public boolean sameRide(Entry other) {
@@ -60,7 +68,8 @@ public final class RideHistory {
             incoming = new Entry(old.device, old.sequence, old.elapsed, old.moving, old.still,
                     old.pauses, old.rests, old.impacts, old.firstSync == 0 ? incoming.firstSync : old.firstSync,
                     Math.max(old.lastSync, incoming.lastSync), incoming.note.isEmpty() ? old.note : incoming.note,
-                    incoming.gps.available() ? incoming.gps : old.gps);
+                    incoming.gps.available() ? incoming.gps : old.gps,
+                    incoming.safety.available() ? incoming.safety : old.safety);
             next.remove(i); break;
         }
         if (next.size() >= MAX_RECORDS) throw new IOException("历史已达 5000 条，暂不能新增；可导出备份，已有记录仍可查看。");
@@ -80,6 +89,8 @@ public final class RideHistory {
             out.writeUTF(e.note);
             out.writeLong(e.gps.timeMs); out.writeLong(e.gps.distanceM);
             out.writeLong(e.gps.avgCenti); out.writeLong(e.gps.maxCenti);
+            for (long value : new long[]{e.safety.version, e.safety.checks, e.safety.confirmed, e.safety.pauses,
+                    e.safety.help, e.safety.unanswered, e.safety.lastAction, e.safety.lastElapsed}) out.writeLong(value);
         }
         out.flush(); CRC32 crc = new CRC32(); crc.update(bytes.toByteArray()); out.writeLong(crc.getValue());
         byte[] result = bytes.toByteArray();
@@ -91,7 +102,7 @@ public final class RideHistory {
         CRC32 crc = new CRC32(); crc.update(bytes, 0, bytes.length - 8);
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
         int magic = in.readInt();
-        if (magic != MAGIC && magic != MAGIC_V1) throw new IOException("无法识别骑行历史版本");
+        if (magic != MAGIC && magic != MAGIC_V1 && magic != MAGIC_V2) throw new IOException("无法识别骑行历史版本");
         int count = in.readInt();
         if (count < 0 || count > MAX_RECORDS) throw new IOException("骑行历史数量异常");
         List<Entry> result = new ArrayList<>();
@@ -101,8 +112,10 @@ public final class RideHistory {
                     in.readLong(), in.readLong(), in.readLong(), in.readLong(), in.readLong(),
                     in.readLong(), in.readLong(), in.readUTF());
                 RideGps gps = magic == MAGIC_V1 ? RideGps.NONE : new RideGps(in.readLong(), in.readLong(), in.readLong(), in.readLong());
+                RideSafety safety = magic == MAGIC ? new RideSafety(in.readLong(), in.readLong(), in.readLong(),
+                        in.readLong(), in.readLong(), in.readLong(), in.readLong(), in.readLong()) : RideSafety.NONE;
                 result.add(new Entry(entry.device, entry.sequence, entry.elapsed, entry.moving, entry.still,
-                        entry.pauses, entry.rests, entry.impacts, entry.firstSync, entry.lastSync, entry.note, gps));
+                        entry.pauses, entry.rests, entry.impacts, entry.firstSync, entry.lastSync, entry.note, gps, safety));
             }
         } catch (IllegalArgumentException error) { throw new IOException("骑行历史内容异常", error); }
         if (in.readLong() != crc.getValue() || in.available() != 0) throw new IOException("骑行历史校验失败");
@@ -116,7 +129,7 @@ public final class RideHistory {
         return "\"" + value.replace("\"", "\"\"") + "\"";
     }
     public static String csv(List<Entry> entries) {
-        StringBuilder csv = new StringBuilder("\ufeffwatch,sequence,elapsed_s,moving_s,still_s,pause_count,rest_count,impacts,first_sync_epoch_ms,last_sync_epoch_ms,gps_time_ms,gps_distance_m,gps_avg_centi_kmh,gps_max_centi_kmh,note\r\n");
+        StringBuilder csv = new StringBuilder("\ufeffwatch,sequence,elapsed_s,moving_s,still_s,pause_count,rest_count,impacts,first_sync_epoch_ms,last_sync_epoch_ms,gps_time_ms,gps_distance_m,gps_avg_centi_kmh,gps_max_centi_kmh,safety_checks,safety_confirmed,safety_pauses,safety_help_intent,safety_unanswered,safety_last_action,safety_last_elapsed_s,note\r\n");
         for (Entry e : entries) csv.append(cell(e.device)).append(',').append(e.sequence).append(',')
                 .append(e.elapsed).append(',').append(e.moving).append(',').append(e.still).append(',')
                 .append(e.pauses).append(',').append(e.rests).append(',').append(e.impacts).append(',')
@@ -124,7 +137,15 @@ public final class RideHistory {
                 .append(e.gps.available() ? e.gps.timeMs : "").append(',')
                 .append(e.gps.available() ? e.gps.distanceM : "").append(',')
                 .append(e.gps.available() ? e.gps.avgCenti : "").append(',')
-                .append(e.gps.available() ? e.gps.maxCenti : "").append(',').append(cell(e.note)).append("\r\n");
+                .append(e.gps.available() ? e.gps.maxCenti : "").append(',')
+                .append(e.safety.available() ? e.safety.checks : "").append(',')
+                .append(e.safety.available() ? e.safety.confirmed : "").append(',')
+                .append(e.safety.available() ? e.safety.pauses : "").append(',')
+                .append(e.safety.available() ? e.safety.help : "").append(',')
+                .append(e.safety.available() ? e.safety.unanswered : "").append(',')
+                .append(e.safety.available() ? e.safety.lastAction : "").append(',')
+                .append(e.safety.available() ? e.safety.lastElapsed : "").append(',')
+                .append(cell(e.note)).append("\r\n");
         return csv.toString();
     }
 }

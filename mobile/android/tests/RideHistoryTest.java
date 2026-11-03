@@ -49,6 +49,42 @@ public final class RideHistoryTest {
             try { new RideGps(bad[0],bad[1],bad[2],bad[3]); throw new AssertionError("Invalid GPS accepted"); }
             catch (IllegalArgumentException expected) { }
         }
+        // Independently encode the shipped VRH2 layout, including real GPS.
+        ByteArrayOutputStream v2Bytes = new ByteArrayOutputStream();
+        DataOutputStream v2 = new DataOutputStream(v2Bytes);
+        v2.writeInt(0x56524832); v2.writeInt(1); v2.writeUTF("watch-v2");
+        for (long value : new long[]{12, 60, 40, 10, 1, 0, 1, 1000, 2000}) v2.writeLong(value);
+        v2.writeUTF("保留备注");
+        for (long value : new long[]{10000, 50, 1800, 2000}) v2.writeLong(value);
+        v2.flush(); CRC32 v2Crc = new CRC32(); v2Crc.update(v2Bytes.toByteArray()); v2.writeLong(v2Crc.getValue());
+        Memory v2Disk = new Memory(); v2Disk.bytes = v2Bytes.toByteArray();
+        byte[] originalV2 = v2Disk.bytes.clone();
+        RideHistory v2History = new RideHistory(v2Disk);
+        RideHistory.Entry v2Entry = v2History.snapshot().get(0);
+        check(!v2Entry.safety.available() && v2Entry.gps.distanceM == 50, "V2 migration invented safety or lost GPS");
+        check(Arrays.equals(v2Disk.bytes, originalV2), "V2 load rewrote disk");
+        RideSafety safety = new RideSafety(1, 3, 1, 1, 1, 1, 3, 50);
+        v2History.upsert(new RideHistory.Entry(v2Entry.device, 12, 60, 40, 10, 1, 0, 1, 3000, 3000,
+                "", v2Entry.gps, safety));
+        v2History.upsert(v2Entry.withNote("更新备注")); // An old peer must not erase safety.
+        RideHistory.Entry enriched = new RideHistory(v2Disk).snapshot().get(0);
+        check(v2History.snapshot().size() == 1 && enriched.safety.help == 1 && enriched.safety.unanswered == 1,
+                "V3 safety enrichment/reload failed or old peer erased it");
+        check(enriched.gps.distanceM == 50 && enriched.firstSync == 1000 && enriched.note.equals("更新备注"),
+                "Safety enrichment lost previous metadata");
+        check(RideHistory.csv(Collections.singletonList(enriched)).contains(",3,1,1,1,1,3,50,"), "CSV lost safety");
+        check(RideSafety.NONE.summary().contains("旧记录") && safety.summary().contains("不表示已发送"),
+                "Safety display claims delivery or invents old data");
+        for (long[] bad : new long[][]{{2,0,0,0,0,0,0,0},{0,1,0,0,0,0,0,0},
+                {1,1,1,1,0,0,1,1},{1,1,0,0,0,2,4,1},{1,0,0,0,0,0,3,1},
+                {1,65536,0,0,0,0,0,0},{1,1,0,0,0,0,5,0}}) {
+            try { new RideSafety(bad[0],bad[1],bad[2],bad[3],bad[4],bad[5],bad[6],bad[7]);
+                throw new AssertionError("Invalid safety accepted"); }
+            catch (IllegalArgumentException expected) { }
+        }
+        try { new RideHistory.Entry("a", 1, 10, 5, 2, 0, 0, 0, 0, 0, "", RideGps.NONE, safety);
+            throw new AssertionError("Out-of-ride safety timestamp accepted"); }
+        catch (IllegalArgumentException expected) { }
         Memory disk = new Memory(); RideHistory history = new RideHistory(disk);
         check(history.snapshot().isEmpty(), "Empty storage fabricated records");
         history.upsert(ride("watch-a", 11, 100, 1000, ""));
@@ -97,6 +133,6 @@ public final class RideHistoryTest {
         check(new RideHistory(disk).snapshot().size() == RideHistory.MAX_RECORDS, "Capacity lost history");
         try { new RideHistory.Entry("a", 1, 10, 8, 8, 0, 0, 0, 0, 0, ""); throw new AssertionError("Invalid durations accepted"); }
         catch (IllegalArgumentException expected) { }
-        System.out.println("PASS: history deduplication, watch/reset isolation, V1/V2 GPS migration, enrichment, restart, notes, write failure, corruption, capacity and CSV escaping");
+        System.out.println("PASS: V1/V2/V3 history migration, GPS/safety enrichment, deduplication, restart, notes, write failures, CRC, capacity and CSV");
     }
 }

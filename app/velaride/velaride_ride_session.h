@@ -26,6 +26,30 @@ enum velaride_alert_e
   VELARIDE_ALERT_IMPACT,
 };
 
+enum velaride_safety_action_e
+{
+  VELARIDE_SAFETY_NONE = 0,
+  VELARIDE_SAFETY_OK,
+  VELARIDE_SAFETY_PAUSE,
+  VELARIDE_SAFETY_HELP,
+  VELARIDE_SAFETY_UNANSWERED,
+};
+
+/* Version zero means an older record without safety response information.
+ * HELP records intent only: it never means that a message was delivered. */
+
+struct velaride_ride_safety_s
+{
+  uint16_t checks;
+  uint16_t confirmed;
+  uint16_t pauses;
+  uint16_t help;
+  uint16_t unanswered;
+  uint8_t last_action;
+  uint8_t version;
+  uint32_t last_elapsed_s;
+};
+
 struct velaride_ride_snapshot_s
 {
   bool active;
@@ -41,6 +65,8 @@ struct velaride_ride_snapshot_s
   uint16_t rest_count;
   uint32_t goal_s;
   bool goal_reached;
+  uint8_t safety_remaining_s;
+  struct velaride_ride_safety_s safety;
 };
 
 struct velaride_ride_gps_s
@@ -63,6 +89,7 @@ struct velaride_ride_record_s
   uint16_t impact_count;
   uint16_t rest_count;
   struct velaride_ride_gps_s gps;
+  struct velaride_ride_safety_s safety;
 };
 
 int velaride_ride_session_init(void);
@@ -82,6 +109,7 @@ int velaride_ride_session_finish(struct velaride_ride_record_s *record);
 void velaride_ride_session_get(struct velaride_ride_snapshot_s *snapshot);
 void velaride_ride_session_get_gps(struct velaride_ride_gps_s *gps);
 void velaride_ride_session_ack_alert(void);
+int velaride_ride_session_respond_safety(enum velaride_safety_action_e action);
 int velaride_ride_session_load_latest(struct velaride_ride_record_s *record);
 int velaride_ride_session_save_record(
   const struct velaride_ride_record_s *record);

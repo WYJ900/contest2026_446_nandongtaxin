@@ -142,7 +142,23 @@ void velaride_ride_session_set_paused(bool paused)
 
 void velaride_ride_session_ack_alert(void)
 {
+  if (state.alert == VELARIDE_ALERT_IMPACT) return;
   state.alert = VELARIDE_ALERT_NONE;
+}
+
+int velaride_ride_session_respond_safety(enum velaride_safety_action_e action)
+{
+  assert(state.alert == VELARIDE_ALERT_IMPACT);
+  if (action == VELARIDE_SAFETY_OK) state.safety.confirmed++;
+  else if (action == VELARIDE_SAFETY_PAUSE) state.safety.pauses++;
+  else if (action == VELARIDE_SAFETY_HELP) state.safety.help++;
+  else return -EINVAL;
+  state.safety.last_action = action;
+  state.safety.last_elapsed_s = state.elapsed_s;
+  state.safety_remaining_s = 0;
+  state.alert = VELARIDE_ALERT_NONE;
+  if (action != VELARIDE_SAFETY_OK) velaride_ride_session_set_paused(true);
+  return 0;
 }
 
 void velaride_ride_session_sensor_tick(void)
@@ -151,6 +167,10 @@ void velaride_ride_session_sensor_tick(void)
 
 void velaride_ride_session_second_tick(void)
 {
+  if (state.alert == VELARIDE_ALERT_IMPACT && state.safety_remaining_s > 0)
+    {
+      if (--state.safety_remaining_s == 0) state.safety.unanswered++;
+    }
   if (state.active && !state.paused)
     {
       state.elapsed_s++;
@@ -179,6 +199,7 @@ int velaride_ride_session_finish(struct velaride_ride_record_s *out)
   out->still_s = state.still_s;
   out->pause_count = state.pause_count;
   out->impact_count = state.impact_count;
+  out->safety = state.safety;
   return velaride_ride_session_save_record(out);
 }
 
@@ -455,10 +476,42 @@ int main(int argc, char **argv)
   advance(1000);
   assert(g_sport.page == SPORT_PAGE_ACTIVE);
   state.alert = VELARIDE_ALERT_IMPACT;
+  state.safety.version = 1;
+  state.safety.checks = 1;
+  state.safety_remaining_s = 30;
   advance(1000);
   assert(g_sport.page == SPORT_PAGE_ALERT);
+  velaride_sport_ui_back();
+  assert(g_sport.page == SPORT_PAGE_ALERT && state.safety.confirmed == 0);
+  screenshot("08-safety-waiting");
+  for (const char **caption = (const char *[]){"我没事", "暂停休息", "需要帮助", NULL};
+       *caption != NULL; caption++)
+    {
+      lv_area_t area;
+      lv_obj_get_coords(find_button(*caption), &area);
+      assert(area.x1 >= 0 && area.y1 >= 0 && area.x2 < 390 && area.y2 < 450);
+    }
+  for (int i = 0; i < 29; i++) advance(1000);
+  assert(has_label(g_sport.root, "尚未确认，不会自动求助"));
   screenshot("08-alert");
   click("我没事");
+  assert(state.safety.confirmed == 1 && state.safety.unanswered == 1);
+  state.alert = VELARIDE_ALERT_IMPACT;
+  state.safety.checks++;
+  state.safety_remaining_s = 30;
+  advance(1000);
+  click("需要帮助");
+  assert(g_sport.page == SPORT_PAGE_HELP_CONFIRM && state.safety.help == 0);
+  screenshot("08a-help-confirm");
+  velaride_sport_ui_back();
+  assert(g_sport.page == SPORT_PAGE_ALERT && state.safety.help == 0);
+  click("需要帮助");
+  click("确认并暂停");
+  assert(g_sport.page == SPORT_PAGE_HELP_RESULT && state.safety.help == 1 && state.paused);
+  assert(has_label(g_sport.root, "尚未发送求助消息\n请使用手机联系他人"));
+  screenshot("08a-help-result");
+  click("返回骑行");
+  velaride_ride_session_set_paused(false);
   state.alert = VELARIDE_ALERT_REST;
   advance(1000);
   assert(g_sport.page == SPORT_PAGE_ALERT);
@@ -488,6 +541,8 @@ int main(int argc, char **argv)
   assert(!state.active && g_sport.page == SPORT_PAGE_REVIEW);
   assert(strstr(lv_label_get_text(g_sport.body), "尚未同步") != NULL);
   screenshot("09-record");
+  lv_obj_scroll_by(g_sport.scroll, 0, -330, LV_ANIM_OFF);
+  screenshot("09-safety-summary");
   ai_available = true;
   advance(1000);
   lv_obj_get_coords(g_sport.review_card, &card_area);

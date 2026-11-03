@@ -19,3 +19,6 @@
 # Patch payloads and generated bitmap fonts preserve upstream/generated spacing.
 *.patch -whitespace
 app/velaride/velaride_font_cn_*.c -whitespace
+
+# Stage archives are hash-addressed evidence; preserve their exact bytes.
+/artifacts/safety-stage-20261103/** -text

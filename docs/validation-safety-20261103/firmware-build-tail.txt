@@ -1,0 +1,24 @@
+[71/81] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/feature_locale.cpp.o
+[72/81] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/error.cpp.o
+[73/81] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/velaclaw.cpp.o
+[74/81] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/ajs_features_registry.cpp.o
+[75/81] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/fetch_impl.cpp.o
+[76/81] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/prompt_impl.cpp.o
+[77/81] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/velaclaw_impl.cpp.o
+/home/wyj/velaride_safety_stage/apps/frameworks/runtimes/feature/modules/velaclaw_impl.cpp: In function 'void system_velaclaw_wrap_ask(FeatureInstanceHandle, AppendData, FtPromiseId, system_velaclaw_AskParam*)':
+/home/wyj/velaride_safety_stage/apps/frameworks/runtimes/feature/modules/velaclaw_impl.cpp:330:51: warning: format '%u' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  330 |     snprintf(chat_id, sizeof(chat_id), "qapp_ask_%u", id);
+      |                                                  ~^   ~~
+      |                                                   |   |
+      |                                                   |   uint32_t {aka long unsigned int}
+      |                                                   unsigned int
+      |                                                  %lu
+[78/81] Linking CXX static library apps/frameworks/runtimes/feature/modules/libfeature_impls.a
+[79/81] Linking CXX executable nuttx
+/opt/arm-gnu-toolchain/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld: warning: nuttx has a LOAD segment with RWX permissions
+Memory region         Used Size  Region Size  %age Used
+           flash:     9768744 B        16 MB     58.23%
+            sram:      498564 B     523008 B     95.33%
+           psram:      702080 B         8 MB      8.37%
+[80/81] Generating System.map
+[81/81] Generating nuttx.bin

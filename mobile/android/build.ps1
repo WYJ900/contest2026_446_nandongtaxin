@@ -28,7 +28,8 @@ Invoke-MobileTool "$JavaHome/bin/javac.exe" @('-encoding', 'UTF-8', '-d', "$mobi
     "$mobileApp/java/com/velaride/companion/WatchHandshake.java", "$PSScriptRoot/tests/WatchHandshakeTest.java",
     "$mobileApp/java/com/velaride/companion/RideHistory.java", "$PSScriptRoot/tests/RideHistoryTest.java",
     "$mobileApp/java/com/velaride/companion/GpsTracker.java", "$PSScriptRoot/tests/GpsTrackerTest.java",
-    "$mobileApp/java/com/velaride/companion/RideGps.java")
+    "$mobileApp/java/com/velaride/companion/RideGps.java",
+    "$mobileApp/java/com/velaride/companion/RideSafety.java")
 Invoke-MobileTool "$JavaHome/bin/java.exe" @('-ea', '-cp', "$mobileBuild/tests", 'com.velaride.companion.WireCodecTest')
 Invoke-MobileTool "$JavaHome/bin/java.exe" @('-ea', '-cp', "$mobileBuild/tests", 'com.velaride.companion.WatchHandshakeTest')
 Invoke-MobileTool "$JavaHome/bin/java.exe" @('-ea', '-cp', "$mobileBuild/tests", 'com.velaride.companion.RideHistoryTest')
@@ -36,7 +37,7 @@ Invoke-MobileTool "$JavaHome/bin/java.exe" @('-ea', '-cp', "$mobileBuild/tests",
 Invoke-MobileTool "$mobileTools/aapt2.exe" @('compile', '--dir', "$mobileApp/res", '-o', "$mobileBuild/resources.zip")
 Invoke-MobileTool "$mobileTools/aapt2.exe" @('link', '-o', "$mobileBuild/base.apk", '-I', $mobilePlatform,
     '--manifest', "$mobileApp/AndroidManifest.xml", '--java', "$mobileBuild/generated", '--min-sdk-version', '26',
-    '--target-sdk-version', '35', '--version-code', '5', '--version-name', '0.1.4', "$mobileBuild/resources.zip")
+    '--target-sdk-version', '35', '--version-code', '6', '--version-name', '0.1.5', "$mobileBuild/resources.zip")
 $mobileSources = @(Get-ChildItem "$mobileApp/java", "$mobileBuild/generated" -Recurse -Filter '*.java' |
     ForEach-Object { '"' + $_.FullName.Replace('\', '/') + '"' })
 [System.IO.File]::WriteAllLines("$mobileBuild/sources.txt", $mobileSources, (New-Object System.Text.UTF8Encoding($false)))
@@ -58,7 +59,7 @@ if (-not (Test-Path $mobileKey)) {
         '-storepass', 'android', '-keypass', 'android', '-alias', 'androiddebugkey',
         '-dname', 'CN=Android Debug,O=Android,C=US', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '10000')
 }
-$mobileApk = Join-Path $mobileExport 'VelaRide-0.1.4-debug.apk'
+$mobileApk = Join-Path $mobileExport 'VelaRide-0.1.5-debug.apk'
 Invoke-MobileTool "$mobileTools/apksigner.bat" @('sign', '--ks', $mobileKey, '--ks-pass', 'pass:android',
     '--key-pass', 'pass:android', '--out', $mobileApk, "$mobileBuild/aligned.apk")
 Invoke-MobileTool "$mobileTools/apksigner.bat" @('verify', '--verbose', $mobileApk)

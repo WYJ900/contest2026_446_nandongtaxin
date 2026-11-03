@@ -26,7 +26,7 @@
 #include "velaride_ride_session.h"
 
 #define RIDE_RECORD_MAGIC 0x564c5244u
-#define RIDE_RECORD_VERSION 2
+#define RIDE_RECORD_VERSION 3
 #define RIDE_RECORD_KEY "persist.velaride.latest"
 #define RIDE_REVIEW_MAGIC 0x56525256u
 #define RIDE_REVIEW_VERSION 1
@@ -46,6 +46,7 @@
 #define IMPACT_WINDOW_SECONDS 10
 #define STILL_ALERT_SECONDS 15
 #define REST_ALERT_SECONDS (45 * 60)
+#define SAFETY_CONFIRM_SECONDS 30
 
 struct ride_session_s
 {
@@ -64,6 +65,8 @@ struct ride_session_s
   bool impact_pending;
   bool rest_alerted;
   bool still_alerted;
+  bool safety_timed_out;
+  bool safety_counted;
   int64_t start_epoch;
   uint32_t sequence;
 };
@@ -126,6 +129,31 @@ struct ride_record_disk_v1_s
   uint32_t crc32;
 };
 
+/* Frozen V2 layout: never use the enlarged live record for old CRC offsets. */
+
+struct ride_record_v2_s
+{
+  uint32_t sequence;
+  int64_t start_epoch;
+  int64_t end_epoch;
+  uint32_t elapsed_s;
+  uint32_t moving_s;
+  uint32_t still_s;
+  uint16_t pause_count;
+  uint16_t impact_count;
+  uint16_t rest_count;
+  struct velaride_ride_gps_s gps;
+};
+
+struct ride_record_disk_v2_s
+{
+  uint32_t magic;
+  uint16_t version;
+  uint16_t size;
+  struct ride_record_v2_s record;
+  uint32_t crc32;
+};
+
 static void ride_gps_snapshot(struct velaride_ride_gps_s *gps)
 {
   memset(gps, 0, sizeof(*gps));
@@ -183,6 +211,29 @@ static uint32_t ride_crc32(const void *data, size_t size)
     }
 
   return ~crc;
+}
+
+static bool ride_safety_valid(const struct velaride_ride_safety_s *safety,
+                              uint32_t elapsed_s)
+{
+  if (safety->version > 1 ||
+      safety->last_action > VELARIDE_SAFETY_UNANSWERED ||
+      (uint32_t)safety->confirmed + safety->pauses + safety->help >
+        safety->checks || safety->unanswered > safety->checks ||
+      safety->last_elapsed_s > elapsed_s)
+    {
+      return false;
+    }
+
+  if ((safety->version == 0 || safety->checks == 0) &&
+      (safety->checks != 0 || safety->confirmed != 0 || safety->pauses != 0 ||
+       safety->help != 0 || safety->unanswered != 0 ||
+       safety->last_action != 0 || safety->last_elapsed_s != 0))
+    {
+      return false;
+    }
+
+  return true;
 }
 
 static int ride_open_sensor(void)
@@ -308,6 +359,9 @@ void velaride_ride_session_start_with_goal(uint32_t goal_s)
   g_ride.state.sensor_ready = sensor_ready;
   g_ride.state.motion = VELARIDE_MOTION_UNKNOWN;
   g_ride.state.goal_s = goal_s <= 24 * 60 * 60 ? goal_s : 0;
+  g_ride.state.safety.version = 1;
+  g_ride.safety_timed_out = false;
+  g_ride.safety_counted = false;
   g_ride.warmup_samples = 0;
   g_ride.moving_score = 0;
   g_ride.still_score = 0;
@@ -443,6 +497,19 @@ void velaride_ride_session_sensor_tick(void)
 
 void velaride_ride_session_second_tick(void)
 {
+  if (g_ride.state.active && g_ride.state.alert == VELARIDE_ALERT_IMPACT &&
+      g_ride.state.safety_remaining_s > 0 &&
+      --g_ride.state.safety_remaining_s == 0)
+    {
+      g_ride.safety_timed_out = true;
+      if (g_ride.safety_counted)
+        {
+          g_ride.state.safety.unanswered++;
+          g_ride.state.safety.last_action = VELARIDE_SAFETY_UNANSWERED;
+          g_ride.state.safety.last_elapsed_s = g_ride.state.elapsed_s;
+        }
+    }
+
   if (!g_ride.state.active || g_ride.state.paused)
     {
       return;
@@ -492,6 +559,15 @@ void velaride_ride_session_second_tick(void)
     {
       g_ride.state.alert = VELARIDE_ALERT_IMPACT;
       g_ride.impact_pending = false;
+      g_ride.state.safety_remaining_s = SAFETY_CONFIRM_SECONDS;
+      g_ride.safety_timed_out = false;
+      g_ride.safety_counted = g_ride.state.safety.checks < UINT16_MAX;
+      if (g_ride.safety_counted)
+        {
+          g_ride.state.safety.checks++;
+          g_ride.state.safety.last_action = VELARIDE_SAFETY_NONE;
+          g_ride.state.safety.last_elapsed_s = g_ride.state.elapsed_s;
+        }
     }
   else if (g_ride.state.alert == VELARIDE_ALERT_NONE &&
            !g_ride.still_alerted &&
@@ -521,7 +597,60 @@ void velaride_ride_session_get(struct velaride_ride_snapshot_s *snapshot)
 
 void velaride_ride_session_ack_alert(void)
 {
+  /* A generic back/ack must never silently claim the user is safe. */
+
+  if (g_ride.state.alert == VELARIDE_ALERT_IMPACT)
+    {
+      return;
+    }
+
   g_ride.state.alert = VELARIDE_ALERT_NONE;
+}
+
+int velaride_ride_session_respond_safety(enum velaride_safety_action_e action)
+{
+  struct velaride_ride_safety_s *safety = &g_ride.state.safety;
+
+  if (action < VELARIDE_SAFETY_OK || action > VELARIDE_SAFETY_HELP)
+    {
+      return -EINVAL;
+    }
+
+  if (!g_ride.state.active || g_ride.state.alert != VELARIDE_ALERT_IMPACT)
+    {
+      return -EALREADY;
+    }
+
+  if (g_ride.safety_counted)
+    {
+      if (action == VELARIDE_SAFETY_OK)
+        {
+          safety->confirmed++;
+        }
+      else if (action == VELARIDE_SAFETY_PAUSE)
+        {
+          safety->pauses++;
+        }
+      else
+        {
+          safety->help++;
+        }
+      safety->last_action = action;
+      safety->last_elapsed_s = g_ride.state.elapsed_s;
+    }
+
+  g_ride.state.alert = VELARIDE_ALERT_NONE;
+  g_ride.state.safety_remaining_s = 0;
+  g_ride.impact_pending = false;
+  g_ride.post_impact_still_s = 0;
+  g_ride.consecutive_still_s = 0;
+  g_ride.still_alerted = true;
+  if (action != VELARIDE_SAFETY_OK)
+    {
+      velaride_ride_session_set_paused(true);
+    }
+
+  return 0;
 }
 
 int velaride_ride_session_finish(struct velaride_ride_record_s *record)
@@ -539,6 +668,15 @@ int velaride_ride_session_finish(struct velaride_ride_record_s *record)
   latest.pause_count = g_ride.state.pause_count;
   latest.impact_count = g_ride.state.impact_count;
   latest.rest_count = g_ride.state.rest_count;
+  if (g_ride.state.alert == VELARIDE_ALERT_IMPACT &&
+      !g_ride.safety_timed_out && g_ride.safety_counted)
+    {
+      g_ride.state.safety.unanswered++;
+      g_ride.state.safety.last_action = VELARIDE_SAFETY_UNANSWERED;
+      g_ride.state.safety.last_elapsed_s = g_ride.state.elapsed_s;
+      g_ride.safety_timed_out = true;
+    }
+  latest.safety = g_ride.state.safety;
 
   pthread_mutex_lock(&g_phone_lock);
   g_ride_gps.running = false;
@@ -547,6 +685,7 @@ int velaride_ride_session_finish(struct velaride_ride_record_s *record)
   pthread_mutex_unlock(&g_phone_lock);
 
   g_ride.state.active = false;
+  g_ride.state.safety_remaining_s = 0;
   ret = velaride_ride_session_save_record(&latest);
 
   printf("VELARIDE_RIDE: finish seq=%" PRIu32 " duration=%" PRIu32
@@ -569,6 +708,29 @@ int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
 
   memset(&disk, 0, sizeof(disk));
   ret = property_get_buffer(RIDE_RECORD_KEY, &disk, sizeof(disk));
+  if (ret == sizeof(struct ride_record_disk_v2_s) &&
+      disk.magic == RIDE_RECORD_MAGIC && disk.version == 2 &&
+      disk.size == sizeof(struct ride_record_disk_v2_s))
+    {
+      struct ride_record_disk_v2_s old;
+
+      memcpy(&old, &disk, sizeof(old));
+      if (old.crc32 != ride_crc32(&old,
+                                 offsetof(struct ride_record_disk_v2_s, crc32)))
+        {
+          return -EBADMSG;
+        }
+
+      memset(&disk, 0, sizeof(disk));
+      memcpy(&disk.record, &old.record,
+             offsetof(struct ride_record_v2_s, gps) + sizeof(old.record.gps));
+      /* Validate GPS below without rewriting the stored V2 record. */
+      disk.magic = RIDE_RECORD_MAGIC;
+      disk.version = RIDE_RECORD_VERSION;
+      disk.size = sizeof(disk);
+      disk.crc32 = ride_crc32(&disk, offsetof(struct ride_record_disk_s, crc32));
+      ret = sizeof(disk);
+    }
   if (ret == sizeof(struct ride_record_disk_v1_s) &&
       disk.magic == RIDE_RECORD_MAGIC && disk.version == 1 &&
       disk.size == sizeof(struct ride_record_disk_v1_s))
@@ -616,6 +778,11 @@ int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
       return -EBADMSG;
     }
 
+  if (!ride_safety_valid(&disk.record.safety, disk.record.elapsed_s))
+    {
+      return -EBADMSG;
+    }
+
   if (record != NULL)
     {
       *record = disk.record;
@@ -630,7 +797,7 @@ int velaride_ride_session_save_record(
   struct ride_record_disk_s disk;
   int ret;
 
-  if (record == NULL)
+  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s))
     {
       return -EINVAL;
     }

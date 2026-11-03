@@ -216,7 +216,7 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
   struct velaride_ride_gps_s gps;
   char cmd[32];
   char review[384];
-  char response[640];
+  char response[896];
   double epoch;
   double speed;
   double distance;
@@ -300,14 +300,18 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
                "\"pause_count\":%u,\"rest_count\":%u,"
                "\"latest_sequence\":%" PRIu32 ",\"phone_valid\":%s,"
                "\"speed_kmh\":%.2f,\"distance_km\":%.3f,"
-               "\"ride_gps_time_ms\":%" PRIu32 ",\"ride_distance_m\":%" PRIu32 "}",
+               "\"ride_gps_time_ms\":%" PRIu32 ",\"ride_distance_m\":%" PRIu32 ","
+               "\"safety_pending\":%s,\"safety_remaining_s\":%u,"
+               "\"safety_help\":%u,\"safety_last_action\":%u}",
                ride.active ? "true" : "false",
                ride.paused ? "true" : "false", ride.motion,
                ride.elapsed_s, ride.moving_s, ride.still_s,
                ride.impact_count, ride.pause_count, ride.rest_count,
                ret == 0 ? record.sequence : 0,
                phone_valid ? "true" : "false", phone_speed, phone_distance,
-               gps.time_ms, gps.distance_m);
+               gps.time_ms, gps.distance_m,
+               ride.active && ride.alert == VELARIDE_ALERT_IMPACT ? "true" : "false",
+               ride.safety_remaining_s, ride.safety.help, ride.safety.last_action);
       velaride_notify_json(conn, response);
     }
   else if (strcmp(cmd, "ride_latest") == 0)
@@ -327,11 +331,19 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
                "\"still_s\":%" PRIu32 ",\"impacts\":%u,"
                "\"pause_count\":%u,\"rest_count\":%u,"
                "\"gps_time_ms\":%" PRIu32 ",\"gps_distance_m\":%" PRIu32 ","
-               "\"gps_avg_centi\":%" PRIu32 ",\"gps_max_centi\":%" PRIu32 "}",
+               "\"gps_avg_centi\":%" PRIu32 ",\"gps_max_centi\":%" PRIu32 ","
+               "\"safety_version\":%u,\"safety_checks\":%u,"
+               "\"safety_confirmed\":%u,\"safety_pauses\":%u,"
+               "\"safety_help\":%u,\"safety_unanswered\":%u,"
+               "\"safety_last_action\":%u,\"safety_last_elapsed_s\":%" PRIu32 "}",
                record.sequence, record.elapsed_s, record.moving_s,
                record.still_s, record.impact_count, record.pause_count,
                record.rest_count, record.gps.time_ms, record.gps.distance_m,
-               record.gps.avg_speed_centi, record.gps.max_speed_centi);
+               record.gps.avg_speed_centi, record.gps.max_speed_centi,
+               record.safety.version, record.safety.checks,
+               record.safety.confirmed, record.safety.pauses, record.safety.help,
+               record.safety.unanswered, record.safety.last_action,
+               record.safety.last_elapsed_s);
       velaride_notify_json(conn, response);
     }
   else if (strcmp(cmd, "ride_review") == 0)

@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-03",
+  "checkpoint_commit": "7f16229",
+  "checkpoint_tag": "checkpoint-before-safety-20261103",
+  "parent_firmware_sha256": "9041c538529b46f3419c06f46bf70cfdd2570c0d20a58f704b31f9b147f7c0ef",
+  "firmware_sha256": "9308cce7e800daea6c5bd512306d2c3271b013b7d930c7980d8be27f2383c410",
+  "firmware_bytes": 9768744,
+  "application_space_remaining_bytes": 258264,
+  "apk_version": "0.1.5",
+  "apk_sha256": "4ce90606d2b489afb70a1c6dad6cefcd48cfeec5f5f0d9452f06cf3d255af4e8",
+  "passed": {
+    "firmware_build": true,
+    "unchanged_parent_config": true,
+    "ride_scenarios_asan_ubsan": 14,
+    "actual_stage_lvgl_asan_ubsan": true,
+    "lvgl_render_visually_checked": true,
+    "actual_ble_format_and_max_size": true,
+    "android_wire_handshake_gps_history": true,
+    "independent_v1_v2_migration": true,
+    "v3_roundtrip_and_csv": true,
+    "apk_signature_valid_and_same_signer_as_014": true
+  },
+  "hardware_operations_performed": false,
+  "candidate_installed": false,
+  "phone_candidate_installed": false,
+  "audio_playback_performed": false,
+  "synthetic_device_ride_written": false,
+  "pending": [
+    "User physical validation of original GPS candidate",
+    "Safety candidate installation after that checkpoint",
+    "Physical UI and baseline regression",
+    "Safe sensor-trigger validation and false positives",
+    "New V3 record reboot persistence and Android 0.1.5 sync/export on phone"
+  ],
+  "limitations": [
+    "Help is intent only; no external message, call or background listener",
+    "Summary counts, not a complete event timeline",
+    "Current ride not recoverable after reboot before finish",
+    "Phone GPS remains foreground-only",
+    "Old firmware/APK cannot read newly saved V3/VRH3 data",
+    "Not a verified clean full-source reproducible build"
+  ]
+}
