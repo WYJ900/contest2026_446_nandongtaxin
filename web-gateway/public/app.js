@@ -138,7 +138,9 @@ function handleMessage(message) {
     invalidateReview('已读取手表保存的骑行记录，可以生成复盘。');
     state.recordSequence = message.sequence;
     state.recordExtras = Object.fromEntries(Object.entries(message).filter(([key]) =>
-      key.startsWith('gps_') || key.startsWith('safety_') || key === 'rest_count'));
+      key.startsWith('gps_') || key.startsWith('safety_') || key === 'rest_count' ||
+      ['extras_version','goal_distance_m','lap_count','rest_taken','rest_snoozed','rest_ignored',
+        'drink_count','drink_done','drink_snoozed','drink_ignored'].includes(key)));
     for (const [field, id] of Object.entries(rideInputs)) {
       $(id).value = message[field] ?? 0;
     }

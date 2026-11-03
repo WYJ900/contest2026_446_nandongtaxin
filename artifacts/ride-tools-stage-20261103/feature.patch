@@ -1,0 +1,774 @@
+--- a/velaride_ble.c
++++ b/velaride_ble.c
+@@ -216,7 +216,7 @@
+   struct velaride_ride_gps_s gps;
+   char cmd[32];
+   char review[384];
+-  char response[896];
++  char response[1280];
+   double epoch;
+   double speed;
+   double distance;
+@@ -377,7 +377,10 @@
+                "\"safety_version\":%u,\"safety_checks\":%u,"
+                "\"safety_confirmed\":%u,\"safety_pauses\":%u,"
+                "\"safety_help\":%u,\"safety_unanswered\":%u,"
+-               "\"safety_last_action\":%u,\"safety_last_elapsed_s\":%" PRIu32 "}",
++               "\"safety_last_action\":%u,\"safety_last_elapsed_s\":%" PRIu32 ","
++               "\"extras_version\":%u,\"goal_distance_m\":%" PRIu32 ",\"lap_count\":%u,"
++               "\"rest_taken\":%u,\"rest_snoozed\":%u,\"rest_ignored\":%u,"
++               "\"drink_count\":%u,\"drink_done\":%u,\"drink_snoozed\":%u,\"drink_ignored\":%u}",
+                strcmp(cmd, "ride_get") == 0 ? "ride_record" : "ride_latest",
+                record.sequence, record.elapsed_s, record.moving_s,
+                record.still_s, record.impact_count, record.pause_count,
+@@ -386,7 +389,10 @@
+                record.safety.version, record.safety.checks,
+                record.safety.confirmed, record.safety.pauses, record.safety.help,
+                record.safety.unanswered, record.safety.last_action,
+-               record.safety.last_elapsed_s);
++               record.safety.last_elapsed_s, record.extras.version, record.extras.distance_goal_m,
++               record.extras.lap_count, record.extras.rest_taken, record.extras.rest_snoozed,
++               record.extras.rest_ignored, record.extras.drink_count, record.extras.drink_done,
++               record.extras.drink_snoozed, record.extras.drink_ignored);
+       velaride_notify_json(conn, response);
+     }
+   else if (strcmp(cmd, "ride_review") == 0)
+--- a/velaride_ride_session.c
++++ b/velaride_ride_session.c
+@@ -26,7 +26,7 @@
+ #include "velaride_ride_session.h"
+ 
+ #define RIDE_RECORD_MAGIC 0x564c5244u
+-#define RIDE_RECORD_VERSION 3
++#define RIDE_RECORD_VERSION 4
+ #define RIDE_RECORD_KEY "persist.velaride.latest"
+ #define RIDE_HISTORY_PREFIX "persist.velaride.h."
+ #define RIDE_REVIEW_MAGIC 0x56525256u
+@@ -48,6 +48,7 @@
+ #define STILL_ALERT_SECONDS 15
+ #define REST_ALERT_SECONDS (45 * 60)
+ #define SAFETY_CONFIRM_SECONDS 30
++#define RIDE_PREFS_KEY "persist.velaride.rideprefs"
+ 
+ struct ride_session_s
+ {
+@@ -68,6 +69,13 @@
+   bool still_alerted;
+   bool safety_timed_out;
+   bool safety_counted;
++  bool resume_advised;
++  uint8_t resume_seconds;
++  uint32_t next_rest_s;
++  uint32_t next_drink_s;
++  uint32_t next_lap_m;
++  uint32_t lap_start_s;
++  uint32_t lap_start_m;
+   int64_t start_epoch;
+   uint32_t sequence;
+ };
+@@ -90,6 +98,14 @@
+ 
+ static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
+ static pthread_mutex_t g_history_lock = PTHREAD_MUTEX_INITIALIZER;
++static struct velaride_ride_prefs_s g_ride_prefs = {.rest_min = 45};
++
++struct ride_prefs_disk_s
++{
++  uint32_t magic;
++  struct velaride_ride_prefs_s prefs;
++  uint32_t crc32;
++};
+ 
+ /* BLE only touches this accumulator while holding g_phone_lock. Lifecycle
+  * changes invalidate the anchor so pre-start, paused and missing segments
+@@ -156,6 +172,30 @@
+   uint32_t crc32;
+ };
+ 
++struct ride_record_v3_s
++{
++  uint32_t sequence;
++  int64_t start_epoch;
++  int64_t end_epoch;
++  uint32_t elapsed_s;
++  uint32_t moving_s;
++  uint32_t still_s;
++  uint16_t pause_count;
++  uint16_t impact_count;
++  uint16_t rest_count;
++  struct velaride_ride_gps_s gps;
++  struct velaride_ride_safety_s safety;
++};
++
++struct ride_record_disk_v3_s
++{
++  uint32_t magic;
++  uint16_t version;
++  uint16_t size;
++  struct ride_record_v3_s record;
++  uint32_t crc32;
++};
++
+ static void ride_gps_snapshot(struct velaride_ride_gps_s *gps)
+ {
+   memset(gps, 0, sizeof(*gps));
+@@ -238,6 +278,49 @@
+   return true;
+ }
+ 
++static bool ride_prefs_valid(const struct velaride_ride_prefs_s *prefs)
++{
++  return (prefs->rest_min == 0 || (prefs->rest_min >= 5 && prefs->rest_min <= 120)) &&
++         (prefs->drink_min == 0 || (prefs->drink_min >= 5 && prefs->drink_min <= 120)) &&
++         (prefs->distance_goal_m == 0 || (prefs->distance_goal_m >= 500 && prefs->distance_goal_m <= 2000000)) &&
++         (prefs->lap_m == 0 || (prefs->lap_m >= 100 && prefs->lap_m <= 10000)) && prefs->pause_advice <= 1;
++}
++
++void velaride_ride_prefs_get(struct velaride_ride_prefs_s *prefs)
++{
++  if (prefs != NULL) *prefs = g_ride_prefs;
++}
++
++int velaride_ride_prefs_set(const struct velaride_ride_prefs_s *prefs)
++{
++  struct ride_prefs_disk_s disk;
++  int ret;
++  if (prefs == NULL || !ride_prefs_valid(prefs)) return -EINVAL;
++  if (g_ride.state.active) return -EBUSY;
++  memset(&disk, 0, sizeof(disk));
++  disk.magic = 0x56525046;
++  disk.prefs = *prefs;
++  disk.crc32 = ride_crc32(&disk, offsetof(struct ride_prefs_disk_s, crc32));
++  ret = property_set_buffer(RIDE_PREFS_KEY, &disk, sizeof(disk));
++  if (ret == 0) ret = property_commit();
++  if (ret == 0) g_ride_prefs = *prefs;
++  return ret;
++}
++
++static bool ride_extras_valid(const struct velaride_ride_extras_s *e, uint16_t rests)
++{
++  const struct velaride_ride_extras_s empty = {0};
++  return e->version <= 1 && e->reserved == 0 && e->distance_goal_m <= 2000000 &&
++         (uint32_t)e->rest_taken + e->rest_snoozed + e->rest_ignored <= rests &&
++         (uint32_t)e->drink_done + e->drink_snoozed + e->drink_ignored <= e->drink_count &&
++         (e->version != 0 || memcmp(e, &empty, sizeof(*e)) == 0);
++}
++
++static void ride_increment(uint16_t *value)
++{
++  if (*value < UINT16_MAX) (*value)++;
++}
++
+ static int ride_open_sensor(void)
+ {
+   int ret;
+@@ -269,7 +352,15 @@
+ int velaride_ride_session_init(void)
+ {
+   struct velaride_ride_record_s latest;
++  struct ride_prefs_disk_s prefs;
+   int ret;
++
++  memset(&g_ride_prefs, 0, sizeof(g_ride_prefs));
++  g_ride_prefs.rest_min = 45;
++  if (property_get_buffer(RIDE_PREFS_KEY, &prefs, sizeof(prefs)) == sizeof(prefs) &&
++      prefs.magic == 0x56525046 && ride_prefs_valid(&prefs.prefs) &&
++      prefs.crc32 == ride_crc32(&prefs, offsetof(struct ride_prefs_disk_s, crc32)))
++    g_ride_prefs = prefs.prefs;
+ 
+   ret = ride_open_sensor();
+   g_ride.state.sensor_ready = ret == 0;
+@@ -362,6 +453,14 @@
+   g_ride.state.motion = VELARIDE_MOTION_UNKNOWN;
+   g_ride.state.goal_s = goal_s <= 24 * 60 * 60 ? goal_s : 0;
+   g_ride.state.safety.version = 1;
++  g_ride.state.extras.version = 1;
++  g_ride.state.extras.distance_goal_m = g_ride_prefs.distance_goal_m;
++  g_ride.next_rest_s = g_ride_prefs.rest_min * 60u;
++  g_ride.next_drink_s = g_ride_prefs.drink_min * 60u;
++  g_ride.next_lap_m = g_ride_prefs.lap_m;
++  g_ride.lap_start_s = g_ride.lap_start_m = 0;
++  g_ride.resume_seconds = 0;
++  g_ride.resume_advised = false;
+   g_ride.safety_timed_out = false;
+   g_ride.safety_counted = false;
+   g_ride.warmup_samples = 0;
+@@ -421,7 +520,7 @@
+   bool impact_sample;
+   int ret;
+ 
+-  if (!g_ride.state.active || g_ride.state.paused || g_ride.sensor_fd < 0)
++  if (!g_ride.state.active || (g_ride.state.paused && !g_ride_prefs.pause_advice) || g_ride.sensor_fd < 0)
+     {
+       return;
+     }
+@@ -464,7 +563,7 @@
+   g_ride.last_y = data.y_data;
+   g_ride.last_z = data.z_data;
+ 
+-  if (impact_sample && !g_ride.impact_pending)
++  if (impact_sample && !g_ride.state.paused && !g_ride.impact_pending)
+     {
+       g_ride.impact_pending = true;
+       g_ride.impact_age_s = 0;
+@@ -499,6 +598,11 @@
+ 
+ void velaride_ride_session_second_tick(void)
+ {
++  struct velaride_ride_gps_s gps;
++  double speed;
++  double distance;
++  bool phone_valid = velaride_ride_session_get_phone_data(&speed, &distance);
++
+   if (g_ride.state.active && g_ride.state.alert == VELARIDE_ALERT_IMPACT &&
+       g_ride.state.safety_remaining_s > 0 &&
+       --g_ride.state.safety_remaining_s == 0)
+@@ -514,10 +618,32 @@
+ 
+   if (!g_ride.state.active || g_ride.state.paused)
+     {
++      if (g_ride.state.active && g_ride_prefs.pause_advice && phone_valid &&
++          speed >= 3 && g_ride.state.motion == VELARIDE_MOTION_MOVING)
++        {
++          if (g_ride.resume_seconds < 3) g_ride.resume_seconds++;
++          if (g_ride.resume_seconds >= 3 && !g_ride.resume_advised &&
++              g_ride.state.alert == VELARIDE_ALERT_NONE)
++            {
++              g_ride.state.alert = VELARIDE_ALERT_RESUME;
++              g_ride.resume_advised = true;
++            }
++        }
++      else
++        {
++          g_ride.resume_seconds = 0;
++          g_ride.resume_advised = false;
++        }
+       return;
+     }
+ 
+   g_ride.state.elapsed_s++;
++  velaride_ride_session_get_gps(&gps);
++  if (g_ride.state.extras.distance_goal_m > 0 && gps.time_ms > 0 &&
++      gps.distance_m >= g_ride.state.extras.distance_goal_m)
++    g_ride.state.distance_goal_reached = true;
++  if (g_ride.next_lap_m > 0 && gps.time_ms > 0 && gps.distance_m >= g_ride.next_lap_m)
++    velaride_ride_session_lap();
+   if (g_ride.state.goal_s > 0 &&
+       g_ride.state.elapsed_s >= g_ride.state.goal_s)
+     {
+@@ -574,19 +700,76 @@
+   else if (g_ride.state.alert == VELARIDE_ALERT_NONE &&
+            !g_ride.still_alerted &&
+            g_ride.state.motion == VELARIDE_MOTION_STILL &&
+-           g_ride.consecutive_still_s >= STILL_ALERT_SECONDS)
++           (g_ride.consecutive_still_s >= STILL_ALERT_SECONDS ||
++            (g_ride_prefs.pause_advice && phone_valid && speed <= 1.5 &&
++             g_ride.consecutive_still_s >= 6)))
+     {
+       g_ride.state.alert = VELARIDE_ALERT_STILL;
+       g_ride.still_alerted = true;
+     }
+   else if (g_ride.state.alert == VELARIDE_ALERT_NONE &&
+-           !g_ride.rest_alerted &&
+-           g_ride.state.moving_s >= REST_ALERT_SECONDS)
++           g_ride.next_rest_s > 0 && g_ride.state.moving_s >= g_ride.next_rest_s)
+     {
+       g_ride.state.alert = VELARIDE_ALERT_REST;
+       g_ride.rest_alerted = true;
+-      g_ride.state.rest_count++;
+-    }
++      ride_increment(&g_ride.state.rest_count);
++    }
++  else if (g_ride.state.alert == VELARIDE_ALERT_NONE &&
++           g_ride.next_drink_s > 0 && g_ride.state.elapsed_s >= g_ride.next_drink_s)
++    {
++      g_ride.state.alert = VELARIDE_ALERT_DRINK;
++      ride_increment(&g_ride.state.extras.drink_count);
++    }
++}
++
++int velaride_ride_session_lap(void)
++{
++  struct velaride_ride_gps_s gps;
++  if (!g_ride.state.active || g_ride.state.paused) return -EBUSY;
++  if (g_ride.state.elapsed_s <= g_ride.lap_start_s) return -EAGAIN;
++  velaride_ride_session_get_gps(&gps);
++  g_ride.state.last_lap_s = g_ride.state.elapsed_s - g_ride.lap_start_s;
++  g_ride.state.last_lap_distance_m = gps.distance_m - g_ride.lap_start_m;
++  g_ride.lap_start_s = g_ride.state.elapsed_s;
++  g_ride.lap_start_m = gps.distance_m;
++  g_ride.next_lap_m = g_ride_prefs.lap_m > 0 ? gps.distance_m + g_ride_prefs.lap_m : 0;
++  ride_increment(&g_ride.state.extras.lap_count);
++  return 0;
++}
++
++int velaride_ride_session_respond_reminder(enum velaride_reminder_action_e action)
++{
++  struct velaride_ride_extras_s *e = &g_ride.state.extras;
++  bool drink = g_ride.state.alert == VELARIDE_ALERT_DRINK;
++  if (action < VELARIDE_REMINDER_TAKE || action > VELARIDE_REMINDER_IGNORE) return -EINVAL;
++  if (!g_ride.state.active || (!drink && g_ride.state.alert != VELARIDE_ALERT_REST)) return -EALREADY;
++  if (drink)
++    {
++      if ((uint32_t)e->drink_done + e->drink_snoozed + e->drink_ignored < e->drink_count)
++        {
++          if (action == VELARIDE_REMINDER_TAKE) ride_increment(&e->drink_done);
++          else if (action == VELARIDE_REMINDER_SNOOZE) ride_increment(&e->drink_snoozed);
++          else ride_increment(&e->drink_ignored);
++        }
++      g_ride.next_drink_s = g_ride.state.elapsed_s +
++        (action == VELARIDE_REMINDER_SNOOZE ? 300u : g_ride_prefs.drink_min * 60u);
++      if (g_ride_prefs.drink_min == 0) g_ride.next_drink_s = 0;
++    }
++  else
++    {
++      if ((uint32_t)e->rest_taken + e->rest_snoozed + e->rest_ignored < g_ride.state.rest_count)
++        {
++          if (action == VELARIDE_REMINDER_TAKE) ride_increment(&e->rest_taken);
++          else if (action == VELARIDE_REMINDER_SNOOZE) ride_increment(&e->rest_snoozed);
++          else ride_increment(&e->rest_ignored);
++        }
++      g_ride.next_rest_s = g_ride.state.moving_s +
++        (action == VELARIDE_REMINDER_SNOOZE ? 300u : g_ride_prefs.rest_min * 60u);
++      if (g_ride_prefs.rest_min == 0) g_ride.next_rest_s = 0;
++    }
++  g_ride.state.alert = VELARIDE_ALERT_NONE;
++  if (!drink && action == VELARIDE_REMINDER_TAKE) velaride_ride_session_set_paused(true);
++  return 0;
+ }
+ 
+ void velaride_ride_session_get(struct velaride_ride_snapshot_s *snapshot)
+@@ -603,6 +786,11 @@
+ 
+   if (g_ride.state.alert == VELARIDE_ALERT_IMPACT)
+     {
++      return;
++    }
++  if (g_ride.state.alert == VELARIDE_ALERT_REST || g_ride.state.alert == VELARIDE_ALERT_DRINK)
++    {
++      velaride_ride_session_respond_reminder(VELARIDE_REMINDER_IGNORE);
+       return;
+     }
+ 
+@@ -679,6 +867,7 @@
+       g_ride.safety_timed_out = true;
+     }
+   latest.safety = g_ride.state.safety;
++  latest.extras = g_ride.state.extras;
+ 
+   pthread_mutex_lock(&g_phone_lock);
+   g_ride_gps.running = false;
+@@ -710,6 +899,18 @@
+ 
+   memset(&disk, 0, sizeof(disk));
+   ret = property_get_buffer(key, &disk, sizeof(disk));
++  if (ret == sizeof(struct ride_record_disk_v3_s) && disk.magic == RIDE_RECORD_MAGIC &&
++      disk.version == 3 && disk.size == sizeof(struct ride_record_disk_v3_s))
++    {
++      struct ride_record_disk_v3_s old;
++      memcpy(&old, &disk, sizeof(old));
++      if (old.crc32 != ride_crc32(&old, offsetof(struct ride_record_disk_v3_s, crc32))) return -EBADMSG;
++      memset(&disk, 0, sizeof(disk));
++      memcpy(&disk.record, &old.record, offsetof(struct ride_record_v3_s, safety) + sizeof(old.record.safety));
++      disk.magic = RIDE_RECORD_MAGIC; disk.version = RIDE_RECORD_VERSION; disk.size = sizeof(disk);
++      disk.crc32 = ride_crc32(&disk, offsetof(struct ride_record_disk_s, crc32));
++      ret = sizeof(disk);
++    }
+   if (ret == sizeof(struct ride_record_disk_v2_s) &&
+       disk.magic == RIDE_RECORD_MAGIC && disk.version == 2 &&
+       disk.size == sizeof(struct ride_record_disk_v2_s))
+@@ -780,7 +981,7 @@
+       return -EBADMSG;
+     }
+ 
+-  if (!ride_safety_valid(&disk.record.safety, disk.record.elapsed_s))
++  if (!ride_safety_valid(&disk.record.safety, disk.record.elapsed_s) || !ride_extras_valid(&disk.record.extras, disk.record.rest_count))
+     {
+       return -EBADMSG;
+     }
+@@ -799,7 +1000,7 @@
+   struct ride_record_disk_s disk;
+   int ret;
+ 
+-  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s))
++  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s) || !ride_extras_valid(&record->extras, record->rest_count))
+     {
+       return -EINVAL;
+     }
+@@ -924,7 +1125,7 @@
+   struct velaride_ride_record_s previous;
+   char key[40];
+   int ret;
+-  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s))
++  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s) || !ride_extras_valid(&record->extras, record->rest_count))
+     return -EINVAL;
+   pthread_mutex_lock(&g_history_lock);
+   /* Preserve the legacy latest record before the first real new save. */
+--- a/velaride_ride_session.h
++++ b/velaride_ride_session.h
+@@ -26,6 +26,8 @@
+   VELARIDE_ALERT_REST,
+   VELARIDE_ALERT_STILL,
+   VELARIDE_ALERT_IMPACT,
++  VELARIDE_ALERT_DRINK,
++  VELARIDE_ALERT_RESUME,
+ };
+ 
+ enum velaride_safety_action_e
+@@ -52,6 +54,37 @@
+   uint32_t last_elapsed_s;
+ };
+ 
++struct velaride_ride_prefs_s
++{
++  uint16_t rest_min;
++  uint16_t drink_min;
++  uint32_t distance_goal_m;
++  uint16_t lap_m;
++  uint8_t pause_advice;
++};
++
++struct velaride_ride_extras_s
++{
++  uint32_t distance_goal_m;
++  uint16_t lap_count;
++  uint16_t rest_taken;
++  uint16_t rest_snoozed;
++  uint16_t rest_ignored;
++  uint16_t drink_count;
++  uint16_t drink_done;
++  uint16_t drink_snoozed;
++  uint16_t drink_ignored;
++  uint8_t version;
++  uint8_t reserved;
++};
++
++enum velaride_reminder_action_e
++{
++  VELARIDE_REMINDER_TAKE = 1,
++  VELARIDE_REMINDER_SNOOZE,
++  VELARIDE_REMINDER_IGNORE,
++};
++
+ struct velaride_ride_snapshot_s
+ {
+   bool active;
+@@ -69,6 +102,10 @@
+   bool goal_reached;
+   uint8_t safety_remaining_s;
+   struct velaride_ride_safety_s safety;
++  struct velaride_ride_extras_s extras;
++  uint32_t last_lap_s;
++  uint32_t last_lap_distance_m;
++  bool distance_goal_reached;
+ };
+ 
+ struct velaride_ride_gps_s
+@@ -92,6 +129,7 @@
+   uint16_t rest_count;
+   struct velaride_ride_gps_s gps;
+   struct velaride_ride_safety_s safety;
++  struct velaride_ride_extras_s extras;
+ };
+ 
+ int velaride_ride_session_init(void);
+@@ -112,6 +150,10 @@
+ void velaride_ride_session_get_gps(struct velaride_ride_gps_s *gps);
+ void velaride_ride_session_ack_alert(void);
+ int velaride_ride_session_respond_safety(enum velaride_safety_action_e action);
++void velaride_ride_prefs_get(struct velaride_ride_prefs_s *prefs);
++int velaride_ride_prefs_set(const struct velaride_ride_prefs_s *prefs);
++int velaride_ride_session_respond_reminder(enum velaride_reminder_action_e action);
++int velaride_ride_session_lap(void);
+ int velaride_ride_session_load_latest(struct velaride_ride_record_s *record);
+ int velaride_ride_history_list(uint32_t *sequences, size_t capacity,
+                                unsigned int *corrupt);
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -73,6 +73,7 @@
+   SPORT_PAGE_GOAL_DONE,
+   SPORT_PAGE_REVIEW,
+   SPORT_PAGE_HISTORY,
++  SPORT_PAGE_RIDE_PREFS,
+   SPORT_PAGE_INFO,
+ };
+ 
+@@ -159,6 +160,7 @@
+   uint8_t sport_type;
+   bool session_started;
+   bool goal_announced;
++  bool distance_goal_announced;
+   bool has_record;
+   bool review_ai;
+   bool history_browsing;
+@@ -170,6 +172,8 @@
+ 
+ static void show_select(void);
+ static void show_goal(void);
++static void show_ride_prefs(void);
++static void ride_prefs_open_cb(lv_event_t *event);
+ static void pause_cb(lv_event_t *event);
+ static void update_info(void);
+ static void show_active(void);
+@@ -709,6 +713,13 @@
+   return obj;
+ }
+ 
++static void lap_cb(lv_event_t *event)
++{
++  LV_UNUSED(event);
++  velaride_ride_session_lap();
++  show_active();
++}
++
+ static void build_control_view(void)
+ {
+   struct velaride_ride_snapshot_s ride;
+@@ -746,6 +757,12 @@
+ 
+   control(143, 250, 0x6ec6ff, 0x0b2230, VR_ICON_SAFETY, NULL, "防误触锁",
+           lock_cb);
++  {
++    char text[64];
++    snprintf(text, sizeof(text), "分段 %u · 最近 %lu s", ride.extras.lap_count,
++             (unsigned long)ride.last_lap_s);
++    button(text, BTN_SECONDARY, 30, 386, SPORT_W - 60, 44, lap_cb, 0);
++  }
+ }
+ 
+ static const char *cardinal(float heading)
+@@ -907,7 +924,18 @@
+   set_label(g_sport.row_value[0], text);
+   ride_time_text(text, sizeof(text), ride.still_s);
+   set_label(g_sport.row_value[1], text);
+-  if (ride.goal_s == 0)
++  if (ride.extras.distance_goal_m > 0)
++    {
++      struct velaride_ride_gps_s gps;
++      velaride_ride_session_get_gps(&gps);
++      set_label(g_sport.row_name[2], "距离剩余");
++      if (ride.distance_goal_reached || gps.distance_m >= ride.extras.distance_goal_m)
++        snprintf(text, sizeof(text), "已达成");
++      else if (gps.time_ms == 0) snprintf(text, sizeof(text), "GPS --");
++      else snprintf(text, sizeof(text), "%.2f km",
++                    (ride.extras.distance_goal_m - gps.distance_m) / 1000.0);
++    }
++  else if (ride.goal_s == 0)
+     {
+       set_label(g_sport.row_name[2], "暂停");
+       snprintf(text, sizeof(text), "%u 次", ride.pause_count);
+@@ -1013,6 +1041,16 @@
+         {
+           return;
+         }
++    }
++  else if (ride.alert == VELARIDE_ALERT_REST || ride.alert == VELARIDE_ALERT_DRINK)
++    {
++      velaride_ride_session_respond_reminder(action == 1 ?
++        VELARIDE_REMINDER_TAKE : VELARIDE_REMINDER_IGNORE);
++    }
++  else if (ride.alert == VELARIDE_ALERT_RESUME)
++    {
++      velaride_ride_session_ack_alert();
++      if (action == 1) velaride_ride_session_set_paused(false);
+     }
+   else
+     {
+@@ -1105,6 +1143,14 @@
+       pill("确认并暂停", BTN_DANGER, 280, safety_help_cb, 1);
+       pill("返回确认", BTN_SECONDARY, 356, safety_help_cb, 2);
+     }
++}
++
++static void reminder_snooze_cb(lv_event_t *event)
++{
++  LV_UNUSED(event);
++  velaride_ride_session_respond_reminder(VELARIDE_REMINDER_SNOOZE);
++  g_sport.ride_view = RIDE_VIEW_DATA;
++  show_active();
+ }
+ 
+ static void show_alert(enum velaride_alert_e alert)
+@@ -1134,12 +1180,22 @@
+       pill("暂停记录", BTN_WARN, 280, alert_cb, 1);
+       pill("继续骑行", BTN_SECONDARY, 356, alert_cb, 0);
+     }
++  else if (alert == VELARIDE_ALERT_RESUME)
++    {
++      alert_page(SPORT_PAGE_ALERT, 0x0b2914, VR_OK, VR_ICON_RIDE, NULL,
++                 "继续骑行？", "GPS 与运动检测到移动\n确认后才恢复计时");
++      pill("继续骑行", BTN_PRIMARY, 280, alert_cb, 1);
++      pill("保持暂停", BTN_SECONDARY, 356, alert_cb, 0);
++    }
+   else
+     {
++      bool drink = alert == VELARIDE_ALERT_DRINK;
+       alert_page(SPORT_PAGE_ALERT, 0x3a2405, VR_WARN, VR_ICON_MOON, NULL,
+-                 "该休息一下了", "已连续运动 45 分钟");
+-      pill("暂停休息", BTN_WARN, 280, alert_cb, 1);
+-      pill("继续骑行", BTN_SECONDARY, 356, alert_cb, 0);
++                 drink ? "该补水了" : "该休息一下了",
++                 drink ? "停车补水后再确认" : "按骑前设置提醒，选择后会记录");
++      button(drink ? "已补水" : "暂停休息", BTN_WARN, 30, 264, SPORT_W - 60, 50, alert_cb, 1);
++      button("稍后 5 分钟", BTN_SECONDARY, 30, 322, SPORT_W - 60, 50, reminder_snooze_cb, 0);
++      button(drink ? "本次忽略" : "继续骑行", BTN_SECONDARY, 30, 380, SPORT_W - 60, 50, alert_cb, 0);
+     }
+ }
+ 
+@@ -1160,8 +1216,12 @@
+ {
+   char text[64];
+   lv_obj_t *dot;
+-
+-  g_sport.goal_announced = true;
++  struct velaride_ride_snapshot_s ride;
++
++  velaride_ride_session_get(&ride);
++  bool distance_goal = ride.distance_goal_reached && !g_sport.distance_goal_announced;
++  if (distance_goal) g_sport.distance_goal_announced = true;
++  else g_sport.goal_announced = true;
+   clear_bare(SPORT_PAGE_GOAL_DONE, 0);
+   dot = circle(g_sport.root, SPORT_W / 2 - 42, 50, 84, ACCENT_COLOR,
+                LV_OPA_COVER);
+@@ -1172,8 +1232,9 @@
+   lv_obj_center(mark);
+   label(g_sport.root, "目标达成", TEXT_COLOR, &velaride_font_cn_28,
+         18, 154, SPORT_W - 36);
+-  snprintf(text, sizeof(text), "%" PRIu32 " 分钟记录目标已完成",
+-           g_sport.goal_s / 60);
++  if (distance_goal)
++    snprintf(text, sizeof(text), "%.1f km 距离目标已完成", ride.extras.distance_goal_m / 1000.0);
++  else snprintf(text, sizeof(text), "%" PRIu32 " 分钟记录目标已完成", g_sport.goal_s / 60);
+   label(g_sport.root, text, MUTED_COLOR, &velaride_font_cn_20,
+         30, 198, SPORT_W - 60);
+   pill("继续骑行", BTN_PRIMARY, 280, goal_done_cb, 0);
+@@ -1199,6 +1260,7 @@
+       velaride_ride_session_start_with_goal(g_sport.goal_s);
+       g_sport.session_started = true;
+       g_sport.goal_announced = false;
++      g_sport.distance_goal_announced = false;
+       g_sport.ride_view = RIDE_VIEW_DATA;
+       lv_timer_reset(g_sport.session_timer);
+       show_active();
+@@ -1355,6 +1417,67 @@
+ 
+   lv_obj_t *go = pill("开始", BTN_PRIMARY, 330, start_cb, 0);
+   LV_UNUSED(go);
++  button("骑行设置", BTN_SECONDARY, 90, 400, 210, 42, ride_prefs_open_cb, 0);
++}
++
++static uint32_t next_preset(uint32_t current, const uint32_t *values, size_t count)
++{
++  for (size_t i = 0; i < count; i++) if (current == values[i]) return values[(i + 1) % count];
++  return values[0];
++}
++
++static void ride_prefs_change_cb(lv_event_t *event)
++{
++  static const uint32_t rest[] = {0, 15, 30, 45, 60};
++  static const uint32_t drink[] = {0, 15, 20, 30, 45};
++  static const uint32_t goal[] = {0, 1000, 5000, 10000, 20000};
++  static const uint32_t lap[] = {0, 500, 1000, 2000, 5000};
++  struct velaride_ride_prefs_s prefs;
++  intptr_t action = (intptr_t)lv_event_get_user_data(event);
++  int ret;
++  velaride_ride_prefs_get(&prefs);
++  if (action == 0) prefs.rest_min = next_preset(prefs.rest_min, rest, 5);
++  else if (action == 1) prefs.drink_min = next_preset(prefs.drink_min, drink, 5);
++  else if (action == 2) prefs.distance_goal_m = next_preset(prefs.distance_goal_m, goal, 5);
++  else if (action == 3) prefs.lap_m = next_preset(prefs.lap_m, lap, 5);
++  else prefs.pause_advice = !prefs.pause_advice;
++  ret = velaride_ride_prefs_set(&prefs);
++  show_ride_prefs();
++  if (ret < 0) set_label(g_sport.body, "设置未保存，请重试");
++}
++
++static void ride_prefs_open_cb(lv_event_t *event)
++{
++  LV_UNUSED(event);
++  show_ride_prefs();
++}
++
++static void show_ride_prefs(void)
++{
++  struct velaride_ride_prefs_s prefs;
++  lv_obj_t *scroll;
++  char text[96];
++  velaride_ride_prefs_get(&prefs);
++  clear_page(SPORT_PAGE_RIDE_PREFS, "骑行设置");
++  g_sport.body = label(g_sport.root, "点击切换 · 距离需要有效 GPS", MUTED_COLOR,
++                       &velaride_font_cn_20, 18, 104, SPORT_W - 36);
++  scroll = lv_obj_create(g_sport.root);
++  lv_obj_remove_style_all(scroll);
++  lv_obj_set_pos(scroll, 0, 142);
++  lv_obj_set_size(scroll, SPORT_W, SPORT_H - 142);
++  lv_obj_set_scroll_dir(scroll, LV_DIR_VER);
++  lv_obj_set_style_pad_bottom(scroll, 20, 0);
++  for (int i = 0; i < 5; i++)
++    {
++      lv_obj_t *row;
++      if (i == 0) snprintf(text, sizeof(text), prefs.rest_min ? "休息  %u 分钟" : "休息  已关闭", prefs.rest_min);
++      else if (i == 1) snprintf(text, sizeof(text), prefs.drink_min ? "补水  %u 分钟" : "补水  已关闭", prefs.drink_min);
++      else if (i == 2) snprintf(text, sizeof(text), prefs.distance_goal_m ? "距离目标  %.1f km" : "距离目标  已关闭", prefs.distance_goal_m / 1000.0);
++      else if (i == 3) snprintf(text, sizeof(text), prefs.lap_m ? "自动分段  约 %u m" : "自动分段  已关闭", prefs.lap_m);
++      else snprintf(text, sizeof(text), "停车建议  %s", prefs.pause_advice ? "已开启" : "已关闭");
++      row = button(text, BTN_TILE, 18, i * 80, SPORT_W - 36, 68, ride_prefs_change_cb, i);
++      lv_obj_set_parent(row, scroll);
++    }
+ }
+ 
+ /* --- Summary ---------------------------------------------------------------- */
+@@ -1553,6 +1676,22 @@
+       left_label(scroll, "安全确认 --（旧记录）", MUTED_COLOR,
+                  &velaride_font_cn_20, 40, y);
+       y += 40;
++    }
++
++  if (rec->extras.version == 1)
++    {
++      snprintf(text, sizeof(text), "分段 %u · 补水确认 %u / 提醒 %u", rec->extras.lap_count,
++               rec->extras.drink_done, rec->extras.drink_count);
++      left_label(scroll, text, TEXT_COLOR, &velaride_font_cn_20, 40, y);
++      snprintf(text, sizeof(text), "休息 %u / 稍后 %u / 忽略 %u", rec->extras.rest_taken,
++               rec->extras.rest_snoozed, rec->extras.rest_ignored);
++      left_label(scroll, text, MUTED_COLOR, &velaride_font_cn_20, 40, y + 30);
++      if (rec->extras.distance_goal_m > 0)
++        {
++          snprintf(text, sizeof(text), "距离目标 %.1f km", rec->extras.distance_goal_m / 1000.0);
++          left_label(scroll, text, MUTED_COLOR, &velaride_font_cn_20, 40, y + 60);
++        }
++      y += rec->extras.distance_goal_m > 0 ? 100 : 70;
+     }
+ 
+   card = lv_obj_create(scroll);
+@@ -2756,7 +2895,9 @@
+   else if (g_sport.info == VELARIDE_INFO_SAFETY)
+     {
+       snprintf(text, sizeof(text), "本地提醒无需联网\n\n"
+-               "冲击后短时持续静止\n连续静止 15 秒\n累计运动 45 分钟\n\n"
++               "冲击后短时持续静止会请求安全确认。\n"
++               "休息、补水和距离目标在骑行设置中配置。\n"
++               "停车建议结合 GPS 和运动检测，确认后才改变计时。\n\n"
+                "收到冲击提醒后请确认安全。30 秒未确认会记录，提醒继续保留。\n"
+                "求助只记录意向并暂停，不会发送消息。");
+     }
+@@ -2816,7 +2957,8 @@
+     }
+   if (g_sport.page == SPORT_PAGE_ACTIVE)
+     {
+-      if (ride.goal_reached && !g_sport.goal_announced)
++      if ((ride.goal_reached && !g_sport.goal_announced) ||
++          (ride.distance_goal_reached && !g_sport.distance_goal_announced))
+         {
+           show_goal_done();
+         }
+@@ -2842,6 +2984,9 @@
+     {
+       case SPORT_PAGE_GOAL:
+         show_select();
++        break;
++      case SPORT_PAGE_RIDE_PREFS:
++        show_goal();
+         break;
+       case SPORT_PAGE_COUNTDOWN:
+         lv_timer_pause(g_sport.countdown_timer);

@@ -96,7 +96,8 @@ export function fallbackReview(input) {
     ? `安全确认 ${ride.safety_checks} 次，确认无事 ${ride.safety_confirmed} 次，暂停 ${ride.safety_pauses} 次。`
       + (ride.safety_help > 0 ? `求助意向 ${ride.safety_help} 次，不表示已发送消息。` : '')
       + (ride.safety_unanswered > 0 ? `${ride.safety_unanswered} 次未及时确认，可能之后已处理。` : '') : '';
-  return `骑行 ${duration}，运动占比 ${movingRatio}%。${safety}${response}${rest}`;
+  const choices = ride.extras_version === 1 ? `分段 ${ride.lap_count} 次，选择休息 ${ride.rest_taken} 次，确认补水 ${ride.drink_done} 次。` : '';
+  return `骑行 ${duration}，运动占比 ${movingRatio}%。${safety}${response}${choices}${rest}`;
 }
 
 function watchCanRender(text) {

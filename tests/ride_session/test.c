@@ -601,6 +601,100 @@ static void test_history_ring_recovery(void)
   assert(velaride_ride_history_list(sequences, 1, NULL) == -EINVAL);
 }
 
+static void configure_ride(struct velaride_ride_prefs_s prefs)
+{
+  begin(0);
+  g_ride.state.active = false;
+  assert(velaride_ride_prefs_set(&prefs) == 0);
+  assert(velaride_ride_session_init() == 0);
+  assert(g_ride_prefs.rest_min == prefs.rest_min && g_ride_prefs.drink_min == prefs.drink_min);
+  velaride_ride_session_start();
+  feed(2, true);
+}
+
+static void test_reminder_actions(void)
+{
+  struct velaride_ride_prefs_s prefs = {.rest_min=5,.drink_min=5};
+  struct velaride_ride_record_s saved;
+  configure_ride(prefs);
+  assert(velaride_ride_prefs_set(&prefs) == -EBUSY);
+  g_ride.next_drink_s = g_ride.state.elapsed_s + 600;
+  feed(300, true);
+  assert(g_ride.state.alert == VELARIDE_ALERT_REST);
+  assert(velaride_ride_session_respond_reminder(VELARIDE_REMINDER_SNOOZE) == 0);
+  assert(g_ride.state.extras.rest_snoozed == 1 && !g_ride.state.paused);
+  g_ride.next_drink_s = g_ride.state.elapsed_s + 1;
+  feed(1, true);
+  assert(g_ride.state.alert == VELARIDE_ALERT_DRINK);
+  assert(velaride_ride_session_respond_reminder(VELARIDE_REMINDER_TAKE) == 0);
+  assert(g_ride.state.extras.drink_done == 1 && !g_ride.state.paused);
+  g_ride.next_rest_s = g_ride.state.moving_s + 1;
+  feed(1, true);
+  velaride_ride_session_ack_alert();
+  assert(g_ride.state.extras.rest_ignored == 1);
+  g_ride.next_rest_s = g_ride.state.moving_s + 1;
+  feed(1, true);
+  assert(velaride_ride_session_respond_reminder(VELARIDE_REMINDER_TAKE) == 0);
+  assert(g_ride.state.paused && g_ride.state.extras.rest_taken == 1);
+  uint32_t elapsed = g_ride.state.elapsed_s;
+  feed(400, false);
+  assert(g_ride.state.elapsed_s == elapsed && g_ride.state.alert == VELARIDE_ALERT_NONE);
+  assert(velaride_ride_session_finish(&saved) == 0);
+  assert(saved.extras.version == 1 && saved.extras.rest_taken == 1 && saved.extras.drink_done == 1);
+  assert(velaride_ride_session_load_latest(&saved) == 0 && saved.extras.rest_snoozed == 1);
+  prefs.rest_min = 1;
+  assert(velaride_ride_prefs_set(&prefs) == -EINVAL);
+}
+
+static void test_pause_advice_and_distance_goal(void)
+{
+  struct velaride_ride_prefs_s prefs = {.pause_advice=true,.distance_goal_m=1000,.lap_m=500};
+  configure_ride(prefs);
+  monotonic_ms = 1000;
+  velaride_ride_session_set_phone_data(180,0);
+  monotonic_ms += 10000;
+  velaride_ride_session_set_phone_data(180,0.5);
+  feed(1,true);
+  assert(g_ride.state.extras.lap_count == 1 && !g_ride.state.distance_goal_reached);
+  monotonic_ms += 10000;
+  velaride_ride_session_set_phone_data(180,1.0);
+  feed(1,true);
+  assert(g_ride.state.distance_goal_reached && g_ride.state.extras.lap_count == 2);
+  assert(velaride_ride_session_lap() == -EAGAIN);
+  feed(1,true);
+  assert(velaride_ride_session_lap() == 0 && g_ride.state.extras.lap_count == 3);
+  velaride_ride_session_set_phone_data(0,1.0);
+  feed(6,false);
+  assert(g_ride.state.alert == VELARIDE_ALERT_STILL && !g_ride.state.paused);
+  velaride_ride_session_ack_alert();
+  velaride_ride_session_set_paused(true);
+  uint32_t elapsed = g_ride.state.elapsed_s;
+  velaride_ride_session_set_phone_data(10,1.0);
+  feed(4,true);
+  assert(g_ride.state.alert == VELARIDE_ALERT_RESUME && g_ride.state.paused);
+  assert(g_ride.state.elapsed_s == elapsed);
+  velaride_ride_session_ack_alert();
+  feed(3,true);
+  assert(g_ride.state.alert == VELARIDE_ALERT_NONE); /* Ignoring does not spam. */
+  assert(velaride_ride_session_lap() == -EBUSY);
+}
+
+static void test_v3_record_migration(void)
+{
+  struct ride_record_disk_v3_s old = {0};
+  struct velaride_ride_record_s record;
+  begin(0);
+  old.magic = RIDE_RECORD_MAGIC; old.version = 3; old.size = sizeof(old);
+  old.record.sequence = 100; old.record.elapsed_s = 60;
+  old.record.safety.version = 1; old.record.safety.checks = 1;
+  old.record.safety.confirmed = 1; old.record.safety.last_action = VELARIDE_SAFETY_OK;
+  old.crc32 = ride_crc32(&old, offsetof(struct ride_record_disk_v3_s, crc32));
+  assert(property_set_buffer(RIDE_RECORD_KEY, &old, sizeof(old)) == 0);
+  assert(velaride_ride_session_load_latest(&record) == 0 && record.safety.confirmed == 1);
+  assert(record.extras.version == 0 && record.extras.lap_count == 0);
+  assert(sizeof(struct ride_record_disk_s) * 2 <= 255);
+}
+
 int main(void)
 {
   test_goal_and_pause();
@@ -618,6 +712,9 @@ int main(void)
   test_safety_choices_and_timeout();
   test_v2_record_migration();
   test_history_ring_recovery();
-  puts("PASS: 15 ride-session scenarios, including 16-record offline ring, interruption recovery, CRC isolation, legacy migration, safety and GPS");
+  test_reminder_actions();
+  test_pause_advice_and_distance_goal();
+  test_v3_record_migration();
+  puts("PASS: 18 ride-session scenarios: reminders, snooze, opt-in stop/resume advice, distance goals/laps, V1/V2/V3 migration, V4 persistence, history and GPS");
   return 0;
 }

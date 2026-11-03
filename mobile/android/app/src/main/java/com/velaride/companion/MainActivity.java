@@ -92,7 +92,8 @@ public final class MainActivity extends Activity {
                     boolean alreadySaved = false;
                     for (RideHistory.Entry saved : history.snapshot()) if (saved.sameRide(migrated)) {
                         alreadySaved = (!migrated.gps.available() || saved.gps.available())
-                                && (!migrated.safety.available() || saved.safety.available()); break;
+                                && (!migrated.safety.available() || saved.safety.available())
+                                && (!migrated.extras.available() || saved.extras.available()); break;
                     }
                     if (!alreadySaved) worker.execute(() -> {
                         String failure = null;
@@ -314,7 +315,8 @@ public final class MainActivity extends Activity {
         moving.setText("运动时间  " + time(record.optLong("moving_s")));
         recordDetail.setText("暂停  " + record.optInt("pause_count") + " 次    休息提醒  " + record.optInt("rest_count") + " 次\n"
                 + "静止  " + time(record.optLong("still_s")) + "    冲击提醒  " + record.optInt("impacts") + " 次\n"
-                + rideGpsText(parseRideGps(record)) + "\n\n" + parseRideSafety(record).summary());
+                + rideGpsText(parseRideGps(record)) + "\n\n" + parseRideSafety(record).summary()
+                + "\n\n" + parseRideExtras(record).summary());
         cachedLabel.setText((cached ? "手机已保存" : "刚刚同步") + " · 第 " + record.optLong("sequence") + " 次记录");
         updateButtons();
         showHistorySummary();
@@ -332,6 +334,9 @@ public final class MainActivity extends Activity {
         parseRideGps(record);
         RideSafety safety = parseRideSafety(record);
         if (safety.lastElapsed > record.getLong("elapsed_s")) throw new IOException("安全确认时间异常");
+        RideExtras extras = parseRideExtras(record);
+        if (extras.restTaken+extras.restSnoozed+extras.restIgnored > record.getLong("rest_count"))
+            throw new IOException("休息处理统计异常");
     }
     private static String time(long seconds) {
         return String.format(Locale.ROOT, "%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60);
@@ -341,7 +346,23 @@ public final class MainActivity extends Activity {
         return new RideHistory.Entry(device, record.optLong("sequence"), record.optLong("elapsed_s"),
                 record.optLong("moving_s"), record.optLong("still_s"), record.optLong("pause_count"),
                 record.optLong("rest_count"), record.optLong("impacts"), syncedAt, syncedAt, memo,
-                parseRideGps(record), parseRideSafety(record));
+                parseRideGps(record), parseRideSafety(record), parseRideExtras(record));
+    }
+    private RideExtras parseRideExtras(JSONObject record) {
+        String[] keys={"extras_version","goal_distance_m","lap_count","rest_taken","rest_snoozed",
+                "rest_ignored","drink_count","drink_done","drink_snoozed","drink_ignored"};
+        boolean any=false; for(String key:keys) any |= record.has(key);
+        if(!any) return RideExtras.NONE;
+        long[] values=new long[keys.length];
+        for(int i=0;i<keys.length;i++) {
+            Object value=record.opt(keys[i]);
+            if(!(value instanceof Number)) throw new IllegalArgumentException("骑行扩展字段不完整");
+            double number=((Number)value).doubleValue();
+            if(!Double.isFinite(number)||number<0||number>4294967295.0||number!=Math.rint(number))
+                throw new IllegalArgumentException("骑行扩展数值异常");
+            values[i]=((Number)value).longValue();
+        }
+        return new RideExtras(values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],values[8],values[9]);
     }
     private RideSafety parseRideSafety(JSONObject record) {
         String[] keys = {"safety_version", "safety_checks", "safety_confirmed", "safety_pauses", "safety_help",
@@ -416,6 +437,7 @@ public final class MainActivity extends Activity {
                 + "\n同步时间不代表骑行发生时间。"
                 + "\n\n" + rideGpsText(entry.gps)
                 + "\n\n" + entry.safety.summary()
+                + "\n\n" + entry.extras.summary()
                 + (entry.note.isEmpty() ? "" : "\n\n已回传的备注\n" + entry.note);
     }
     private void showHistoryDetail(RideHistory.Entry entry) {
@@ -483,6 +505,10 @@ public final class MainActivity extends Activity {
                 .put("safety_confirmed", e.safety.confirmed).put("safety_pauses", e.safety.pauses)
                 .put("safety_help", e.safety.help).put("safety_unanswered", e.safety.unanswered)
                 .put("safety_last_action", e.safety.lastAction).put("safety_last_elapsed_s", e.safety.lastElapsed);
+        if(e.extras.available()) payload.put("extras_version",1).put("goal_distance_m",e.extras.goalM)
+                .put("lap_count",e.extras.laps).put("rest_taken",e.extras.restTaken).put("rest_snoozed",e.extras.restSnoozed)
+                .put("rest_ignored",e.extras.restIgnored).put("drink_count",e.extras.drinks).put("drink_done",e.extras.drinkDone)
+                .put("drink_snoozed",e.extras.drinkSnoozed).put("drink_ignored",e.extras.drinkIgnored);
         return payload;
     }
     private void onlineReview(RideHistory.Entry entry) {

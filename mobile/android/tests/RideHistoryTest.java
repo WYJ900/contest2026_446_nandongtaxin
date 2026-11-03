@@ -82,6 +82,30 @@ public final class RideHistoryTest {
                 throw new AssertionError("Invalid safety accepted"); }
             catch (IllegalArgumentException expected) { }
         }
+        ByteArrayOutputStream v3Bytes=new ByteArrayOutputStream();
+        DataOutputStream v3=new DataOutputStream(v3Bytes);
+        v3.writeInt(0x56524833);v3.writeInt(1);v3.writeUTF("watch-v3");
+        for(long value:new long[]{13,100,60,20,2,3,2,1000,2000})v3.writeLong(value);
+        v3.writeUTF("旧V3备注");
+        for(long value:new long[]{10000,50,1800,2000,1,2,1,0,1,1,3,90})v3.writeLong(value);
+        v3.flush();CRC32 v3Crc=new CRC32();v3Crc.update(v3Bytes.toByteArray());v3.writeLong(v3Crc.getValue());
+        Memory v3Disk=new Memory();v3Disk.bytes=v3Bytes.toByteArray();
+        RideHistory v3History=new RideHistory(v3Disk);RideHistory.Entry v3Entry=v3History.snapshot().get(0);
+        check(v3Entry.safety.help==1 && !v3Entry.extras.available(),"V3 migration lost safety/invented extras");
+        RideExtras extras=new RideExtras(1,5000,4,1,1,1,2,1,1,0);
+        v3History.upsert(new RideHistory.Entry(v3Entry.device,13,100,60,20,2,3,2,3000,3000,"",
+                v3Entry.gps,v3Entry.safety,extras));
+        v3History.upsert(v3Entry.withNote("更新V4备注"));
+        RideHistory.Entry v4Entry=new RideHistory(v3Disk).snapshot().get(0);
+        check(v4Entry.extras.laps==4 && v4Entry.extras.restTaken==1 && v4Entry.extras.drinkSnoozed==1,
+                "V4 extras lost across old peer or restart");
+        check(v4Entry.note.equals("更新V4备注") && v4Entry.firstSync==1000 && v4Entry.safety.help==1,
+                "V4 enrichment lost metadata");
+        check(RideHistory.csv(Collections.singletonList(v4Entry)).contains(",5000,4,1,1,1,2,1,1,0,"),"CSV lost extras");
+        for(long[] bad:new long[][]{{0,1,0,0,0,0,0,0,0,0},{1,0,0,0,0,0,1,1,1,0},{1,2000001,0,0,0,0,0,0,0,0}}) {
+            try {new RideExtras(bad[0],bad[1],bad[2],bad[3],bad[4],bad[5],bad[6],bad[7],bad[8],bad[9]);throw new AssertionError();}
+            catch(IllegalArgumentException expected){}
+        }
         try { new RideHistory.Entry("a", 1, 10, 5, 2, 0, 0, 0, 0, 0, "", RideGps.NONE, safety);
             throw new AssertionError("Out-of-ride safety timestamp accepted"); }
         catch (IllegalArgumentException expected) { }
@@ -133,6 +157,6 @@ public final class RideHistoryTest {
         check(new RideHistory(disk).snapshot().size() == RideHistory.MAX_RECORDS, "Capacity lost history");
         try { new RideHistory.Entry("a", 1, 10, 8, 8, 0, 0, 0, 0, 0, ""); throw new AssertionError("Invalid durations accepted"); }
         catch (IllegalArgumentException expected) { }
-        System.out.println("PASS: V1/V2/V3 history migration, GPS/safety enrichment, deduplication, restart, notes, write failures, CRC, capacity and CSV");
+        System.out.println("PASS: V1/V2/V3/V4 history migration, GPS/safety/reminder enrichment, deduplication, restart, notes, write failures, CRC, capacity and CSV");
     }
 }

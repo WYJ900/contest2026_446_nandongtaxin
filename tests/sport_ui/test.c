@@ -27,6 +27,15 @@ static struct velaride_ride_snapshot_s state;
 static struct velaride_ride_record_s saved;
 static bool has_saved = true;
 static int fake_history_count = 1;
+static struct velaride_ride_prefs_s ride_prefs = {.rest_min=45};
+void velaride_ride_prefs_get(struct velaride_ride_prefs_s *out) { *out=ride_prefs; }
+int velaride_ride_prefs_set(const struct velaride_ride_prefs_s *in) { ride_prefs=*in; return 0; }
+int velaride_ride_session_lap(void)
+{
+  if(!state.active || state.paused) return -EBUSY;
+  state.extras.lap_count++; state.last_lap_s=state.elapsed_s;
+  return 0;
+}
 static bool ai_available;
 static bool phone_valid;
 bool velaride_ride_session_get_phone_data(double *speed, double *distance)
@@ -34,6 +43,11 @@ bool velaride_ride_session_get_phone_data(double *speed, double *distance)
   *speed = phone_valid ? 12.5 : 0;
   *distance = phone_valid ? 1.25 : 0;
   return phone_valid;
+}
+void velaride_ride_session_get_gps(struct velaride_ride_gps_s *gps)
+{
+  memset(gps,0,sizeof(*gps));
+  if(phone_valid) { gps->distance_m=1250; gps->time_ms=300000; gps->avg_speed_centi=1500; gps->max_speed_centi=1800; }
 }
 static bool save_fails;
 static int starts;
@@ -123,6 +137,8 @@ void velaride_ride_session_start_with_goal(uint32_t goal)
   state.active = true;
   state.sensor_ready = true;
   state.goal_s = goal;
+  state.extras.version = 1;
+  state.extras.distance_goal_m = ride_prefs.distance_goal_m;
   ai_available = false;
   starts++;
 }
@@ -145,6 +161,23 @@ void velaride_ride_session_ack_alert(void)
 {
   if (state.alert == VELARIDE_ALERT_IMPACT) return;
   state.alert = VELARIDE_ALERT_NONE;
+}
+
+int velaride_ride_session_respond_reminder(enum velaride_reminder_action_e action)
+{
+  bool drink=state.alert==VELARIDE_ALERT_DRINK;
+  if(drink) {
+    if(action==VELARIDE_REMINDER_TAKE) state.extras.drink_done++;
+    else if(action==VELARIDE_REMINDER_SNOOZE) state.extras.drink_snoozed++;
+    else state.extras.drink_ignored++;
+  } else {
+    if(action==VELARIDE_REMINDER_TAKE) state.extras.rest_taken++;
+    else if(action==VELARIDE_REMINDER_SNOOZE) state.extras.rest_snoozed++;
+    else state.extras.rest_ignored++;
+  }
+  state.alert=VELARIDE_ALERT_NONE;
+  if(!drink && action==VELARIDE_REMINDER_TAKE) velaride_ride_session_set_paused(true);
+  return 0;
 }
 
 int velaride_ride_session_respond_safety(enum velaride_safety_action_e action)
@@ -201,6 +234,7 @@ int velaride_ride_session_finish(struct velaride_ride_record_s *out)
   out->pause_count = state.pause_count;
   out->impact_count = state.impact_count;
   out->safety = state.safety;
+  out->extras = state.extras;
   return velaride_ride_session_save_record(out);
 }
 
@@ -421,6 +455,18 @@ int main(int argc, char **argv)
   screenshot("01-select");
   click("户外骑行");
   assert(g_sport.page == SPORT_PAGE_GOAL && g_sport.goal_s == 30 * 60);
+  click("骑行设置");
+  assert(g_sport.page == SPORT_PAGE_RIDE_PREFS);
+  click("补水  已关闭");
+  assert(ride_prefs.drink_min == 15);
+  click("距离目标  已关闭");
+  click("自动分段  已关闭");
+  click("停车建议  已关闭");
+  assert(ride_prefs.distance_goal_m == 1000 && ride_prefs.lap_m == 500 && ride_prefs.pause_advice);
+  screenshot("02a-ride-preferences");
+  velaride_sport_ui_back();
+  assert(g_sport.page == SPORT_PAGE_GOAL);
+  ride_prefs = (struct velaride_ride_prefs_s){.rest_min=45};
   screenshot("02-goal");
   click("+");
   assert(g_sport.goal_s == 35 * 60);
@@ -481,6 +527,7 @@ int main(int argc, char **argv)
   velaride_sport_ui_back();
   assert(g_sport.page == SPORT_PAGE_CONFIRM && state.paused);
   click("继续骑行");
+
   assert(g_sport.page == SPORT_PAGE_ACTIVE && state.paused);
   ride_view_set(RIDE_VIEW_CONTROL);
   click(LV_SYMBOL_PLAY);
@@ -534,6 +581,20 @@ int main(int argc, char **argv)
   assert(g_sport.page == SPORT_PAGE_ALERT);
   screenshot("08b-rest");
   click("继续骑行");
+
+  state.alert = VELARIDE_ALERT_DRINK;
+  state.extras.drink_count = 1;
+  advance(1000);
+  assert(g_sport.page == SPORT_PAGE_ALERT);
+  screenshot("08c-drink");
+  click("稍后 5 分钟");
+  assert(state.extras.drink_snoozed == 1 && g_sport.page == SPORT_PAGE_ACTIVE);
+  state.alert = VELARIDE_ALERT_RESUME;
+  state.paused = true;
+  advance(1000);
+  screenshot("08d-resume-advice");
+  click("继续骑行");
+  assert(!state.paused);
 
   /* Holding the end control for the full time finishes the ride. */
 

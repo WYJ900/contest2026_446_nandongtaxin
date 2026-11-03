@@ -216,7 +216,7 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
   struct velaride_ride_gps_s gps;
   char cmd[32];
   char review[384];
-  char response[896];
+  char response[1280];
   double epoch;
   double speed;
   double distance;
@@ -377,7 +377,10 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
                "\"safety_version\":%u,\"safety_checks\":%u,"
                "\"safety_confirmed\":%u,\"safety_pauses\":%u,"
                "\"safety_help\":%u,\"safety_unanswered\":%u,"
-               "\"safety_last_action\":%u,\"safety_last_elapsed_s\":%" PRIu32 "}",
+               "\"safety_last_action\":%u,\"safety_last_elapsed_s\":%" PRIu32 ","
+               "\"extras_version\":%u,\"goal_distance_m\":%" PRIu32 ",\"lap_count\":%u,"
+               "\"rest_taken\":%u,\"rest_snoozed\":%u,\"rest_ignored\":%u,"
+               "\"drink_count\":%u,\"drink_done\":%u,\"drink_snoozed\":%u,\"drink_ignored\":%u}",
                strcmp(cmd, "ride_get") == 0 ? "ride_record" : "ride_latest",
                record.sequence, record.elapsed_s, record.moving_s,
                record.still_s, record.impact_count, record.pause_count,
@@ -386,7 +389,10 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
                record.safety.version, record.safety.checks,
                record.safety.confirmed, record.safety.pauses, record.safety.help,
                record.safety.unanswered, record.safety.last_action,
-               record.safety.last_elapsed_s);
+               record.safety.last_elapsed_s, record.extras.version, record.extras.distance_goal_m,
+               record.extras.lap_count, record.extras.rest_taken, record.extras.rest_snoozed,
+               record.extras.rest_ignored, record.extras.drink_count, record.extras.drink_done,
+               record.extras.drink_snoozed, record.extras.drink_ignored);
       velaride_notify_json(conn, response);
     }
   else if (strcmp(cmd, "ride_review") == 0)

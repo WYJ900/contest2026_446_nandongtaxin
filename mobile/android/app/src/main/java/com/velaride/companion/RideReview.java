@@ -20,6 +20,7 @@ public final class RideReview {
                 .append(" 次，冲击记录 ").append(entry.impacts).append(" 次。冲击不等于摔车。\n");
         if (entry.safety.available()) out.append(entry.safety.summary()).append('\n');
         else out.append("旧记录没有安全确认的处理结果。\n");
+        out.append(entry.extras.summary()).append('\n');
         RideHistory.Entry comparison = null;
         for (RideHistory.Entry other : history) {
             if (other.device.equals(entry.device) && !other.sameRide(entry) && other.firstSync < entry.firstSync
@@ -47,6 +48,9 @@ public final class RideReview {
                 + ":" + e.gps.avgCenti + ":" + e.gps.maxCenti + ":" + e.safety.version + ":" + e.safety.checks
                 + ":" + e.safety.confirmed + ":" + e.safety.pauses + ":" + e.safety.help + ":" + e.safety.unanswered
                 + ":" + e.safety.lastAction + ":" + e.safety.lastElapsed;
+        if(e.extras.available()) data += ":extras:"+e.extras.goalM+":"+e.extras.laps+":"+e.extras.restTaken+":"
+                +e.extras.restSnoozed+":"+e.extras.restIgnored+":"+e.extras.drinks+":"+e.extras.drinkDone+":"
+                +e.extras.drinkSnoozed+":"+e.extras.drinkIgnored;
         try {
             byte[] bytes = MessageDigest.getInstance("SHA-256").digest(data.getBytes(StandardCharsets.UTF_8));
             StringBuilder hex = new StringBuilder();

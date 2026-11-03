@@ -1,0 +1,26 @@
+{
+  "stage": "ride-tools",
+  "parent_commit": "55b7896",
+  "firmware_sha256": "044ae8a2fa3d557c1d8de0d73fa88ec5e482f29288baf14f5029a0f97df55231",
+  "firmware_bytes": 9775012,
+  "application_space_remaining": 251996,
+  "apk_version": "0.1.8",
+  "apk_sha256": "aa1f7248786a521ef2fb791f41124fe3a160790ba653a44e496044c28faa197d",
+  "passed": {
+    "firmware_build": true,
+    "unchanged_config": true,
+    "ride_scenarios": 18,
+    "actual_stage_lvgl_asan_ubsan": true,
+    "ble_payload": true,
+    "android_host_tests_and_build": true,
+    "web_tests": 32
+  },
+  "device_operations": false,
+  "candidate_installed": false,
+  "pending": [
+    "GPS parent real ride acceptance",
+    "Physical UI and original functions on candidate",
+    "Real Flash persistence and Android backfill on phone"
+  ],
+  "source_limit": "Application-stage snapshot and parent archives; clean full dependency rebuild not verified"
+}

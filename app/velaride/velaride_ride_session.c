@@ -26,7 +26,7 @@
 #include "velaride_ride_session.h"
 
 #define RIDE_RECORD_MAGIC 0x564c5244u
-#define RIDE_RECORD_VERSION 3
+#define RIDE_RECORD_VERSION 4
 #define RIDE_RECORD_KEY "persist.velaride.latest"
 #define RIDE_HISTORY_PREFIX "persist.velaride.h."
 #define RIDE_REVIEW_MAGIC 0x56525256u
@@ -48,6 +48,7 @@
 #define STILL_ALERT_SECONDS 15
 #define REST_ALERT_SECONDS (45 * 60)
 #define SAFETY_CONFIRM_SECONDS 30
+#define RIDE_PREFS_KEY "persist.velaride.rideprefs"
 
 struct ride_session_s
 {
@@ -68,6 +69,13 @@ struct ride_session_s
   bool still_alerted;
   bool safety_timed_out;
   bool safety_counted;
+  bool resume_advised;
+  uint8_t resume_seconds;
+  uint32_t next_rest_s;
+  uint32_t next_drink_s;
+  uint32_t next_lap_m;
+  uint32_t lap_start_s;
+  uint32_t lap_start_m;
   int64_t start_epoch;
   uint32_t sequence;
 };
@@ -90,6 +98,14 @@ static struct
 
 static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t g_history_lock = PTHREAD_MUTEX_INITIALIZER;
+static struct velaride_ride_prefs_s g_ride_prefs = {.rest_min = 45};
+
+struct ride_prefs_disk_s
+{
+  uint32_t magic;
+  struct velaride_ride_prefs_s prefs;
+  uint32_t crc32;
+};
 
 /* BLE only touches this accumulator while holding g_phone_lock. Lifecycle
  * changes invalidate the anchor so pre-start, paused and missing segments
@@ -153,6 +169,30 @@ struct ride_record_disk_v2_s
   uint16_t version;
   uint16_t size;
   struct ride_record_v2_s record;
+  uint32_t crc32;
+};
+
+struct ride_record_v3_s
+{
+  uint32_t sequence;
+  int64_t start_epoch;
+  int64_t end_epoch;
+  uint32_t elapsed_s;
+  uint32_t moving_s;
+  uint32_t still_s;
+  uint16_t pause_count;
+  uint16_t impact_count;
+  uint16_t rest_count;
+  struct velaride_ride_gps_s gps;
+  struct velaride_ride_safety_s safety;
+};
+
+struct ride_record_disk_v3_s
+{
+  uint32_t magic;
+  uint16_t version;
+  uint16_t size;
+  struct ride_record_v3_s record;
   uint32_t crc32;
 };
 
@@ -238,6 +278,49 @@ static bool ride_safety_valid(const struct velaride_ride_safety_s *safety,
   return true;
 }
 
+static bool ride_prefs_valid(const struct velaride_ride_prefs_s *prefs)
+{
+  return (prefs->rest_min == 0 || (prefs->rest_min >= 5 && prefs->rest_min <= 120)) &&
+         (prefs->drink_min == 0 || (prefs->drink_min >= 5 && prefs->drink_min <= 120)) &&
+         (prefs->distance_goal_m == 0 || (prefs->distance_goal_m >= 500 && prefs->distance_goal_m <= 2000000)) &&
+         (prefs->lap_m == 0 || (prefs->lap_m >= 100 && prefs->lap_m <= 10000)) && prefs->pause_advice <= 1;
+}
+
+void velaride_ride_prefs_get(struct velaride_ride_prefs_s *prefs)
+{
+  if (prefs != NULL) *prefs = g_ride_prefs;
+}
+
+int velaride_ride_prefs_set(const struct velaride_ride_prefs_s *prefs)
+{
+  struct ride_prefs_disk_s disk;
+  int ret;
+  if (prefs == NULL || !ride_prefs_valid(prefs)) return -EINVAL;
+  if (g_ride.state.active) return -EBUSY;
+  memset(&disk, 0, sizeof(disk));
+  disk.magic = 0x56525046;
+  disk.prefs = *prefs;
+  disk.crc32 = ride_crc32(&disk, offsetof(struct ride_prefs_disk_s, crc32));
+  ret = property_set_buffer(RIDE_PREFS_KEY, &disk, sizeof(disk));
+  if (ret == 0) ret = property_commit();
+  if (ret == 0) g_ride_prefs = *prefs;
+  return ret;
+}
+
+static bool ride_extras_valid(const struct velaride_ride_extras_s *e, uint16_t rests)
+{
+  const struct velaride_ride_extras_s empty = {0};
+  return e->version <= 1 && e->reserved == 0 && e->distance_goal_m <= 2000000 &&
+         (uint32_t)e->rest_taken + e->rest_snoozed + e->rest_ignored <= rests &&
+         (uint32_t)e->drink_done + e->drink_snoozed + e->drink_ignored <= e->drink_count &&
+         (e->version != 0 || memcmp(e, &empty, sizeof(*e)) == 0);
+}
+
+static void ride_increment(uint16_t *value)
+{
+  if (*value < UINT16_MAX) (*value)++;
+}
+
 static int ride_open_sensor(void)
 {
   int ret;
@@ -269,7 +352,15 @@ static int ride_open_sensor(void)
 int velaride_ride_session_init(void)
 {
   struct velaride_ride_record_s latest;
+  struct ride_prefs_disk_s prefs;
   int ret;
+
+  memset(&g_ride_prefs, 0, sizeof(g_ride_prefs));
+  g_ride_prefs.rest_min = 45;
+  if (property_get_buffer(RIDE_PREFS_KEY, &prefs, sizeof(prefs)) == sizeof(prefs) &&
+      prefs.magic == 0x56525046 && ride_prefs_valid(&prefs.prefs) &&
+      prefs.crc32 == ride_crc32(&prefs, offsetof(struct ride_prefs_disk_s, crc32)))
+    g_ride_prefs = prefs.prefs;
 
   ret = ride_open_sensor();
   g_ride.state.sensor_ready = ret == 0;
@@ -362,6 +453,14 @@ void velaride_ride_session_start_with_goal(uint32_t goal_s)
   g_ride.state.motion = VELARIDE_MOTION_UNKNOWN;
   g_ride.state.goal_s = goal_s <= 24 * 60 * 60 ? goal_s : 0;
   g_ride.state.safety.version = 1;
+  g_ride.state.extras.version = 1;
+  g_ride.state.extras.distance_goal_m = g_ride_prefs.distance_goal_m;
+  g_ride.next_rest_s = g_ride_prefs.rest_min * 60u;
+  g_ride.next_drink_s = g_ride_prefs.drink_min * 60u;
+  g_ride.next_lap_m = g_ride_prefs.lap_m;
+  g_ride.lap_start_s = g_ride.lap_start_m = 0;
+  g_ride.resume_seconds = 0;
+  g_ride.resume_advised = false;
   g_ride.safety_timed_out = false;
   g_ride.safety_counted = false;
   g_ride.warmup_samples = 0;
@@ -421,7 +520,7 @@ void velaride_ride_session_sensor_tick(void)
   bool impact_sample;
   int ret;
 
-  if (!g_ride.state.active || g_ride.state.paused || g_ride.sensor_fd < 0)
+  if (!g_ride.state.active || (g_ride.state.paused && !g_ride_prefs.pause_advice) || g_ride.sensor_fd < 0)
     {
       return;
     }
@@ -464,7 +563,7 @@ void velaride_ride_session_sensor_tick(void)
   g_ride.last_y = data.y_data;
   g_ride.last_z = data.z_data;
 
-  if (impact_sample && !g_ride.impact_pending)
+  if (impact_sample && !g_ride.state.paused && !g_ride.impact_pending)
     {
       g_ride.impact_pending = true;
       g_ride.impact_age_s = 0;
@@ -499,6 +598,11 @@ void velaride_ride_session_sensor_tick(void)
 
 void velaride_ride_session_second_tick(void)
 {
+  struct velaride_ride_gps_s gps;
+  double speed;
+  double distance;
+  bool phone_valid = velaride_ride_session_get_phone_data(&speed, &distance);
+
   if (g_ride.state.active && g_ride.state.alert == VELARIDE_ALERT_IMPACT &&
       g_ride.state.safety_remaining_s > 0 &&
       --g_ride.state.safety_remaining_s == 0)
@@ -514,10 +618,32 @@ void velaride_ride_session_second_tick(void)
 
   if (!g_ride.state.active || g_ride.state.paused)
     {
+      if (g_ride.state.active && g_ride_prefs.pause_advice && phone_valid &&
+          speed >= 3 && g_ride.state.motion == VELARIDE_MOTION_MOVING)
+        {
+          if (g_ride.resume_seconds < 3) g_ride.resume_seconds++;
+          if (g_ride.resume_seconds >= 3 && !g_ride.resume_advised &&
+              g_ride.state.alert == VELARIDE_ALERT_NONE)
+            {
+              g_ride.state.alert = VELARIDE_ALERT_RESUME;
+              g_ride.resume_advised = true;
+            }
+        }
+      else
+        {
+          g_ride.resume_seconds = 0;
+          g_ride.resume_advised = false;
+        }
       return;
     }
 
   g_ride.state.elapsed_s++;
+  velaride_ride_session_get_gps(&gps);
+  if (g_ride.state.extras.distance_goal_m > 0 && gps.time_ms > 0 &&
+      gps.distance_m >= g_ride.state.extras.distance_goal_m)
+    g_ride.state.distance_goal_reached = true;
+  if (g_ride.next_lap_m > 0 && gps.time_ms > 0 && gps.distance_m >= g_ride.next_lap_m)
+    velaride_ride_session_lap();
   if (g_ride.state.goal_s > 0 &&
       g_ride.state.elapsed_s >= g_ride.state.goal_s)
     {
@@ -574,19 +700,76 @@ void velaride_ride_session_second_tick(void)
   else if (g_ride.state.alert == VELARIDE_ALERT_NONE &&
            !g_ride.still_alerted &&
            g_ride.state.motion == VELARIDE_MOTION_STILL &&
-           g_ride.consecutive_still_s >= STILL_ALERT_SECONDS)
+           (g_ride.consecutive_still_s >= STILL_ALERT_SECONDS ||
+            (g_ride_prefs.pause_advice && phone_valid && speed <= 1.5 &&
+             g_ride.consecutive_still_s >= 6)))
     {
       g_ride.state.alert = VELARIDE_ALERT_STILL;
       g_ride.still_alerted = true;
     }
   else if (g_ride.state.alert == VELARIDE_ALERT_NONE &&
-           !g_ride.rest_alerted &&
-           g_ride.state.moving_s >= REST_ALERT_SECONDS)
+           g_ride.next_rest_s > 0 && g_ride.state.moving_s >= g_ride.next_rest_s)
     {
       g_ride.state.alert = VELARIDE_ALERT_REST;
       g_ride.rest_alerted = true;
-      g_ride.state.rest_count++;
+      ride_increment(&g_ride.state.rest_count);
     }
+  else if (g_ride.state.alert == VELARIDE_ALERT_NONE &&
+           g_ride.next_drink_s > 0 && g_ride.state.elapsed_s >= g_ride.next_drink_s)
+    {
+      g_ride.state.alert = VELARIDE_ALERT_DRINK;
+      ride_increment(&g_ride.state.extras.drink_count);
+    }
+}
+
+int velaride_ride_session_lap(void)
+{
+  struct velaride_ride_gps_s gps;
+  if (!g_ride.state.active || g_ride.state.paused) return -EBUSY;
+  if (g_ride.state.elapsed_s <= g_ride.lap_start_s) return -EAGAIN;
+  velaride_ride_session_get_gps(&gps);
+  g_ride.state.last_lap_s = g_ride.state.elapsed_s - g_ride.lap_start_s;
+  g_ride.state.last_lap_distance_m = gps.distance_m - g_ride.lap_start_m;
+  g_ride.lap_start_s = g_ride.state.elapsed_s;
+  g_ride.lap_start_m = gps.distance_m;
+  g_ride.next_lap_m = g_ride_prefs.lap_m > 0 ? gps.distance_m + g_ride_prefs.lap_m : 0;
+  ride_increment(&g_ride.state.extras.lap_count);
+  return 0;
+}
+
+int velaride_ride_session_respond_reminder(enum velaride_reminder_action_e action)
+{
+  struct velaride_ride_extras_s *e = &g_ride.state.extras;
+  bool drink = g_ride.state.alert == VELARIDE_ALERT_DRINK;
+  if (action < VELARIDE_REMINDER_TAKE || action > VELARIDE_REMINDER_IGNORE) return -EINVAL;
+  if (!g_ride.state.active || (!drink && g_ride.state.alert != VELARIDE_ALERT_REST)) return -EALREADY;
+  if (drink)
+    {
+      if ((uint32_t)e->drink_done + e->drink_snoozed + e->drink_ignored < e->drink_count)
+        {
+          if (action == VELARIDE_REMINDER_TAKE) ride_increment(&e->drink_done);
+          else if (action == VELARIDE_REMINDER_SNOOZE) ride_increment(&e->drink_snoozed);
+          else ride_increment(&e->drink_ignored);
+        }
+      g_ride.next_drink_s = g_ride.state.elapsed_s +
+        (action == VELARIDE_REMINDER_SNOOZE ? 300u : g_ride_prefs.drink_min * 60u);
+      if (g_ride_prefs.drink_min == 0) g_ride.next_drink_s = 0;
+    }
+  else
+    {
+      if ((uint32_t)e->rest_taken + e->rest_snoozed + e->rest_ignored < g_ride.state.rest_count)
+        {
+          if (action == VELARIDE_REMINDER_TAKE) ride_increment(&e->rest_taken);
+          else if (action == VELARIDE_REMINDER_SNOOZE) ride_increment(&e->rest_snoozed);
+          else ride_increment(&e->rest_ignored);
+        }
+      g_ride.next_rest_s = g_ride.state.moving_s +
+        (action == VELARIDE_REMINDER_SNOOZE ? 300u : g_ride_prefs.rest_min * 60u);
+      if (g_ride_prefs.rest_min == 0) g_ride.next_rest_s = 0;
+    }
+  g_ride.state.alert = VELARIDE_ALERT_NONE;
+  if (!drink && action == VELARIDE_REMINDER_TAKE) velaride_ride_session_set_paused(true);
+  return 0;
 }
 
 void velaride_ride_session_get(struct velaride_ride_snapshot_s *snapshot)
@@ -603,6 +786,11 @@ void velaride_ride_session_ack_alert(void)
 
   if (g_ride.state.alert == VELARIDE_ALERT_IMPACT)
     {
+      return;
+    }
+  if (g_ride.state.alert == VELARIDE_ALERT_REST || g_ride.state.alert == VELARIDE_ALERT_DRINK)
+    {
+      velaride_ride_session_respond_reminder(VELARIDE_REMINDER_IGNORE);
       return;
     }
 
@@ -679,6 +867,7 @@ int velaride_ride_session_finish(struct velaride_ride_record_s *record)
       g_ride.safety_timed_out = true;
     }
   latest.safety = g_ride.state.safety;
+  latest.extras = g_ride.state.extras;
 
   pthread_mutex_lock(&g_phone_lock);
   g_ride_gps.running = false;
@@ -710,6 +899,18 @@ static int ride_load_key(const char *key, struct velaride_ride_record_s *record)
 
   memset(&disk, 0, sizeof(disk));
   ret = property_get_buffer(key, &disk, sizeof(disk));
+  if (ret == sizeof(struct ride_record_disk_v3_s) && disk.magic == RIDE_RECORD_MAGIC &&
+      disk.version == 3 && disk.size == sizeof(struct ride_record_disk_v3_s))
+    {
+      struct ride_record_disk_v3_s old;
+      memcpy(&old, &disk, sizeof(old));
+      if (old.crc32 != ride_crc32(&old, offsetof(struct ride_record_disk_v3_s, crc32))) return -EBADMSG;
+      memset(&disk, 0, sizeof(disk));
+      memcpy(&disk.record, &old.record, offsetof(struct ride_record_v3_s, safety) + sizeof(old.record.safety));
+      disk.magic = RIDE_RECORD_MAGIC; disk.version = RIDE_RECORD_VERSION; disk.size = sizeof(disk);
+      disk.crc32 = ride_crc32(&disk, offsetof(struct ride_record_disk_s, crc32));
+      ret = sizeof(disk);
+    }
   if (ret == sizeof(struct ride_record_disk_v2_s) &&
       disk.magic == RIDE_RECORD_MAGIC && disk.version == 2 &&
       disk.size == sizeof(struct ride_record_disk_v2_s))
@@ -780,7 +981,7 @@ static int ride_load_key(const char *key, struct velaride_ride_record_s *record)
       return -EBADMSG;
     }
 
-  if (!ride_safety_valid(&disk.record.safety, disk.record.elapsed_s))
+  if (!ride_safety_valid(&disk.record.safety, disk.record.elapsed_s) || !ride_extras_valid(&disk.record.extras, disk.record.rest_count))
     {
       return -EBADMSG;
     }
@@ -799,7 +1000,7 @@ static int ride_store_key(const char *key,
   struct ride_record_disk_s disk;
   int ret;
 
-  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s))
+  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s) || !ride_extras_valid(&record->extras, record->rest_count))
     {
       return -EINVAL;
     }
@@ -924,7 +1125,7 @@ int velaride_ride_session_save_record(
   struct velaride_ride_record_s previous;
   char key[40];
   int ret;
-  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s))
+  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s) || !ride_extras_valid(&record->extras, record->rest_count))
     return -EINVAL;
   pthread_mutex_lock(&g_history_lock);
   /* Preserve the legacy latest record before the first real new save. */

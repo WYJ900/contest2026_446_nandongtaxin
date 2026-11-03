@@ -47,6 +47,16 @@ test('复盘保留 GPS 与安全处理依据，拒绝缺字段和不一致的统
       {elapsed_s:10,safety_checks:1},{elapsed_s:10,gps_time_ms:10}]) assert.throws(()=>validateRide(bad));
 });
 
+test('提醒处理和目标字段保留，不能把提醒次数当成已经补水', () => {
+  const record={elapsed_s:300,rest_count:2,extras_version:1,goal_distance_m:5000,lap_count:2,
+    rest_taken:1,rest_snoozed:1,rest_ignored:0,drink_count:2,drink_done:0,drink_snoozed:1,drink_ignored:1};
+  assert.equal(validateRide(record).rest_snoozed,1);
+  assert.match(fallbackReview(record),/确认补水 0 次/);
+  assert.throws(()=>validateRide({...record,drink_done:1}));
+  assert.throws(()=>validateRide({...record,rest_count:1}));
+  assert.throws(()=>validateRide({...record,extras_version:0}));
+});
+
 test('校验拒绝错误类型、负数、小数计数和不一致的时间', () => {
   for (const value of [null, [], 'ride', {}, { elapsed_s: -1 },
     { elapsed_s: '8' }, { elapsed_s: 8, impacts: 0.5 },

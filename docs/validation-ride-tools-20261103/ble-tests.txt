@@ -1,0 +1,1 @@
+PASS: actual BLE ride_status/ride_latest formatting, worst-case size, GPS preservation and legacy safety fields

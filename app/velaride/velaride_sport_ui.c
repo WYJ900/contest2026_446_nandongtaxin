@@ -73,6 +73,7 @@ enum sport_page_e
   SPORT_PAGE_GOAL_DONE,
   SPORT_PAGE_REVIEW,
   SPORT_PAGE_HISTORY,
+  SPORT_PAGE_RIDE_PREFS,
   SPORT_PAGE_INFO,
 };
 
@@ -159,6 +160,7 @@ struct sport_ui_s
   uint8_t sport_type;
   bool session_started;
   bool goal_announced;
+  bool distance_goal_announced;
   bool has_record;
   bool review_ai;
   bool history_browsing;
@@ -170,6 +172,8 @@ static struct sport_ui_s g_sport;
 
 static void show_select(void);
 static void show_goal(void);
+static void show_ride_prefs(void);
+static void ride_prefs_open_cb(lv_event_t *event);
 static void pause_cb(lv_event_t *event);
 static void update_info(void);
 static void show_active(void);
@@ -709,6 +713,13 @@ static lv_obj_t *control(int x, int y, uint32_t fg, uint32_t bg,
   return obj;
 }
 
+static void lap_cb(lv_event_t *event)
+{
+  LV_UNUSED(event);
+  velaride_ride_session_lap();
+  show_active();
+}
+
 static void build_control_view(void)
 {
   struct velaride_ride_snapshot_s ride;
@@ -746,6 +757,12 @@ static void build_control_view(void)
 
   control(143, 250, 0x6ec6ff, 0x0b2230, VR_ICON_SAFETY, NULL, "防误触锁",
           lock_cb);
+  {
+    char text[64];
+    snprintf(text, sizeof(text), "分段 %u · 最近 %lu s", ride.extras.lap_count,
+             (unsigned long)ride.last_lap_s);
+    button(text, BTN_SECONDARY, 30, 386, SPORT_W - 60, 44, lap_cb, 0);
+  }
 }
 
 static const char *cardinal(float heading)
@@ -907,7 +924,18 @@ static void update_active(void)
   set_label(g_sport.row_value[0], text);
   ride_time_text(text, sizeof(text), ride.still_s);
   set_label(g_sport.row_value[1], text);
-  if (ride.goal_s == 0)
+  if (ride.extras.distance_goal_m > 0)
+    {
+      struct velaride_ride_gps_s gps;
+      velaride_ride_session_get_gps(&gps);
+      set_label(g_sport.row_name[2], "距离剩余");
+      if (ride.distance_goal_reached || gps.distance_m >= ride.extras.distance_goal_m)
+        snprintf(text, sizeof(text), "已达成");
+      else if (gps.time_ms == 0) snprintf(text, sizeof(text), "GPS --");
+      else snprintf(text, sizeof(text), "%.2f km",
+                    (ride.extras.distance_goal_m - gps.distance_m) / 1000.0);
+    }
+  else if (ride.goal_s == 0)
     {
       set_label(g_sport.row_name[2], "暂停");
       snprintf(text, sizeof(text), "%u 次", ride.pause_count);
@@ -1014,6 +1042,16 @@ static void alert_cb(lv_event_t *event)
           return;
         }
     }
+  else if (ride.alert == VELARIDE_ALERT_REST || ride.alert == VELARIDE_ALERT_DRINK)
+    {
+      velaride_ride_session_respond_reminder(action == 1 ?
+        VELARIDE_REMINDER_TAKE : VELARIDE_REMINDER_IGNORE);
+    }
+  else if (ride.alert == VELARIDE_ALERT_RESUME)
+    {
+      velaride_ride_session_ack_alert();
+      if (action == 1) velaride_ride_session_set_paused(false);
+    }
   else
     {
       velaride_ride_session_ack_alert();
@@ -1107,6 +1145,14 @@ static void safety_help_cb(lv_event_t *event)
     }
 }
 
+static void reminder_snooze_cb(lv_event_t *event)
+{
+  LV_UNUSED(event);
+  velaride_ride_session_respond_reminder(VELARIDE_REMINDER_SNOOZE);
+  g_sport.ride_view = RIDE_VIEW_DATA;
+  show_active();
+}
+
 static void show_alert(enum velaride_alert_e alert)
 {
   g_sport.locked = false;
@@ -1134,12 +1180,22 @@ static void show_alert(enum velaride_alert_e alert)
       pill("暂停记录", BTN_WARN, 280, alert_cb, 1);
       pill("继续骑行", BTN_SECONDARY, 356, alert_cb, 0);
     }
+  else if (alert == VELARIDE_ALERT_RESUME)
+    {
+      alert_page(SPORT_PAGE_ALERT, 0x0b2914, VR_OK, VR_ICON_RIDE, NULL,
+                 "继续骑行？", "GPS 与运动检测到移动\n确认后才恢复计时");
+      pill("继续骑行", BTN_PRIMARY, 280, alert_cb, 1);
+      pill("保持暂停", BTN_SECONDARY, 356, alert_cb, 0);
+    }
   else
     {
+      bool drink = alert == VELARIDE_ALERT_DRINK;
       alert_page(SPORT_PAGE_ALERT, 0x3a2405, VR_WARN, VR_ICON_MOON, NULL,
-                 "该休息一下了", "已连续运动 45 分钟");
-      pill("暂停休息", BTN_WARN, 280, alert_cb, 1);
-      pill("继续骑行", BTN_SECONDARY, 356, alert_cb, 0);
+                 drink ? "该补水了" : "该休息一下了",
+                 drink ? "停车补水后再确认" : "按骑前设置提醒，选择后会记录");
+      button(drink ? "已补水" : "暂停休息", BTN_WARN, 30, 264, SPORT_W - 60, 50, alert_cb, 1);
+      button("稍后 5 分钟", BTN_SECONDARY, 30, 322, SPORT_W - 60, 50, reminder_snooze_cb, 0);
+      button(drink ? "本次忽略" : "继续骑行", BTN_SECONDARY, 30, 380, SPORT_W - 60, 50, alert_cb, 0);
     }
 }
 
@@ -1160,8 +1216,12 @@ static void show_goal_done(void)
 {
   char text[64];
   lv_obj_t *dot;
+  struct velaride_ride_snapshot_s ride;
 
-  g_sport.goal_announced = true;
+  velaride_ride_session_get(&ride);
+  bool distance_goal = ride.distance_goal_reached && !g_sport.distance_goal_announced;
+  if (distance_goal) g_sport.distance_goal_announced = true;
+  else g_sport.goal_announced = true;
   clear_bare(SPORT_PAGE_GOAL_DONE, 0);
   dot = circle(g_sport.root, SPORT_W / 2 - 42, 50, 84, ACCENT_COLOR,
                LV_OPA_COVER);
@@ -1172,8 +1232,9 @@ static void show_goal_done(void)
   lv_obj_center(mark);
   label(g_sport.root, "目标达成", TEXT_COLOR, &velaride_font_cn_28,
         18, 154, SPORT_W - 36);
-  snprintf(text, sizeof(text), "%" PRIu32 " 分钟记录目标已完成",
-           g_sport.goal_s / 60);
+  if (distance_goal)
+    snprintf(text, sizeof(text), "%.1f km 距离目标已完成", ride.extras.distance_goal_m / 1000.0);
+  else snprintf(text, sizeof(text), "%" PRIu32 " 分钟记录目标已完成", g_sport.goal_s / 60);
   label(g_sport.root, text, MUTED_COLOR, &velaride_font_cn_20,
         30, 198, SPORT_W - 60);
   pill("继续骑行", BTN_PRIMARY, 280, goal_done_cb, 0);
@@ -1199,6 +1260,7 @@ static void countdown_cb(lv_timer_t *timer)
       velaride_ride_session_start_with_goal(g_sport.goal_s);
       g_sport.session_started = true;
       g_sport.goal_announced = false;
+      g_sport.distance_goal_announced = false;
       g_sport.ride_view = RIDE_VIEW_DATA;
       lv_timer_reset(g_sport.session_timer);
       show_active();
@@ -1355,6 +1417,67 @@ static void show_goal(void)
 
   lv_obj_t *go = pill("开始", BTN_PRIMARY, 330, start_cb, 0);
   LV_UNUSED(go);
+  button("骑行设置", BTN_SECONDARY, 90, 400, 210, 42, ride_prefs_open_cb, 0);
+}
+
+static uint32_t next_preset(uint32_t current, const uint32_t *values, size_t count)
+{
+  for (size_t i = 0; i < count; i++) if (current == values[i]) return values[(i + 1) % count];
+  return values[0];
+}
+
+static void ride_prefs_change_cb(lv_event_t *event)
+{
+  static const uint32_t rest[] = {0, 15, 30, 45, 60};
+  static const uint32_t drink[] = {0, 15, 20, 30, 45};
+  static const uint32_t goal[] = {0, 1000, 5000, 10000, 20000};
+  static const uint32_t lap[] = {0, 500, 1000, 2000, 5000};
+  struct velaride_ride_prefs_s prefs;
+  intptr_t action = (intptr_t)lv_event_get_user_data(event);
+  int ret;
+  velaride_ride_prefs_get(&prefs);
+  if (action == 0) prefs.rest_min = next_preset(prefs.rest_min, rest, 5);
+  else if (action == 1) prefs.drink_min = next_preset(prefs.drink_min, drink, 5);
+  else if (action == 2) prefs.distance_goal_m = next_preset(prefs.distance_goal_m, goal, 5);
+  else if (action == 3) prefs.lap_m = next_preset(prefs.lap_m, lap, 5);
+  else prefs.pause_advice = !prefs.pause_advice;
+  ret = velaride_ride_prefs_set(&prefs);
+  show_ride_prefs();
+  if (ret < 0) set_label(g_sport.body, "设置未保存，请重试");
+}
+
+static void ride_prefs_open_cb(lv_event_t *event)
+{
+  LV_UNUSED(event);
+  show_ride_prefs();
+}
+
+static void show_ride_prefs(void)
+{
+  struct velaride_ride_prefs_s prefs;
+  lv_obj_t *scroll;
+  char text[96];
+  velaride_ride_prefs_get(&prefs);
+  clear_page(SPORT_PAGE_RIDE_PREFS, "骑行设置");
+  g_sport.body = label(g_sport.root, "点击切换 · 距离需要有效 GPS", MUTED_COLOR,
+                       &velaride_font_cn_20, 18, 104, SPORT_W - 36);
+  scroll = lv_obj_create(g_sport.root);
+  lv_obj_remove_style_all(scroll);
+  lv_obj_set_pos(scroll, 0, 142);
+  lv_obj_set_size(scroll, SPORT_W, SPORT_H - 142);
+  lv_obj_set_scroll_dir(scroll, LV_DIR_VER);
+  lv_obj_set_style_pad_bottom(scroll, 20, 0);
+  for (int i = 0; i < 5; i++)
+    {
+      lv_obj_t *row;
+      if (i == 0) snprintf(text, sizeof(text), prefs.rest_min ? "休息  %u 分钟" : "休息  已关闭", prefs.rest_min);
+      else if (i == 1) snprintf(text, sizeof(text), prefs.drink_min ? "补水  %u 分钟" : "补水  已关闭", prefs.drink_min);
+      else if (i == 2) snprintf(text, sizeof(text), prefs.distance_goal_m ? "距离目标  %.1f km" : "距离目标  已关闭", prefs.distance_goal_m / 1000.0);
+      else if (i == 3) snprintf(text, sizeof(text), prefs.lap_m ? "自动分段  约 %u m" : "自动分段  已关闭", prefs.lap_m);
+      else snprintf(text, sizeof(text), "停车建议  %s", prefs.pause_advice ? "已开启" : "已关闭");
+      row = button(text, BTN_TILE, 18, i * 80, SPORT_W - 36, 68, ride_prefs_change_cb, i);
+      lv_obj_set_parent(row, scroll);
+    }
 }
 
 /* --- Summary ---------------------------------------------------------------- */
@@ -1553,6 +1676,22 @@ static void show_review(void)
       left_label(scroll, "安全确认 --（旧记录）", MUTED_COLOR,
                  &velaride_font_cn_20, 40, y);
       y += 40;
+    }
+
+  if (rec->extras.version == 1)
+    {
+      snprintf(text, sizeof(text), "分段 %u · 补水确认 %u / 提醒 %u", rec->extras.lap_count,
+               rec->extras.drink_done, rec->extras.drink_count);
+      left_label(scroll, text, TEXT_COLOR, &velaride_font_cn_20, 40, y);
+      snprintf(text, sizeof(text), "休息 %u / 稍后 %u / 忽略 %u", rec->extras.rest_taken,
+               rec->extras.rest_snoozed, rec->extras.rest_ignored);
+      left_label(scroll, text, MUTED_COLOR, &velaride_font_cn_20, 40, y + 30);
+      if (rec->extras.distance_goal_m > 0)
+        {
+          snprintf(text, sizeof(text), "距离目标 %.1f km", rec->extras.distance_goal_m / 1000.0);
+          left_label(scroll, text, MUTED_COLOR, &velaride_font_cn_20, 40, y + 60);
+        }
+      y += rec->extras.distance_goal_m > 0 ? 100 : 70;
     }
 
   card = lv_obj_create(scroll);
@@ -2756,7 +2895,9 @@ static void update_info(void)
   else if (g_sport.info == VELARIDE_INFO_SAFETY)
     {
       snprintf(text, sizeof(text), "本地提醒无需联网\n\n"
-               "冲击后短时持续静止\n连续静止 15 秒\n累计运动 45 分钟\n\n"
+               "冲击后短时持续静止会请求安全确认。\n"
+               "休息、补水和距离目标在骑行设置中配置。\n"
+               "停车建议结合 GPS 和运动检测，确认后才改变计时。\n\n"
                "收到冲击提醒后请确认安全。30 秒未确认会记录，提醒继续保留。\n"
                "求助只记录意向并暂停，不会发送消息。");
     }
@@ -2816,7 +2957,8 @@ static void session_timer_cb(lv_timer_t *timer)
     }
   if (g_sport.page == SPORT_PAGE_ACTIVE)
     {
-      if (ride.goal_reached && !g_sport.goal_announced)
+      if ((ride.goal_reached && !g_sport.goal_announced) ||
+          (ride.distance_goal_reached && !g_sport.distance_goal_announced))
         {
           show_goal_done();
         }
@@ -2842,6 +2984,9 @@ void velaride_sport_ui_back(void)
     {
       case SPORT_PAGE_GOAL:
         show_select();
+        break;
+      case SPORT_PAGE_RIDE_PREFS:
+        show_goal();
         break;
       case SPORT_PAGE_COUNTDOWN:
         lv_timer_pause(g_sport.countdown_timer);

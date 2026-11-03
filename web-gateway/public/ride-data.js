@@ -46,5 +46,13 @@ export function validateRide(input) {
         (ride.safety_version === 0 && safety.slice(1).some((key) => ride[key] !== 0)))
       throw new Error('安全确认统计不一致');
   }
+  const extras=['extras_version','goal_distance_m','lap_count','rest_taken','rest_snoozed','rest_ignored',
+    'drink_count','drink_done','drink_snoozed','drink_ignored'];
+  if(extras.some((key)=>input[key]!==undefined)) {
+    for(const key of extras) ride[key]=integer(key,key==='goal_distance_m'?2000000:65535);
+    if(ride.extras_version>1 || ride.rest_taken+ride.rest_snoozed+ride.rest_ignored>(ride.rest_count??0) ||
+        ride.drink_done+ride.drink_snoozed+ride.drink_ignored>ride.drink_count ||
+        (ride.extras_version===0 && extras.slice(1).some((key)=>ride[key]!==0))) throw new Error('提醒处理统计不一致');
+  }
   return ride;
 }
