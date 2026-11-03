@@ -1,0 +1,275 @@
+{
+  "synthetic_gps_test": true,
+  "expiry_test": true,
+  "passed": true,
+  "events": [
+    {
+      "cycle": 1,
+      "command": "ping",
+      "reply": {
+        "ok": true,
+        "event": "pong"
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ride_status",
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": false,
+        "speed_kmh": 0.0,
+        "distance_km": 0.0
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ride_latest",
+      "reply": {
+        "ok": true,
+        "event": "ride_latest",
+        "sequence": 11,
+        "active": false,
+        "elapsed_s": 23,
+        "moving_s": 19,
+        "still_s": 1,
+        "impacts": 2,
+        "pause_count": 1,
+        "rest_count": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "time_sync",
+      "reply": {
+        "ok": true,
+        "event": "time_sync",
+        "epoch": 1793514341
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "phone_data",
+      "reply": {
+        "ok": true,
+        "event": "phone_data"
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ride_status",
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": true,
+        "speed_kmh": 22.5,
+        "distance_km": 1.234
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ride_status",
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": false,
+        "speed_kmh": 0.0,
+        "distance_km": 0.0
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "phone_data",
+      "reply": {
+        "ok": true,
+        "event": "phone_data"
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ride_status",
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": true,
+        "speed_kmh": 0.0,
+        "distance_km": 1.234
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "phone_clear",
+      "reply": {
+        "ok": true,
+        "event": "phone_clear"
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ride_status",
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": false,
+        "speed_kmh": 0.0,
+        "distance_km": 0.0
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "phone_data",
+      "reply": {
+        "ok": false,
+        "error": "bad_phone_data"
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ping",
+      "reply": {
+        "ok": true,
+        "event": "pong"
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "phone_data",
+      "reply": {
+        "ok": true,
+        "event": "phone_data"
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "ride_status",
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": false,
+        "speed_kmh": 0.0,
+        "distance_km": 0.0
+      }
+    },
+    {
+      "cycle": 1,
+      "command": "phone_data",
+      "reply": {
+        "ok": true,
+        "event": "phone_data"
+      }
+    },
+    {
+      "cycle": 2,
+      "command": "ping",
+      "reply": {
+        "ok": true,
+        "event": "pong"
+      }
+    },
+    {
+      "cycle": 2,
+      "command": "ride_status",
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": false,
+        "speed_kmh": 0.0,
+        "distance_km": 0.0
+      }
+    },
+    {
+      "cycle": 2,
+      "command": "ride_latest",
+      "reply": {
+        "ok": true,
+        "event": "ride_latest",
+        "sequence": 11,
+        "active": false,
+        "elapsed_s": 23,
+        "moving_s": 19,
+        "still_s": 1,
+        "impacts": 2,
+        "pause_count": 1,
+        "rest_count": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "command": "phone_clear",
+      "reply": {
+        "ok": true,
+        "event": "phone_clear"
+      }
+    }
+  ]
+}

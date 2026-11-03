@@ -1,0 +1,29 @@
+{
+  "web_tests": {
+    "passed": 29,
+    "failed": 0
+  },
+  "integration_patches": 7,
+  "integration_overlays": 4,
+  "ride_sequence": 7,
+  "ride_elapsed_s": 25,
+  "ai_text_matches_after_reboot": true,
+  "verified_boot_reads": 2,
+  "review_reuploaded_between_checks": false,
+  "firmware_bytes": 9976368,
+  "firmware_sha256": "5D99290D8EAD4FA44DACA2C8EED764D5CAB8D4093DD9F017E1F0590D47B734FF",
+  "rendering_backend": "CPU",
+  "cpu_initial_display_touch_user_confirmed": true,
+  "cpu_reset_visual_verification": "failed_black_screen_user_confirmed",
+  "cpu_verified_boot_reads": 1,
+  "display_panel_state_loss_confirmed": true,
+  "display_manual_recovery_user_confirmed": true,
+  "display_intermediate_two_resets_user_confirmed": true,
+  "display_final_register_readback_passed": true,
+  "display_final_recoveries_after_boot": 0,
+  "display_final_visual_confirmation": "user_reported_wrong_time; corrected_by_BLE_and_verified_by_serial; full_UI_confirmation_was_on_intermediate_build",
+  "display_final_ble_probe": "helper_failed; browser_reselection_ping_time_sync_ride_latest_passed",
+  "display_final_time_sync_passed": true,
+  "display_final_lcd_sent": 508,
+  "display_final_lcd_completed": 508
+}

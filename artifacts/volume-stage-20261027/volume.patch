@@ -1,0 +1,161 @@
+--- a/velaride_shell.c
++++ b/velaride_shell.c
+@@ -4452,12 +4452,29 @@
+         {
+           velaride_sound_stop(VR_SOUND_NONE);
+         }
+-      else if (argc == 4 && strcmp(argv[2], "volume") == 0 &&
+-               (strcmp(argv[3], "soft") == 0 ||
+-                strcmp(argv[3], "normal") == 0))
+-        {
+-          status = velaride_sound_set(sound.enabled, sound.voice, sound.rings,
+-                                      strcmp(argv[3], "normal") == 0);
++      else if (argc == 4 && strcmp(argv[2], "volume") == 0)
++        {
++          unsigned long percent;
++          char *end;
++          if (strcmp(argv[3], "soft") == 0)
++            {
++              percent = 35;
++            }
++          else if (strcmp(argv[3], "normal") == 0)
++            {
++              percent = 100;
++            }
++          else
++            {
++              errno = 0;
++              percent = strtoul(argv[3], &end, 10);
++              if (errno || end == argv[3] || *end || percent > 100)
++                {
++                  printf("volume must be 0..100\n");
++                  return EXIT_FAILURE;
++                }
++            }
++          status = velaride_sound_set_volume((uint8_t)percent);
+         }
+       else if (argc == 4 && strcmp(argv[2], "play") == 0)
+         {
+@@ -4478,7 +4495,7 @@
+       else if (argc != 2 && !(argc == 3 && strcmp(argv[2], "status") == 0))
+         {
+           printf("usage: velaride sound [status|mute|on|stop|"
+-                 "volume soft/normal|play ride/3/2/1/go/alarm/countdown]\n");
++                 "volume 0..100|play ride/3/2/1/go/alarm/countdown]\n");
+           return EXIT_FAILURE;
+         }
+       velaride_sound_get(&sound);
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -126,6 +126,8 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+   uint8_t spoken_count;
+   lv_obj_t *sound_buttons[8];
++  lv_obj_t *sound_slider;
++  lv_obj_t *sound_volume_label;
+ #endif
+   uint32_t sw_acc_ms;
+   uint32_t sw_start;
+@@ -2226,25 +2228,33 @@
+   velaride_sound_get(&sound);
+   set_label(g_sport.status_label, sound.save_error != 0 ? "设置保存失败，请重试" :
+             sound.saving ? "正在保存" : sound.dnd ? "勿扰中，声音已暂停" :
++            sound.enabled && sound.volume == 0 ? "音量为 0，已静音" :
+             sound.enabled && sound.last_error == -EBUSY ? "音频正忙，稍后再试" :
+             sound.enabled && sound.last_error < 0 &&
+             sound.last_error != -ECANCELED ? "声音暂不可用，请重试" :
+             sound.enabled ? "闹钟铃声最多 10 秒" : "静音，保留亮屏提醒");
+-  for (i = 0; i < 4; i++)
+-    {
+-      bool selected = i < 2 ? sound.enabled == (i == 1) :
+-                              sound.volume == (i - 2);
++  for (i = 0; i < 2; i++)
++    {
++      bool selected = sound.enabled == (i == 1);
+       lv_obj_set_style_bg_color(g_sport.sound_buttons[i],
+                                 selected ? vr_accent() : lv_color_hex(VR_TILE2), 0);
+       lv_obj_set_style_text_color(lv_obj_get_child(g_sport.sound_buttons[i], 0),
+                                   selected ? vr_accent_ink() :
+                                   lv_color_hex(TEXT_COLOR), 0);
+     }
++  snprintf(text, sizeof(text), "音量  %u%%", sound.volume);
++  set_label(g_sport.sound_volume_label, text);
++  if (!lv_slider_is_dragged(g_sport.sound_slider) &&
++      lv_slider_get_value(g_sport.sound_slider) != sound.volume)
++    {
++      lv_slider_set_value(g_sport.sound_slider, sound.volume, LV_ANIM_OFF);
++    }
+   snprintf(text, sizeof(text), "模式语音  %s", sound.voice ? "已开启" : "已关闭");
+   set_label(lv_obj_get_child(g_sport.sound_buttons[4], 0), text);
+   snprintf(text, sizeof(text), "提醒铃声  %s", sound.rings ? "已开启" : "已关闭");
+   set_label(lv_obj_get_child(g_sport.sound_buttons[5], 0), text);
+-  if (sound.enabled && !sound.dnd && (sound.voice || sound.rings))
++  if (sound.enabled && sound.volume > 0 && !sound.dnd &&
++      (sound.voice || sound.rings))
+     {
+       lv_obj_remove_state(g_sport.sound_buttons[6], LV_STATE_DISABLED);
+     }
+@@ -2264,8 +2274,12 @@
+     {
+       case 0: sound.enabled = false; break;
+       case 1: sound.enabled = true; break;
+-      case 2: sound.volume = 0; break;
+-      case 3: sound.volume = 1; break;
++      case 2:
++        velaride_sound_set_volume(sound.volume > 5 ? sound.volume - 5 : 0);
++        break;
++      case 3:
++        velaride_sound_set_volume(sound.volume < 95 ? sound.volume + 5 : 100);
++        break;
+       case 4: sound.voice = !sound.voice; break;
+       case 5: sound.rings = !sound.rings; break;
+       case 6:
+@@ -2274,10 +2288,17 @@
+         break;
+       case 7: velaride_sound_stop(VR_SOUND_NONE); break;
+     }
+-  if (action < 6)
++  if (action < 6 && action != 2 && action != 3)
+     {
+       velaride_sound_set(sound.enabled, sound.voice, sound.rings, sound.volume);
+     }
++  update_sound();
++}
++
++static void sound_slider_cb(lv_event_t *event)
++{
++  uint8_t value = (uint8_t)lv_slider_get_value(lv_event_get_target(event));
++  velaride_sound_set_volume(value);
+   update_sound();
+ }
+ 
+@@ -2289,10 +2310,27 @@
+                                     sound_action_cb, 0);
+   g_sport.sound_buttons[1] = button("有声", BTN_TILE, 201, 145, 164, 48,
+                                     sound_action_cb, 1);
+-  g_sport.sound_buttons[2] = button("柔和音量", BTN_TILE, 25, 205, 164, 44,
++  g_sport.sound_buttons[2] = button("-5", BTN_TILE, 25, 211, 48, 44,
+                                     sound_action_cb, 2);
+-  g_sport.sound_buttons[3] = button("标准音量", BTN_TILE, 201, 205, 164, 44,
++  g_sport.sound_buttons[3] = button("+5", BTN_TILE, 317, 211, 48, 44,
+                                     sound_action_cb, 3);
++  g_sport.sound_volume_label = label(g_sport.root, "", TEXT_COLOR,
++                                     &velaride_font_cn_20, 84, 202, 222);
++  g_sport.sound_slider = lv_slider_create(g_sport.root);
++  lv_obj_set_pos(g_sport.sound_slider, 89, 239);
++  lv_obj_set_size(g_sport.sound_slider, 212, 8);
++  lv_slider_set_range(g_sport.sound_slider, 0, 100);
++  lv_obj_remove_flag(g_sport.sound_slider, LV_OBJ_FLAG_GESTURE_BUBBLE);
++  lv_obj_set_ext_click_area(g_sport.sound_slider, 16);
++  lv_obj_set_style_bg_color(g_sport.sound_slider, vr_accent(), LV_PART_INDICATOR);
++  lv_obj_set_style_bg_color(g_sport.sound_slider, vr_accent(), LV_PART_KNOB);
++  lv_obj_set_style_pad_all(g_sport.sound_slider, 8, LV_PART_KNOB);
++  lv_obj_add_event_cb(g_sport.sound_slider, sound_slider_cb,
++                      LV_EVENT_VALUE_CHANGED, NULL);
++  lv_obj_add_event_cb(g_sport.sound_buttons[2], sound_action_cb,
++                      LV_EVENT_LONG_PRESSED_REPEAT, (void *)2);
++  lv_obj_add_event_cb(g_sport.sound_buttons[3], sound_action_cb,
++                      LV_EVENT_LONG_PRESSED_REPEAT, (void *)3);
+   g_sport.sound_buttons[4] = button("模式语音", BTN_SECONDARY, 25, 264, 340,
+                                     46, sound_action_cb, 4);
+   g_sport.sound_buttons[5] = button("提醒铃声", BTN_SECONDARY, 25, 319, 340,

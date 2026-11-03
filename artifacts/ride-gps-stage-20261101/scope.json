@@ -1,0 +1,10 @@
+{
+  "changed_source_files": [
+    "velaride_ride_session.h",
+    "velaride_sport_ui.c",
+    "velaride_ride_session.c",
+    "velaride_ble.c"
+  ],
+  "config_changes": [],
+  "parent_hash_verified": true
+}

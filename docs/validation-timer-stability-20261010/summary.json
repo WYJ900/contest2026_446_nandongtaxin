@@ -1,0 +1,139 @@
+{
+  "firmware": "velaride-timer-fix-20261010.bin",
+  "sha256": "70A7BD297DDD5A2390CA5E01110D400E149F32CA2E63E98F99146AD1D5C760E6",
+  "bytes": 9287596,
+  "partition_margin": 739412,
+  "installed": true,
+  "normal_zero_start_restored": true,
+  "production_uptime_seconds": 30.87,
+  "source_and_wsl_match": true,
+  "checkpatch_normal_timer_source": "passed",
+  "old_failure": "32-bit tick-to-microsecond arithmetic wraps near 4294.967296 seconds; periodic UI/sampling stopped",
+  "host_boundary_test": "actual functions, ARM 32-bit arithmetic, ASan and UBSan passed",
+  "hardware_boundary": {
+    "uptimes": [
+      4272.48,
+      4274.67,
+      4276.74,
+      4278.81,
+      4281.89,
+      4283.96,
+      4286.03,
+      4289.19,
+      4291.26,
+      4293.33,
+      4296.41,
+      4298.48,
+      4300.6,
+      4303.63
+    ],
+    "boundary_seconds": 4294.967296,
+    "before_samples": 5,
+    "after_samples": 125,
+    "lcd": [
+      [
+        17,
+        17,
+        0
+      ],
+      [
+        38,
+        38,
+        0
+      ],
+      [
+        59,
+        59,
+        0
+      ],
+      [
+        80,
+        80,
+        0
+      ],
+      [
+        104,
+        104,
+        0
+      ]
+    ],
+    "passed": true
+  },
+  "diagnostic_firmware_sha256": "AA826E481182D448CFF750A099765D6530E62B63ECD8864D18017F291B19E4C4",
+  "production_samples": [
+    {
+      "usb_valid": true,
+      "usb_connected": true,
+      "adc_valid": true,
+      "reference_mv": 4294,
+      "adc_error": 0,
+      "calibrated": false,
+      "battery_present": null,
+      "light_detected": true,
+      "magnetometer_detected": true,
+      "adc_samples": 3,
+      "adc_failures": 0,
+      "light_valid": true,
+      "light_lux": 677.41,
+      "light_error": 0,
+      "light_samples": 100,
+      "light_failures": 0,
+      "brightness": 77,
+      "brightness_target": 77,
+      "auto": true,
+      "brightness_error": 0,
+      "settings_error": 0,
+      "settings_pending": false
+    },
+    {
+      "usb_valid": true,
+      "usb_connected": true,
+      "adc_valid": true,
+      "reference_mv": 4336,
+      "adc_error": 0,
+      "calibrated": false,
+      "battery_present": null,
+      "light_detected": true,
+      "magnetometer_detected": true,
+      "adc_samples": 4,
+      "adc_failures": 0,
+      "light_valid": true,
+      "light_lux": 678.07,
+      "light_error": 0,
+      "light_samples": 122,
+      "light_failures": 0,
+      "brightness": 77,
+      "brightness_target": 77,
+      "auto": true,
+      "brightness_error": 0,
+      "settings_error": 0,
+      "settings_pending": false
+    }
+  ],
+  "production_lcd": {
+    "sent": 95,
+    "done": 95,
+    "recoveries": 0
+  },
+  "ble": "diagnostic after boundary and production connect/ping/status/latest passed; production time_sync passed",
+  "latest_record": 7,
+  "ai_review_preserved": true,
+  "natural_multi_hour_soak": "3h58m45s: timer, UI thread/LCD and light sampling continue; separate ADC range failure detected, overall device soak not passed",
+  "manual_compass_calibration": "not complete (calibrated=0 at precheck)",
+  "application_features_changed": false,
+  "natural_soak_latest": {
+    "uptime_seconds": 14325.23,
+    "old_failure_boundary_crossed": true,
+    "adc_samples": 1408,
+    "adc_failures": 901,
+    "adc_valid": false,
+    "adc_error": -34,
+    "reference_mv_invalid": 224,
+    "light_samples_before": 48222,
+    "light_samples_after": 48233,
+    "light_failures": 0,
+    "lcd_sent": 86556,
+    "lcd_done": 86556,
+    "lcd_recoveries": 0
+  }
+}

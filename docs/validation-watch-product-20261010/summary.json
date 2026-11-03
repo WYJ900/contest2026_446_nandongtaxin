@@ -1,0 +1,127 @@
+{
+  "firmware": "velaride-watch-product-20261010.bin",
+  "bytes": 9287604,
+  "sha256": "E63703248CE7ACFE78EEE68629B301CFB46F3FC3354B760F6D5AB696A5E0CE89",
+  "margin_bytes": 739404,
+  "installed": true,
+  "device_last": {
+    "usb_valid": true,
+    "usb_connected": true,
+    "adc_valid": true,
+    "reference_mv": 4334,
+    "adc_error": 0,
+    "calibrated": false,
+    "battery_present": null,
+    "light_detected": true,
+    "magnetometer_detected": true,
+    "adc_samples": 20,
+    "adc_failures": 0,
+    "light_valid": true,
+    "light_lux": 493.69,
+    "light_error": 0,
+    "light_samples": 731,
+    "light_failures": 0,
+    "brightness": 75,
+    "brightness_target": 75,
+    "auto": true,
+    "brightness_error": 0,
+    "settings_error": 0,
+    "settings_pending": false
+  },
+  "lcd": {
+    "sent": 922,
+    "completed": 922,
+    "recoveries": 0
+  },
+  "magnetometer_samples": 135,
+  "magnetometer_failures": 0,
+  "magnetometer_actual_calibration": "pending user test",
+  "absolute_heading_and_mount_orientation": "not validated; UI marked preview",
+  "tilt_compensation": false,
+  "auto_response_observations": [
+    {
+      "lux": 612.47,
+      "brightness": 20,
+      "automatic": false
+    },
+    {
+      "lux": 643.28,
+      "brightness": 50,
+      "automatic": true
+    },
+    {
+      "lux": 646.16,
+      "brightness": 65,
+      "automatic": true
+    },
+    {
+      "lux": 897.2,
+      "brightness": 76,
+      "automatic": true
+    },
+    {
+      "lux": 508.15,
+      "brightness": 76,
+      "automatic": true
+    },
+    {
+      "lux": 146.17,
+      "brightness": 76,
+      "automatic": true
+    },
+    {
+      "lux": 738.38,
+      "brightness": 76,
+      "automatic": true
+    },
+    {
+      "lux": 82.33,
+      "brightness": 76,
+      "automatic": true
+    },
+    {
+      "lux": 35.48,
+      "brightness": 70,
+      "automatic": true
+    },
+    {
+      "lux": 921.66,
+      "brightness": 77,
+      "automatic": true
+    },
+    {
+      "lux": 1261.93,
+      "brightness": 80,
+      "automatic": true
+    },
+    {
+      "lux": 850.03,
+      "brightness": 80,
+      "automatic": false
+    }
+  ],
+  "observation_interval_seconds": 0.3,
+  "auto_response_time_note": "observation interval only; not a precision latency measurement",
+  "manual_ui_brightness_feedback": "user overall accepted: ok, continue; specific magnetic calibration remains unverified",
+  "latest_ride_sequence": 7,
+  "original_ai_review_preserved": true,
+  "ble": "scan/connect/ping/status/latest/disconnect passed",
+  "host_sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "hardware_suites": [
+    "i2c",
+    "adc",
+    "ltr303",
+    "mmc5603",
+    "device and brightness",
+    "compass calibration"
+  ],
+  "lvgl_regression": "passed: settings/icons/calibration states and original ride/key/menu/face scenarios",
+  "integration": {
+    "patches": 7,
+    "overlays": 8
+  },
+  "screenshots": "host LVGL with exact firmware font, not watch photo"
+}

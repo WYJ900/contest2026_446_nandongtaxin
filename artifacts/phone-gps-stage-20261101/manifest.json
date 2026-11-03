@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-01",
+  "firmware_sha256": "00e511f13ac1200a492f95fb50ebbed63f4a7c1cc5b65ce2e3edbc1858c20515",
+  "firmware_bytes": 9765460,
+  "parent_firmware_sha256": "a9bd9f2580da13e0a80753c2531f46ee6f5e730b1ff792474999ed7334a8e90b",
+  "files": {
+    "android-0.1.3-source.zip": "5dc87edce7741bc7bd3952eec884140394abb72ad68055dde2d767e3d055e91d",
+    "app-source.tar.gz": "be10b627098d3c9cfa1b5c129fa7133989bf0ca59185ca18d8dc19d7783b05f6",
+    "build_phone_gps_stage.sh": "cf0d821e8ffbe448596061ec5663520d6c555d511a49470c168c3c0bff54cc12",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "firmware.bin": "00e511f13ac1200a492f95fb50ebbed63f4a7c1cc5b65ce2e3edbc1858c20515",
+    "phone-gps.patch": "9c4debf342fbdff3372e59daa278c5772e35c764385057b6489d38f134797ad4",
+    "source-scope.json": "807ee366bc58d8ef4677c09b9832844191d1b754f879e0c8986d022ab6dfd5c8",
+    "phone_ble_check.py": "0472aa7d415cad51f9e75c084dedc85f10b102b48a17d1eabadf19791edeaf44"
+  },
+  "apk_sha256": "fed12b4e43a7a10073a533e2b52402ea19248fa8dd5c802959f3c4b72b01d02f",
+  "android_source_files": {
+    "app/src/main/AndroidManifest.xml": "3f2902276ab2320d78469173cd1e9c840388b2b2fd99023ca3ac102f42b7bafc",
+    "app/src/main/java/com/velaride/companion/BleLink.java": "eabe65df942142ddc975badc1c5de93f6554e42707189481c8097c3c8f672fc6",
+    "app/src/main/java/com/velaride/companion/GpsTracker.java": "603297f445f4e9ebf1a78f67c1a0dffbd30255d73e19d27ef49fd6b1fdba3c67",
+    "app/src/main/java/com/velaride/companion/HistoryFile.java": "b18a2360efaa63bfc1790e9286ea37a34ed01b6126cd31c3bccb5f8c12b12e76",
+    "app/src/main/java/com/velaride/companion/MainActivity.java": "293c44547ae4512de37e2d41f1ca3d3493eb8303d7c5a4767d1db062af849c87",
+    "app/src/main/java/com/velaride/companion/RideHistory.java": "9ab06f1fbc284b6905ed342f9ecfd07ea1a570bbbd2fccb926b161a93a6d7694",
+    "app/src/main/java/com/velaride/companion/WatchHandshake.java": "2c43f00ef9f935289d0e5f7d903845e5434def0428d193f9bf0e9d9cdac9540e",
+    "app/src/main/java/com/velaride/companion/WireCodec.java": "eb0f4d42efab4cd4ee0667a7b202f9c78e77a687a1f2c21baa53d341bf64a0bf",
+    "app/src/main/res/drawable/ic_launcher.xml": "d80fd222443fa25e189130ae2e478b0e637a7b6a4eb9fd8f87b69950c2842cfd",
+    "app/src/main/res/values/styles.xml": "bf594c1aa7f84733b46450c80a390f9f9d40a0e1e13c503a76b747159bf58e9e",
+    "build.ps1": "5585e9481fb50c6e53bf236fd66938701d31de6515d42743b2e0bcf99406016d",
+    "README.md": "4d26f1e9ba65939f21664c4ad64f6a0c097dabbba7421dee0d0b7a3989eae283",
+    "tests/GpsTrackerTest.java": "d98f0537461bc338b96fa49b761b9a827c0aebec8108135833537eec96d79737",
+    "tests/RideHistoryTest.java": "3a91ae7ca60157a58cebc78efe67c13150356e937e64adb4f0874392a0a12ea1",
+    "tests/WatchHandshakeTest.java": "d39d7d60c0dac18f71efea25dbf0a290aed1ebab6e51efebabd546890e644cc6",
+    "tests/WireCodecTest.java": "346cf0335645e185ec8b92632d60edb17785c6f5afa6900973132e0ae80850e3"
+  },
+  "hardware_validation": "PASS: flash verification, 5 resets, legacy BLE, synthetic GPS lifecycle and expiry, unchanged saved ride and settings"
+}

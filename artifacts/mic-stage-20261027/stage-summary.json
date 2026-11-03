@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-27",
+  "context": "User reports screen-side FPC cable issue fixed by hand; no firmware change made for it.",
+  "steps": [
+    {"firmware": "original rc17", "sha256": "b04d766146ac6c9b9dda8c7a9e276afdf7e007d5f49b8dba4adfcb7a51c1d81d",
+     "auto_reset_x5": "PASSED", "log": "04-rc17-reset-x5.json"},
+    {"firmware": "reconstructed rc17 (no mic)", "sha256": "f1226911281ba6fe72cb0af04bf84bae785c1f89a0bfa6cf0dfc67f1b3511cd0",
+     "flash_verify_exit": 0, "auto_reset_x5": "PASSED", "log": "06-reconstructed-reset-x5.json",
+     "hands_on_test": "not performed"},
+    {"firmware": "reconstructed rc17 + mic_test only", "sha256": "31610eb17fe7ecbe20167654e1aaa95d056f6c1f9755a935e1c05006da0f24a8",
+     "flash_verify_exit": 0, "auto_reset_x5": "PASSED", "log": "08-mic-only-reset-x5.json",
+     "recording": "3 s default recording triggered unintentionally by running mic_test without arguments; finished, 96000-byte PCM, no reboot, input0 still present, ride record 11 intact (10-after-mic.log)",
+     "hands_on_test": "pending user", "voice_quality": "pending"}
+  ],
+  "currently_installed": "reconstructed rc17 + mic_test only",
+  "not_yet_covered": ["user swipe/menu/raise check on mic build", "speech capture listened by user", "long idle (30 min) stability", "cold power-cycle (only RTS resets tested)"]
+}

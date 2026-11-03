@@ -1,0 +1,29 @@
+{
+  "stage": "watch-utilities-1: countdown candidate",
+  "parent_firmware_sha256": "23ea7b74e6f6aa4bbe9c2e9e925b034eed1ef1cf5a37fa255f2f105222068941",
+  "firmware_sha256": "0c836f2186bdbdd7d3c2f5423cb1aa0942667971b3f0d4c6848129ca34c8e71f",
+  "firmware_bytes": 9595916,
+  "config_only_change": "CONFIG_EXAMPLES_VELARIDE_COUNTDOWN=y",
+  "source_base": "backup/expansion-20261027/speaker-source-snapshot/source.tar.gz",
+  "source_base_sha256": "f2f16eac9b04bcc600c6266e154486668d4973a0915519afb16bb58b3af7939f",
+  "source_note": "Exact candidate app source plus preserved full baseline source tree; bit-identical rebuild remains affected by JIDL ordering and build timestamps.",
+  "files": {
+    "app-source.tar.gz": "92968f7dba19c2ef86639c64d7f584c6110a4e90ab9e7ddbb3b2a14f5116c20d",
+    "build_countdown_stage.sh": "f5e2f888abf2dfbbd21552c8c5a824f36d7e068e6a1b2af13f3ab50abed5c559",
+    "config": "01b29b1249249282b14e9f2a0caee22017cf7ebefe8e4f27ae689f4f36ed5ca1",
+    "countdown.patch": "50e1bd690a552890c4f4eb63695460ad949d91fc9ac7cf4aab49e3268b8a28a7",
+    "firmware.bin": "0c836f2186bdbdd7d3c2f5423cb1aa0942667971b3f0d4c6848129ca34c8e71f"
+  },
+  "validation": {
+    "host_model": "ASan/UBSan passed",
+    "host_ui": "ASan/UBSan sport and shell suites passed; added countdown controls, independent lifetime, screen wake, drag deferral and DND",
+    "hardware": "5 RTS resets + legacy BLE passed; real countdown pause/resume, completion once and LCD wake acknowledged",
+    "user_hands_on": "User confirmed: ??????????",
+    "feature_disabled_host_ui": "PASS: original sport/shell regression suites with option OFF",
+    "nav_stats": "7 slide swipes, average 51.9 Hz, max_gap 60 ms, slow 2; list menu 39.0 Hz"
+  },
+  "audio": "no playback; visual alert only",
+  "evidence": "../../docs/validation-watch-tools-20261027",
+  "flash_verify": "sftool write_flash --verify exit=0",
+  "status": "accepted countdown baseline"
+}

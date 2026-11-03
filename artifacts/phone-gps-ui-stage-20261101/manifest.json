@@ -1,0 +1,17 @@
+{
+  "firmware_bytes": 9765516,
+  "firmware_sha256": "bf903878d38bd48554919a19558b30147718875929a65351550df8dfb309a71b",
+  "parent_sha256": "00e511f13ac1200a492f95fb50ebbed63f4a7c1cc5b65ce2e3edbc1858c20515",
+  "files": {
+    "app-source.tar.gz": "6751cad545e563959cc9119d3c0db43f8ff3243a50200ed7973137175021f9bb",
+    "build_phone_gps_stage.sh": "b1eaef819366c55f93c08ddc43cb45a901e92e26fdbf75a0fc33982b53d86de8",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "firmware.bin": "bf903878d38bd48554919a19558b30147718875929a65351550df8dfb309a71b",
+    "phone-gps.patch": "3ac039854331760e19b98d9547f77d0bde461340361fd0a624d46e354579f529",
+    "scope.json": "28239c2713037952782141c6ec49b008ad73c2bd883ac4a8f97b6ea6f5c3cfe0",
+    "test_phone_gps_stage_ui.sh": "bec208bff1ca15c2fbb9445171a7704299c4314c3031c59d123126d7a75fd851"
+  },
+  "hardware_validation": "PASS: verified flash, one boot regression cycle and legacy BLE; record 11 retained; actual GPS display requires user observation",
+  "phone_apk_unchanged": "0.1.3",
+  "note": "Only GPS information page differs from parent; prior parent lacked GPS display despite earlier incorrect delivery statement."
+}

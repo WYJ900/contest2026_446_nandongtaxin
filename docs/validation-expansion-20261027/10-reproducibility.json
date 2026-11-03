@@ -1,0 +1,16 @@
+{
+  "baseline_sha256": "23ea7b74e6f6aa4bbe9c2e9e925b034eed1ef1cf5a37fa255f2f105222068941",
+  "rebuilt_sha256": "f8e41f87013710ae0723462946a22f34b11583bf928c031b8e06e622ef320235",
+  "binary_identical": false,
+  "config_identical": true,
+  "bytes": 9592552,
+  "compiler": "arm-none-eabi-gcc (Arm GNU Toolchain 13.3.Rel1 (Build arm-13.24)) 13.3.1 20240614",
+  "source_archive_sha256": "f2f16eac9b04bcc600c6266e154486668d4973a0915519afb16bb58b3af7939f",
+  "generated_interfaces_sha256": "20f25425afb7b1a3741b6e1ce06e3368b867e0d02a021feda05840651fec70df",
+  "macro_prefix_map": {
+    "/home/wyj/velaride_speaker_archive_check_20261027/source/vendor/sifli/boards/sf32lb52/drivers": "/home/wyj/velaride_speaker_stage/vendor/sifli/boards/sf32lb52/drivers"
+  },
+  "build_epoch": "1793106543",
+  "agent_epoch": "1793106575",
+  "scope": "Local archive rebuild; no flash; toolchain remains an external dependency."
+}

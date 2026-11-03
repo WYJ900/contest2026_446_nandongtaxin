@@ -1,0 +1,73 @@
+{
+  "provider": "Windows System.Speech, Microsoft Huihui Desktop",
+  "rate_setting": 1,
+  "sample_rate": 16000,
+  "conditioning": "2200 RMS target; soft knee at 3000, ceiling below 6000; 5 ms fades",
+  "clips": {
+    "ride_mode": {
+      "text": "进入骑行模式",
+      "samples": 20840,
+      "milliseconds": 1302.5,
+      "peak": 5828,
+      "rms": 2200.0,
+      "sha256": "7df50b18fa7b0efea937a5f4b10778bbd5be6b730a243077b2ba76c3e84050ec"
+    },
+    "three": {
+      "text": "三",
+      "samples": 6107,
+      "milliseconds": 381.69,
+      "peak": 5819,
+      "rms": 2200.0,
+      "sha256": "8c86afdfbabca05435787385ecdc73ff2c37f2bc62afdb7e4d14d277f7022441"
+    },
+    "two": {
+      "text": "二",
+      "samples": 4682,
+      "milliseconds": 292.62,
+      "peak": 5684,
+      "rms": 2200.0,
+      "sha256": "e26680a8d4e3569c454107145b1ac809dcee4dc61cb7a1fd627f58097f5b3971"
+    },
+    "one": {
+      "text": "一",
+      "samples": 4367,
+      "milliseconds": 272.94,
+      "peak": 5395,
+      "rms": 2200.0,
+      "sha256": "a38e7056eed77d94df710672bde44cf30bcf972f38c434781672716657df5286"
+    },
+    "go": {
+      "text": "开始",
+      "samples": 8839,
+      "milliseconds": 552.44,
+      "peak": 5765,
+      "rms": 2200.0,
+      "sha256": "ef8a9976ed410665e0b7e47af083fce68a03d8673a8f71c9893c6663a74dfcd0"
+    },
+    "alarm_mode": {
+      "text": "闹钟",
+      "samples": 7980,
+      "milliseconds": 498.75,
+      "peak": 5808,
+      "rms": 2200.0,
+      "sha256": "2375382111a071aa4ab27e6333a52553b18d0bad19e4996dfc790d91b534ccb4"
+    },
+    "countdown_mode": {
+      "text": "倒计时",
+      "samples": 11525,
+      "milliseconds": 720.31,
+      "peak": 5852,
+      "rms": 2200.0,
+      "sha256": "6f219723206d73968fac3a28b3cf8d53757e0eaaa1258e758ab22e1e4a7333ca"
+    },
+    "stopwatch_mode": {
+      "text": "秒表",
+      "samples": 8932,
+      "milliseconds": 558.25,
+      "peak": 5693,
+      "rms": 2200.0,
+      "sha256": "1e1e84243b58ea90e22fd35a0ab750cfde1eb6a835d6ab3631838dc4a1b8b5ff"
+    }
+  },
+  "total_pcm_bytes": 146544
+}

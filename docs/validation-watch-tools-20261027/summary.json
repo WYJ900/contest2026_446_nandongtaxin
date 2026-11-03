@@ -1,0 +1,15 @@
+{
+  "firmware_sha256": "0c836f2186bdbdd7d3c2f5423cb1aa0942667971b3f0d4c6848129ca34c8e71f",
+  "firmware_bytes": 9595916,
+  "hardware_reset_cycles": 5,
+  "legacy_ble_passed": true,
+  "latest_ride_sequence": 11,
+  "countdown_hardware_passed": true,
+  "pause_remaining_ms": 2943,
+  "audio_played": false,
+  "manual_touch_and_wake": "User confirmed: ??????????",
+  "scope": "First standalone watch feature; alarms/night mode not implemented in this patch.",
+  "host_feature_on_ui_passed": true,
+  "host_feature_off_ui_passed": true,
+  "slide_hz": 51.9
+}

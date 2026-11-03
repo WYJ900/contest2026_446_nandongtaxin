@@ -1,0 +1,25 @@
+{
+  "stage": "night display candidate",
+  "parent_firmware_sha256": "b054b8e68b73ff97f91136f67f9f2720cb2469aca50be81040f7b32b80ceb48f",
+  "firmware_sha256": "a9bd9f2580da13e0a80753c2531f46ee6f5e730b1ff792474999ed7334a8e90b",
+  "firmware_bytes": 9764740,
+  "config_changes": [
+    "CONFIG_EXAMPLES_VELARIDE_NIGHT=y",
+    "CONFIG_LV_USE_COLOR_FILTER=y"
+  ],
+  "scope": "App color filter and temporary brightness ceiling; preserves day preferences and night-light behavior",
+  "files": {
+    "app-source.tar.gz": "b48359a8fcaa91f4335fd5433967ca6ea8b2ea28eee645f1da1f546dbb6aa528",
+    "build_night_stage.sh": "d817788f06efc2a304ada546aa74eeaf044583e7aa57276ef43e43c1a4c6371e",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "firmware.bin": "a9bd9f2580da13e0a80753c2531f46ee6f5e730b1ff792474999ed7334a8e90b",
+    "night.patch": "6aeb506d2b56f68bf21d54f150ba05b765f7d4a514f456db564eb1ef9bba7728"
+  },
+  "validation": {
+    "host": "ASan/UBSan model; LVGL controls, inherited colors, restoration, cache invalidation, automatic mode, night-light exemption and original UI suites passed; feature-off UI suites passed",
+    "hardware": "20/35 percent cap and restoration to 50 passed; automatic dark at reported 0 lux passed; mode ON/35 retained over 5 resets; BLE and record 11 passed",
+    "user": "pending: display/touch and bright-light exit"
+  },
+  "source_note": "Exact app source on preserved volume-stage source tree; baseline JIDL ordering/build timestamps still affect bit-identical rebuilding.",
+  "evidence": "../../docs/validation-night-20261027"
+}

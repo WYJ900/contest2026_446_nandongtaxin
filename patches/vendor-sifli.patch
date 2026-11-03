@@ -177,8 +177,152 @@ index 321f729..6508ec8 100644
        return ret;
      }
  
+diff --git a/boards/sf32lb52/drivers/lcd/co5300.c b/boards/sf32lb52/drivers/lcd/co5300.c
+index 0443fef..e6a74d3 100644
+--- a/boards/sf32lb52/drivers/lcd/co5300.c
++++ b/boards/sf32lb52/drivers/lcd/co5300.c
+@@ -11,6 +11,9 @@
+ #include <sfconfig.h>
+ #include "string.h"
+ #include "sf32lb_lcd.h"
++#include <syslog.h>
++#include <errno.h>
++#include <nuttx/signal.h>
+ 
+ /* RT-Thread graphic pixel format compatibility */
+ #define RTGRAPHIC_PIXEL_FORMAT_RGB565  LCDC_PIXEL_FORMAT_RGB565
+@@ -161,6 +164,66 @@ static void     LCD_WriteReg(LCDC_HandleTypeDef *hlcdc, uint16_t LCD_Reg, uint8_
+ static uint32_t LCD_ReadData(LCDC_HandleTypeDef *hlcdc, uint16_t RegValue, uint8_t ReadSize);
+ static void LCD_ReadMode(LCDC_HandleTypeDef *hlcdc, bool enable);
+ 
++/* Panel reset and sleep-out delays run in task context. A calibrated busy
++ * loop can under-delay when the CPU clock or instruction cache changes.
++ */
++
++static void co5300_delay_ms(unsigned int ms)
++{
++    while (nxsig_usleep(ms * 1000) == -EINTR)
++    {
++    }
++}
++
++int co5300_check_state(LCDC_HandleTypeDef *hlcdc)
++{
++    uint8_t power = 0;
++    uint8_t format = 0;
++    HAL_StatusTypeDef ret1;
++    HAL_StatusTypeDef ret2;
++
++    LCD_ReadMode(hlcdc, true);
++    ret1 = HAL_LCDC_ReadU32Reg(hlcdc, (0x03u << 24) | (0x0au << 8),
++                             &power, 1);
++    ret2 = HAL_LCDC_ReadU32Reg(hlcdc, (0x03u << 24) | (0x0cu << 8),
++                             &format, 1);
++    LCD_ReadMode(hlcdc, false);
++    if (ret1 != HAL_OK || ret2 != HAL_OK)
++    {
++        return -EIO;
++    }
++
++    if ((power & 0x14) != 0x14 || format != 0x55)
++    {
++        syslog(LOG_WARNING, "CO5300: state lost power=%02x format=%02x\n",
++               power, format);
++        return 1;
++    }
++
++    return 0;
++}
++
++void co5300_dump_state(LCDC_HandleTypeDef *hlcdc)
++{
++    static const uint8_t regs[] = {0x04, 0x0a, 0x0c, 0x52, 0x54};
++    unsigned int i;
++
++    LCD_ReadMode(hlcdc, true);
++    for (i = 0; i < sizeof(regs); i++)
++    {
++        uint32_t value = 0;
++        HAL_StatusTypeDef ret;
++
++        ret = HAL_LCDC_ReadU32Reg(hlcdc,
++                                 (0x03u << 24) | ((uint32_t)regs[i] << 8),
++                                 (uint8_t *)&value, i == 0 ? 3 : 1);
++        syslog(LOG_INFO, "CO5300: reg=%02x value=%06lx status=%d\n",
++               regs[i], (unsigned long)value, ret);
++    }
++
++    LCD_ReadMode(hlcdc, false);
++}
++
+ 
+ /**
+   * @brief  spi read/write mode
+@@ -210,14 +273,14 @@ static void LCD_Drv_Init(LCDC_HandleTypeDef *hlcdc)
+     }
+ 
+     BSP_LCD_Reset(1);
+-    LCD_DRIVER_DELAY_MS(10);
++    co5300_delay_ms(10);
+     BSP_LCD_Reset(0);//Reset LCD
+-    LCD_DRIVER_DELAY_MS(10);
++    co5300_delay_ms(10);
+     BSP_LCD_Reset(1);
+-    LCD_DRIVER_DELAY_MS(120);
++    co5300_delay_ms(120);
+ 
+     LCD_WriteReg(hlcdc, 0x01, (uint8_t *)NULL, 0);
+-    LCD_DRIVER_DELAY_MS(120);
++    co5300_delay_ms(120);
+ 
+     /* ReadID is informational only - some panels do not respond reliably
+      * to ID queries on USB-only power but still init/draw correctly.
+@@ -298,9 +361,11 @@ static void LCD_Drv_Init(LCDC_HandleTypeDef *hlcdc)
+     LCD_WriteReg(hlcdc, REG_SLEEP_OUT, (uint8_t *)NULL, 0);
+ 
+     //sleep out+display on
+-    LCD_DRIVER_DELAY_MS(120);
++    co5300_delay_ms(120);
+     LCD_WriteReg(hlcdc, REG_DISPLAY_ON, (uint8_t *)NULL, 0);
+-    LCD_DRIVER_DELAY_MS(20);
++    co5300_delay_ms(20);
++
++    co5300_dump_state(hlcdc);
+ 
+ }
+ 
+@@ -445,7 +510,7 @@ static void LCD_WriteReg(LCDC_HandleTypeDef *hlcdc, uint16_t LCD_Reg, uint8_t *P
+ 
+     if (status != HAL_OK)
+     {
+-        lcdwarn("[co5300] WriteReg failed reg=0x%02x len=%lu st=%d",
++        syslog(LOG_ERR, "CO5300: WriteReg failed reg=0x%02x len=%lu st=%d\n",
+                 LCD_Reg, (unsigned long)NbParameters, status);
+     }
+ 
+@@ -541,6 +606,20 @@ static void LCD_SetColorMode(LCDC_HandleTypeDef *hlcdc, uint16_t color_mode)
+     HAL_LCDC_SetOutFormat(hlcdc, lcdc_int_cfg.color_mode);
+ }
+ 
++int co5300_set_brightness(LCDC_HandleTypeDef *hlcdc, uint8_t percent)
++{
++    uint8_t value;
++
++    if (percent < 20 || percent > 80)
++    {
++        return -EINVAL;
++    }
++
++    value = (uint8_t)(255u * percent / 100u);
++    return HAL_LCDC_WriteU32Reg(hlcdc, (0x02u << 24) | (0x51u << 8),
++                                &value, 1) == HAL_OK ? 0 : -EIO;
++}
++
+ static void  LCD_SetBrightness(LCDC_HandleTypeDef *hlcdc, uint8_t br)
+ {
+     uint8_t bright = (uint8_t)((int)REG_BRIGHTNESS_MAX * br / 100);
 diff --git a/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c b/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c
-index 66fcfc6..86b36ba 100644
+index 66fcfc6..6f69e18 100644
 --- a/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c
 +++ b/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c
 @@ -25,6 +25,7 @@
@@ -219,16 +363,20 @@ index 66fcfc6..86b36ba 100644
  struct sf32lb_lcd_dev_s
  {
      struct lcd_dev_s dev;
-@@ -83,6 +107,8 @@ struct sf32lb_lcd_dev_s
+@@ -83,8 +107,12 @@ struct sf32lb_lcd_dev_s
  
      FAR sem_t init_sem;
      FAR sem_t draw_sem;
 +    volatile bool async_busy;
 +    volatile int async_result;
++    uint32_t recovery_count;
  
      int power;
++    uint8_t brightness;
      uint8_t bpp;
-@@ -227,6 +253,7 @@ static void SendLayerDataCpltCbk(LCDC_HandleTypeDef *lcdc)
+ };
+ 
+@@ -227,6 +255,7 @@ static void SendLayerDataCpltCbk(LCDC_HandleTypeDef *lcdc)
  
  
         struct sf32lb_lcd_dev_s *p_drvlcd = container_of(lcdc, struct sf32lb_lcd_dev_s, hlcdc);
@@ -236,7 +384,7 @@ index 66fcfc6..86b36ba 100644
         sem_post(&p_drvlcd->draw_sem);
     }
  
-@@ -234,7 +261,76 @@ static void SendLayerDataCpltCbk(LCDC_HandleTypeDef *lcdc)
+@@ -234,7 +263,80 @@ static void SendLayerDataCpltCbk(LCDC_HandleTypeDef *lcdc)
  
  static void SendLayerDataErrCbk(LCDC_HandleTypeDef *lcdc)
  {
@@ -310,11 +458,15 @@ index 66fcfc6..86b36ba 100644
 +
 +  ret = dev->async_result;
 +  dev->async_busy = false;
++  if (ret == OK)
++    {
++      sf32lb_lcd_ensure_display_on(dev);
++    }
 +  return ret;
  }
  
  
-@@ -246,8 +342,6 @@ static void sf32lb_lcd_wrram(FAR struct sf32lb_lcd_dev_s *dev, FAR const uint8_t
+@@ -246,8 +348,6 @@ static void sf32lb_lcd_wrram(FAR struct sf32lb_lcd_dev_s *dev, FAR const uint8_t
     		  && dev->p_drv_ops->p_ops->WriteMultiplePixels)
     {
         uint16_t new_x0, new_x1, new_y0, new_y1;
@@ -323,7 +475,7 @@ index 66fcfc6..86b36ba 100644
  
         DEBUGASSERT((x0 <= x1) && (y0 <= y1));
  
-@@ -264,43 +358,11 @@ static void sf32lb_lcd_wrram(FAR struct sf32lb_lcd_dev_s *dev, FAR const uint8_t
+@@ -264,44 +364,12 @@ static void sf32lb_lcd_wrram(FAR struct sf32lb_lcd_dev_s *dev, FAR const uint8_t
         DEBUGASSERT((new_x1 - new_x0 + 1) <= dev->p_drv_ops->lcd_horizonal_res);
         DEBUGASSERT((new_y1 - new_y0 + 1) <= dev->p_drv_ops->lcd_vertical_res);
  
@@ -354,23 +506,24 @@ index 66fcfc6..86b36ba 100644
 -          clock_gettime(CLOCK_REALTIME, &ts);
 -          ts.tv_nsec += 200 * 1000 * 1000; /* 200ms */
 -          if (ts.tv_nsec >= 1000000000L)
--          {
--            ts.tv_sec += 1;
--            ts.tv_nsec -= 1000000000L;
--          }
--
--          if (sem_timedwait(&(dev->draw_sem), &ts) < 0)
 +        if (sf32lb_lcd_start_xfer(dev, buffer, new_x0, new_y0,
 +                                  new_x1, new_y1) == OK)
            {
--            lcdwarn("lcd xfer wait timeout: %d", errno);
+-            ts.tv_sec += 1;
+-            ts.tv_nsec -= 1000000000L;
 +            sf32lb_lcd_wait_xfer(dev, 200);
            }
--        }
  
+-          if (sem_timedwait(&(dev->draw_sem), &ts) < 0)
+-          {
+-            lcdwarn("lcd xfer wait timeout: %d", errno);
+-          }
+-        }
+-
     }
  }
-@@ -403,12 +465,20 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
+ 
+@@ -403,12 +471,20 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
    FAR struct sf32lb_lcd_dev_s *priv = (FAR struct sf32lb_lcd_dev_s *)dev;
    size_t bytes_per_pixel;
    size_t row_bytes;
@@ -391,7 +544,7 @@ index 66fcfc6..86b36ba 100644
    bytes_per_pixel = priv->bpp >> 3;
    row_bytes = (size_t)(col_end - col_start + 1) * bytes_per_pixel;
  
-@@ -458,7 +528,7 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
+@@ -458,7 +534,7 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
    if ((size_t)stride == row_bytes)
      {
        fb_coord_t y = row_start;
@@ -400,7 +553,7 @@ index 66fcfc6..86b36ba 100644
  
        while (y <= row_end)
          {
-@@ -495,6 +565,64 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
+@@ -495,6 +571,64 @@ static int sf32lb_lcd_putarea(FAR struct lcd_dev_s *dev,
  
    sf32lb_lcd_ensure_display_on(priv);
  
@@ -465,7 +618,7 @@ index 66fcfc6..86b36ba 100644
    return OK;
  }
  
-@@ -717,6 +845,43 @@ static int sf32lb_lcd_getalignment(FAR struct lcd_dev_s *dev,
+@@ -717,6 +851,146 @@ static int sf32lb_lcd_getalignment(FAR struct lcd_dev_s *dev,
      return OK;
  }
  
@@ -474,6 +627,109 @@ index 66fcfc6..86b36ba 100644
 +{
 +  FAR struct sf32lb_lcd_dev_s *priv =
 +    (FAR struct sf32lb_lcd_dev_s *)dev;
++
++  if (cmd == LCDDEVIO_GETBRIGHTNESS)
++    {
++      return priv->brightness;
++    }
++
++  if (cmd == LCDDEVIO_SETBRIGHTNESS)
++    {
++#ifdef CONFIG_LCD_USING_CO5300
++      int ret;
++
++      if (arg < 20 || arg > 80)
++        {
++          return -EINVAL;
++        }
++
++      ret = sf32lb_lcd_wait_xfer(priv, 200);
++      if (ret >= 0)
++        {
++          ret = co5300_set_brightness(&priv->hlcdc, (uint8_t)arg);
++        }
++
++      if (ret == 0)
++        {
++          priv->brightness = arg;
++        }
++
++      return ret;
++#else
++      return -ENOTTY;
++#endif
++    }
++
++  if (cmd == LCDDEVIO_REINITIALIZE || cmd == LCDDEVIO_DUMPSTATE ||
++      cmd == LCDDEVIO_CHECKSTATE)
++    {
++      int ret = sf32lb_lcd_wait_xfer(priv, 200);
++
++      if (ret < 0)
++        {
++          return ret;
++        }
++
++      if (cmd == LCDDEVIO_CHECKSTATE)
++        {
++#ifdef CONFIG_LCD_USING_CO5300
++          return priv->power > 0 ? co5300_check_state(&priv->hlcdc) : 0;
++#else
++          return -ENOTTY;
++#endif
++        }
++
++      if (cmd == LCDDEVIO_REINITIALIZE)
++        {
++          if (priv->p_drv_ops == NULL || priv->p_drv_ops->p_ops == NULL ||
++              priv->p_drv_ops->p_ops->Init == NULL)
++            {
++              return -ENODEV;
++            }
++
++          /* The application invokes this from its drawing thread between
++           * frames. Drain the previous transfer before resetting the bus.
++           */
++
++          s_lcd_hw_ready = false;
++          BSP_LCD_PowerDown();
++          usleep(100000);
++          BSP_LCD_PowerUp();
++          priv->power = 0;
++          priv->p_drv_ops->p_ops->Init(&priv->hlcdc);
++          HAL_LCDC_SetBgColor(&priv->hlcdc, 0, 0, 0);
++          HAL_LCDC_LayerReset(&priv->hlcdc, HAL_LCDC_LAYER_DEFAULT);
++          HAL_LCDC_LayerSetFormat(&priv->hlcdc, HAL_LCDC_LAYER_DEFAULT,
++                                  LCDC_PIXEL_FORMAT_RGB565);
++          s_lcd_hw_ready = true;
++          sf32lb_lcd_ensure_display_on(priv);
++#ifdef CONFIG_LCD_USING_CO5300
++          ret = co5300_set_brightness(&priv->hlcdc, priv->brightness);
++          if (ret < 0)
++            {
++              return ret;
++            }
++
++          ret = co5300_check_state(&priv->hlcdc);
++          if (ret != 0)
++            {
++              return ret < 0 ? ret : -EIO;
++            }
++#endif
++          priv->recovery_count++;
++        }
++
++#ifdef CONFIG_LCD_USING_CO5300
++      co5300_dump_state(&priv->hlcdc);
++#endif
++      syslog(LOG_INFO, "VELARIDE_LCD: state=%d error=%lu sent=%lu done=%lu"
++             " recoveries=%lu\n",
++             priv->hlcdc.State, (unsigned long)priv->hlcdc.ErrorCode,
++             (unsigned long)priv->hlcdc.debug_cnt0,
++             (unsigned long)priv->hlcdc.debug_cnt1,
++             (unsigned long)priv->recovery_count);
++      return OK;
++    }
 +
 +  if (cmd == LCDDEVIO_PUTAREA_ASYNC)
 +    {
@@ -509,15 +765,25 @@ index 66fcfc6..86b36ba 100644
  static int lcdc1_isr(int irq, void *context, void *arg)
  {
      HAL_LCDC_IRQHandler((LCDC_HandleTypeDef *)arg);
-@@ -783,8 +948,16 @@ static int lcd_init_thread_entry(int argc, FAR char *argv[])
+@@ -771,6 +1045,10 @@ static int lcd_hw_setup_thread_entry(int argc, FAR char *argv[])
+                             LCDC_PIXEL_FORMAT_RGB565);
+ 
+     s_lcd_hw_ready = true;
++    s_drv_lcd.power = 0;
++    sf32lb_lcd_ensure_display_on(&s_drv_lcd);
++    syslog(LOG_INFO, "VELARIDE_LCD: initialized power=%d\n",
++           s_drv_lcd.power);
+ 
+     return OK;
+ }
+@@ -783,8 +1061,15 @@ static int lcd_init_thread_entry(int argc, FAR char *argv[])
    bool lcd_registered = false;
    int retry;
  
 -	BSP_LCD_PowerUp();
 -	
-+  /* sftool and CH340 reset only the HCPU; the panel rails may remain on and
-+   * retain a black/sleep state. Cycle the real board VSYS/3V3/VADD gates so
-+   * software reset has the same deterministic panel state as USB unplug.
++  /* Reset the panel's own VADD gate. VSYS/3V3 are shared with other board
++   * devices and must stay on while the asynchronous drivers initialize.
 +   */
 +
 +  BSP_LCD_PowerDown();
@@ -528,7 +794,15 @@ index 66fcfc6..86b36ba 100644
  	p_drv_ops = find_right_driver();
  
  #ifdef CONFIG_LCD_USING_CO5300
-@@ -971,6 +1144,7 @@ struct lcd_dev_s *board_lcd_getdev(int devno)
+@@ -921,6 +1206,7 @@ int board_lcd_initialize(void)
+     lcdinfo("board_lcd_initialize\n");
+     
+     memset(&s_drv_lcd, 0, sizeof(s_drv_lcd));
++    s_drv_lcd.brightness = 50;
+ 
+     s_drv_lcd.hlcdc.Instance = LCDC1;
+ 
+@@ -971,6 +1257,7 @@ struct lcd_dev_s *board_lcd_getdev(int devno)
      g_lcd->getcontrast  = sf32lb_lcd_getcontrast;
      g_lcd->setcontrast  = sf32lb_lcd_setcontrast;
      g_lcd->getareaalign = sf32lb_lcd_getalignment;
@@ -536,13 +810,30 @@ index 66fcfc6..86b36ba 100644
    #if 0
    g_lcd = st7789_lcdinitialize(g_spidev);
    if (!g_lcd)
-@@ -1003,4 +1177,3 @@ void board_lcd_uninitialize(void)
+@@ -1003,4 +1290,3 @@ void board_lcd_uninitialize(void)
      sem_destroy(&(s_drv_lcd.draw_sem));
  
  }
 -
+diff --git a/boards/sf32lb52/drivers/lcd/sf32lb_lcd.h b/boards/sf32lb52/drivers/lcd/sf32lb_lcd.h
+index 33d6a3d..bd85931 100644
+--- a/boards/sf32lb52/drivers/lcd/sf32lb_lcd.h
++++ b/boards/sf32lb52/drivers/lcd/sf32lb_lcd.h
+@@ -71,6 +71,12 @@ typedef struct
+     }
+ 
+ #define LCD_DRIVER_DELAY_MS(ms) up_mdelay(ms)
++
++#ifdef CONFIG_LCD_USING_CO5300
++void co5300_dump_state(LCDC_HandleTypeDef *hlcdc);
++int co5300_check_state(LCDC_HandleTypeDef *hlcdc);
++int co5300_set_brightness(LCDC_HandleTypeDef *hlcdc, uint8_t percent);
++#endif
+ typedef enum
+ {
+     LCD_STATUS_NONE = 0,
 diff --git a/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig b/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig
-index bca291d..a8935c5 100644
+index bca291d..a86ec32 100644
 --- a/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig
 +++ b/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig
 @@ -21,7 +21,7 @@
@@ -627,7 +918,7 @@ index bca291d..a8935c5 100644
 +CONFIG_LV_NUTTX_LCD_PARTIAL_BUFFER_COUNT=2
 +CONFIG_LV_NUTTX_LCD_STATIC_SRAM_BUFFER=y
 +CONFIG_LV_NUTTX_VSYNC_TIMER_PERIOD=16
-+CONFIG_LV_USE_DRAW_EPIC=y
++# CONFIG_LV_USE_DRAW_EPIC is not set
  CONFIG_LV_USE_LOG=y
  CONFIG_LV_USE_NUTTX=y
  CONFIG_LV_USE_NUTTX_LCD=y
@@ -656,7 +947,16 @@ index bca291d..a8935c5 100644
  CONFIG_QUICKAPP_VAPP=y
  CONFIG_RAW_BINARY=y
  CONFIG_RR_INTERVAL=10
-@@ -209,9 +220,6 @@ CONFIG_SYSTEM_I2CTOOL=y
+@@ -198,6 +209,8 @@ CONFIG_SCHED_LPWORK=y
+ CONFIG_SCHED_WAITPID=y
+ CONFIG_SENSORS=y
+ CONFIG_SENSORS_LSM6DSL=y
++CONFIG_SENSORS_LTR303=y
++CONFIG_SENSORS_MMC5603=y
+ CONFIG_SF32LB52_USBDEV=y
+ CONFIG_SIFLI_LCD=y
+ CONFIG_SIG_EVTHREAD=y
+@@ -209,9 +222,6 @@ CONFIG_SYSTEM_I2CTOOL=y
  CONFIG_SYSTEM_NSH=y
  CONFIG_SYSTEM_WORKQUEUE_NO_YIELD=y
  CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE=32768
@@ -666,7 +966,7 @@ index bca291d..a8935c5 100644
  CONFIG_TIMER=y
  CONFIG_TIMER_ARCH=y
  CONFIG_TLS_NCLEANUP=4
-@@ -220,6 +228,7 @@ CONFIG_TLS_TASK_NELEM=4
+@@ -220,6 +230,7 @@ CONFIG_TLS_TASK_NELEM=4
  CONFIG_TOUCH_IRQ_PIN=41
  CONFIG_UART_BAUD=1000000
  CONFIG_UART_BUFSZ=1024
@@ -674,7 +974,7 @@ index bca291d..a8935c5 100644
  CONFIG_UART_SERIAL_CONSOLE=y
  CONFIG_UIKIT=y
  CONFIG_UIKIT_FONT_LIB_PATH="/etc/data/"
-@@ -228,3 +237,7 @@ CONFIG_UTILS_CURL=y
+@@ -228,3 +239,16 @@ CONFIG_UTILS_CURL=y
  CONFIG_VIDEO_FB=y
  CONFIG_WATCHDOG=y
  CONFIG_WIDGET_LOG_LEVEL=2
@@ -682,20 +982,34 @@ index bca291d..a8935c5 100644
 +CONFIG_SYSTEM_SYSTEM=y
 +CONFIG_LIBC_POPEN=y
 +CONFIG_SYSTEM_POPEN=y
++CONFIG_CRYPTO_MBEDTLS=y
++CONFIG_NET_TCPBACKLOG=y
++CONFIG_LV_USE_FS_POSIX=y
++CONFIG_LV_FS_POSIX_LETTER=47
++CONFIG_LV_FS_POSIX_PATH="/"
++CONFIG_LV_DEF_REFR_PERIOD=16
++CONFIG_LV_CACHE_DEF_SIZE=1048576
++CONFIG_LV_DRAW_SW_CIRCLE_CACHE_SIZE=16
++CONFIG_MQ_MAXMSGSIZE=4096
+diff --git a/boards/sf32lb52/lckfb_huangshan_pi/scripts/ld.script b/boards/sf32lb52/lckfb_huangshan_pi/scripts/ld.script
+index c84ce2c..3ce90d4 100644
+--- a/boards/sf32lb52/lckfb_huangshan_pi/scripts/ld.script
++++ b/boards/sf32lb52/lckfb_huangshan_pi/scripts/ld.script
+@@ -21,7 +21,8 @@
+ MEMORY
+ {
+   flash (rx) : ORIGIN = 0x12010000, LENGTH = 16M
+-  sram (rwx) : ORIGIN = 0x20000000, LENGTH = 512K
++  /* Reserve 256 bytes of ROM configuration and 1024 bytes of IPC mailboxes. */
++  sram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x7fb00
+   psram (rwx) : ORIGIN = 0x60000000, LENGTH = 8M
+ }
+ 
 diff --git a/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c b/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c
-index 52c2ea7..a51a353 100644
+index 52c2ea7..a48cf3c 100644
 --- a/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c
 +++ b/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c
-@@ -7,6 +7,8 @@
- 
- #ifdef LCD_USING_CO5300
-     #define LCD_VADD_EN             (1)
-+    #define LCD_VSYS_EN             (38)
-+    #define LCD_VCC_3V3_EN          (26)
- #endif
- 
- 
-@@ -19,20 +21,28 @@ void BSP_LCD_Reset(uint8_t high1_low0)
+@@ -19,20 +19,26 @@ void BSP_LCD_Reset(uint8_t high1_low0)
  
  void BSP_LCD_PowerDown(void)
  {
@@ -706,8 +1020,9 @@ index 52c2ea7..a51a353 100644
 -    BSP_GPIO_Set(LCD_VADD_EN, 0, 1); //POwer down VADD EN
 +    BSP_GPIO_Set(LCD_VADD_EN, 0, 1);
 +    HAL_Delay_us(1000);
-+    BSP_GPIO_Set(LCD_VCC_3V3_EN, 0, 1);
-+    BSP_GPIO_Set(LCD_VSYS_EN, 0, 1);
++    /* VSYS and VCC_3V3 also supply other board devices. Display recovery
++     * must not cycle those shared rails underneath active drivers.
++     */
  #endif
  }
  
@@ -719,9 +1034,6 @@ index 52c2ea7..a51a353 100644
  #ifdef LCD_USING_CO5300
 -    BSP_GPIO_Set(LCD_VADD_EN, 1, 1); //POwer up VADD EN
 +    BSP_GPIO_Set(LCD_RESET_PIN, 0, 1);
-+    BSP_GPIO_Set(LCD_VSYS_EN, 1, 1);
-+    HAL_Delay_us(5000);
-+    BSP_GPIO_Set(LCD_VCC_3V3_EN, 1, 1);
 +    HAL_Delay_us(5000);
 +    BSP_GPIO_Set(LCD_VADD_EN, 1, 1);
 +    HAL_Delay_us(5000);
@@ -729,15 +1041,136 @@ index 52c2ea7..a51a353 100644
  }
  
 diff --git a/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS b/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS
-index 4a36786..9f983a1 100644
+index 4a36786..50225fc 100644
 --- a/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS
 +++ b/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS
-@@ -1,2 +1,4 @@
+@@ -1,2 +1,6 @@
  sleep 3
 -vapp hap://app/com.application.lyra.demo &
 +ai_agent &
 +sleep 1
 +velaride &
++sleep 2
++velaride_ble &
+diff --git a/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_ap.c b/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_ap.c
+index 89ae48e..1844d2a 100644
+--- a/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_ap.c
++++ b/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_ap.c
+@@ -51,6 +51,13 @@
+ #if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_LSM6DSL)
+ #  include <nuttx/sensors/lsm6dsl.h>
+ #endif
++
++#ifdef CONFIG_SENSORS_LTR303
++#  include <nuttx/sensors/ltr303.h>
++#endif
++#ifdef CONFIG_SENSORS_MMC5603
++#  include <nuttx/sensors/mmc5603.h>
++#endif
+ #if defined(CONFIG_SPI) && defined(CONFIG_BSP_USING_SPI1)
+ #  include <nuttx/spi/spi.h>
+ #  include "sf32lb_spi.h"
+@@ -496,10 +503,11 @@ int sf32lb52_lchspi_ulp_bringup(void)
+ #endif
+ 
+ #ifdef CONFIG_BSP_USING_I2C2
+-  /* Initialize I2C bus 1 for charger (AW32001). */
++  /* Initialize I2C bus 1 on the board sensor pins (PA40/PA39). */
+   struct i2c_master_s *i2c1 = NULL;
+ 
+-#if defined(CONFIG_SENSORS_LSM6DSL)
++#if defined(CONFIG_SENSORS_LSM6DSL) || defined(CONFIG_SENSORS_LTR303) || \
++    defined(CONFIG_SENSORS_MMC5603)
+   HAL_PIN_Set(PAD_PA40, I2C2_SCL, PIN_PULLUP, 1);
+   HAL_PIN_Set(PAD_PA39, I2C2_SDA, PIN_PULLUP, 1);
+ #endif
+@@ -525,6 +533,20 @@ int sf32lb52_lchspi_ulp_bringup(void)
+                  "ERROR: sf32lb52_lsm6ds3_initialize failed: %d\n",
+                  tmpret);
+         }
++#endif
++#ifdef CONFIG_SENSORS_LTR303
++      tmpret = ltr303_register(0, i2c1);
++      if (tmpret < 0)
++        {
++          syslog(LOG_ERR, "ERROR: ltr303_register failed: %d\n", tmpret);
++        }
++#endif
++#ifdef CONFIG_SENSORS_MMC5603
++      tmpret = mmc5603_register(0, i2c1);
++      if (tmpret < 0)
++        {
++          syslog(LOG_ERR, "ERROR: mmc5603_register failed: %d\n", tmpret);
++        }
+ #endif
+     }
+ #endif /* CONFIG_BSP_USING_I2C2 */
+diff --git a/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_gpio.c b/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_gpio.c
+index 3455074..6d47bad 100644
+--- a/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_gpio.c
++++ b/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_gpio.c
+@@ -25,6 +25,7 @@
+ #include <nuttx/config.h>
+ 
+ #include <stdbool.h>
++#include <errno.h>
+ #include <assert.h>
+ #include <debug.h>
+ 
+@@ -105,6 +106,33 @@ static const struct gpio_operations_s gpint_ops =
+   .go_setpintype = gpint_setpintype,
+ };
+ 
++/* Keep the public demo GPIO numbering intact. USB detection is input-only
++ * and uses a separate node, never the shared 3V3 rail on gpio1 / PA26.
++ */
++
++static int vbus_read(struct gpio_dev_s *dev, bool *value)
++{
++  (void)dev;
++  if (value == NULL)
++    {
++      return -EINVAL;
++    }
++
++  *value = sifli_gpio_read(GET_PIN_2(hwp_gpio1, 44));
++  return OK;
++}
++
++static const struct gpio_operations_s g_vbus_ops =
++{
++  .go_read = vbus_read,
++};
++
++static struct gpio_dev_s g_vbus_gpio =
++{
++  .gp_pintype = GPIO_INPUT_PIN,
++  .gp_ops = &g_vbus_ops,
++};
++
+ #if BOARD_NGPIOIN > 0
+ /* This array maps the GPIO pins used as INPUT */
+ 
+@@ -397,7 +425,9 @@ int sifli_gpio_initialize(void)
+       /* Configure the pin that will be used as output */
+ 
+       sifli_gpio_config(g_gpiooutputs[i], GPIO_OUTPUT);
+-      sifli_gpio_write(g_gpiooutputs[i], 0);
++      /* PA26 is the board VCC_3V3 supply, not a disposable demo output. */
++
++      sifli_gpio_write(g_gpiooutputs[i], 1);
+ 
+       pincount++;
+     }
+@@ -421,6 +451,7 @@ int sifli_gpio_initialize(void)
+     }
+ #endif
+ 
+-  return 0;
++  sifli_gpio_config(GET_PIN_2(hwp_gpio1, 44), GPIO_INPUT);
++  return gpio_pin_register(&g_vbus_gpio, 3);
+ }
+ #endif /* CONFIG_DEV_GPIO && !CONFIG_GPIO_LOWER_HALF */
 diff --git a/chips/drivers/hal/bf0_hal.c b/chips/drivers/hal/bf0_hal.c
 index ef0cf5b..e0599b4 100644
 --- a/chips/drivers/hal/bf0_hal.c
@@ -814,8 +1247,1015 @@ index d0195d9..58c7718 100644
  target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/ipc_queue)
  target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/ipc_queue/common)
  target_include_directories(arch PRIVATE ${NUTTX_CHIP_ABS_DIR}/ipc_queue/porting/os/vela)
+diff --git a/chips/sf32lb52/sf32lb52_bt_adapter.c b/chips/sf32lb52/sf32lb52_bt_adapter.c
+index d65288c..6ae2128 100644
+--- a/chips/sf32lb52/sf32lb52_bt_adapter.c
++++ b/chips/sf32lb52/sf32lb52_bt_adapter.c
+@@ -361,8 +361,6 @@ static int sf32lb52_bt_wait_tx_idle(struct circular_buf *tx_ring)
+ 
+   while (sf32lb52_bt_tx_pending(tx_ring, &rd_ptr, &wr_ptr) > 0)
+     {
+-      sf32lb52_bt_trigger_tx();
+-
+       if (HAL_GetTick() != start_time)
+         {
+           tick_count++;
+@@ -421,124 +419,61 @@ static size_t sf32lb52_bt_tx_chunk_len(const uint8_t *data,
+ static void sf32lb52_bt_rx_worker(FAR void *arg)
+ {
+   struct sf32lb52_bt_env_s *env = arg;
++  struct circular_buf *rx_ring =
++      (struct circular_buf *)SF32LB52_BT_RX_BUF_ADDR;
+ 
+   for (;;)
+     {
+       irqstate_t flags;
+-      int empty_retries = 0;
++      size_t read_len;
++      int ret;
+ 
+-      for (;;)
++      flags = enter_critical_section();
++      if (!env->queue_open || env->ipc_port == IPC_QUEUE_INVALID_HANDLE)
+         {
+-          size_t size;
+-          size_t read_len;
+-          int ret;
+-          struct circular_buf *rx_ring;
+-          uint32_t wr_ptr;
+-
+-          flags = enter_critical_section();
+-
+-          if (!env->queue_open || env->ipc_port == IPC_QUEUE_INVALID_HANDLE)
+-            {
+-              env->rx_work_pending = false;
+-              env->rx_worker_running = false;
+-              leave_critical_section(flags);
+-              return;
+-            }
+-
++          env->rx_work_pending = false;
++          env->rx_worker_running = false;
+           leave_critical_section(flags);
++          return;
++        }
+ 
+-          up_invalidate_dcache((uintptr_t)SF32LB52_BT_RX_BUF_ADDR,
+-                               (uintptr_t)SF32LB52_BT_RX_BUF_ADDR +
+-                               SF32LB52_BT_RX_BUF_SIZE);
+-
+-          flags = enter_critical_section();
+-
+-          if (!env->queue_open || env->ipc_port == IPC_QUEUE_INVALID_HANDLE)
+-            {
+-              env->rx_work_pending = false;
+-              env->rx_worker_running = false;
+-              leave_critical_section(flags);
+-              return;
+-            }
+-
+-          rx_ring = (struct circular_buf *)SF32LB52_BT_RX_BUF_ADDR;
+-          wr_ptr = rx_ring->write_idx_mirror;
+-          size = sf32lb52_bt_ring_data_len(env->rx_read_idx_mirror,
+-                                          wr_ptr,
+-                                          rx_ring->buffer_size);
+-          if (size == 0)
+-            {
+-              uint32_t rd_ptr = rx_ring->read_idx_mirror;
+-              uint32_t local_rd = env->rx_read_idx_mirror;
+-
+-              leave_critical_section(flags);
+-
+-              if (empty_retries++ < 20)
+-                {
+-                  usleep(1000);
+-                  continue;
+-                }
+-
+-          #if SF32LB52_BT_TRACE
+-              syslog(LOG_INFO,
+-                "sf32lb52 bt rx empty: local=%08lx rd=%08lx wr=%08lx\n",
+-                (unsigned long)local_rd,
+-                (unsigned long)rd_ptr,
+-                (unsigned long)wr_ptr);
+-          #endif
+-              break;
+-            }
+-
+-          empty_retries = 0;
+-
+-          if (size > sizeof(env->data_buf))
+-            {
+-              size = sizeof(env->data_buf);
+-            }
+-
+-          read_len = sf32lb52_bt_ring_copy(env->data_buf, rx_ring,
+-                                           env->rx_read_idx_mirror, size);
+-          if (read_len == 0)
+-            {
+-              leave_critical_section(flags);
+-              break;
+-            }
++      env->rx_work_pending = false;
++      leave_critical_section(flags);
+ 
+-          env->rx_read_idx_mirror = sf32lb52_bt_ring_advance(
+-              env->rx_read_idx_mirror, read_len, rx_ring->buffer_size);
+-          rx_ring->read_idx_mirror = env->rx_read_idx_mirror;
+-          __DSB();
++      up_invalidate_dcache((uintptr_t)SF32LB52_BT_RX_BUF_ADDR,
++                           (uintptr_t)SF32LB52_BT_RX_BUF_ADDR +
++                           SF32LB52_BT_RX_BUF_SIZE);
+ 
++      while ((read_len = circular_buf_get(rx_ring, env->data_buf,
++                                          sizeof(env->data_buf))) > 0)
++        {
+           up_clean_dcache((uintptr_t)SF32LB52_BT_RX_BUF_ADDR,
+                           (uintptr_t)SF32LB52_BT_RX_BUF_ADDR +
+-                          sizeof(*rx_ring));
++                          sizeof(struct circular_buf));
++          __DSB();
+ 
+           env->rx_count++;
++          syslog(LOG_INFO,
++                 "VELARIDE_BT_HW: ipc_rx len=%lu remaining=%lu count=%lu\n",
++                 (unsigned long)read_len,
++                 (unsigned long)circular_buf_data_len(rx_ring),
++                 (unsigned long)env->rx_count);
+ 
+-          leave_critical_section(flags);
+-
+-        #if SF32LB52_BT_TRACE
+-             syslog(LOG_INFO,
+-               "sf32lb52 bt rx drain: len=%lu local=%08lx wr=%08lx\n",
+-               (unsigned long)read_len,
+-               (unsigned long)env->rx_read_idx_mirror,
+-               (unsigned long)wr_ptr);
+-        #endif
+-
+-          if (env->notify_host == NULL)
+-            {
+-              continue;
+-            }
+-
+-          ret = env->notify_host(env->data_buf, read_len);
+-          if (ret < 0)
++          if (env->notify_host != NULL)
+             {
+-              syslog(LOG_ERR, "sf32lb52 bt rx callback: %d\n", ret);
++              ret = env->notify_host(env->data_buf, read_len);
++              if (ret < 0)
++                {
++                  syslog(LOG_ERR, "sf32lb52 bt rx callback: %d\n", ret);
++                }
+             }
+         }
+ 
+       flags = enter_critical_section();
+-      if (!env->rx_work_pending)
++      up_invalidate_dcache((uintptr_t)SF32LB52_BT_RX_BUF_ADDR,
++                           (uintptr_t)SF32LB52_BT_RX_BUF_ADDR +
++                           SF32LB52_BT_RX_BUF_SIZE);
++      if (!env->rx_work_pending && circular_buf_data_len(rx_ring) == 0)
+         {
+           env->rx_worker_running = false;
+           leave_critical_section(flags);
+@@ -561,6 +496,11 @@ static int32_t sf32lb52_bt_rx_ind(ipc_queue_handle_t handle, size_t size)
+       return -EINVAL;
+     }
+ 
++  syslog(LOG_INFO,
++         "VELARIDE_BT_HW: rx_ind size=%lu open=%d pending=%d running=%d\n",
++         (unsigned long)size, env->queue_open, env->rx_work_pending,
++         env->rx_worker_running);
++
+   if (!env->queue_open)
+     {
+       struct circular_buf *rx_ring = (struct circular_buf *)SF32LB52_BT_RX_BUF_ADDR;
+@@ -572,6 +512,11 @@ static int32_t sf32lb52_bt_rx_ind(ipc_queue_handle_t handle, size_t size)
+       return OK;
+     }
+ 
++  /* The generic IPC callback counts bytes before invalidating shared SRAM.
++   * Its cached size can be zero even after a controller event.  Always let
++   * the worker invalidate and inspect the ring on a mailbox interrupt.
++   */
++
+   flags = enter_critical_section();
+   env->rx_work_pending = true;
+   queue_work = !env->rx_worker_running && work_available(&env->rx_work);
+@@ -658,6 +603,8 @@ int sf32lb52_bt_controller_init(void)
+     }
+ 
+   g_sf32lb52_bt_status = SF32LB52_BT_STATUS_INITED;
++  syslog(LOG_INFO, "VELARIDE_BT_HW: controller_init ok ipc=%ld\n",
++         (long)g_sf32lb52_bt_env.ipc_port);
+   return OK;
+ }
+ 
+@@ -716,6 +663,7 @@ int sf32lb52_hci_register_callback(sf32lb52_bt_rx_callback_t callback)
+     }
+ 
+   g_sf32lb52_bt_env.notify_host = callback;
++  syslog(LOG_INFO, "VELARIDE_BT_HW: callback registered\n");
+   return OK;
+ }
+ 
+@@ -737,6 +685,7 @@ int sf32lb52_bt_controller_enable(void)
+   HAL_LCPU_ASSERT_INFO_clear();
+ 
+   ret = lcpu_power_on();
++  syslog(LOG_INFO, "VELARIDE_BT_HW: lcpu_power_on ret=%d\n", ret);
+   if (ret != 0)
+     {
+       return -EIO;
+@@ -756,6 +705,7 @@ int sf32lb52_bt_controller_enable(void)
+   usleep(500000);
+ 
+   ret = ipc_queue_open(g_sf32lb52_bt_env.ipc_port);
++  syslog(LOG_INFO, "VELARIDE_BT_HW: ipc_queue_open ret=%d\n", ret);
+   if (ret < 0)
+     {
+       HAL_HPAON_CANCEL_LP_ACTIVE_REQUEST();
+@@ -828,6 +778,10 @@ int sf32lb52_bt_controller_enable(void)
+   g_sf32lb52_bt_env.queue_open = true;
+   g_sf32lb52_bt_status = SF32LB52_BT_STATUS_ENABLED;
+ 
++  syslog(LOG_INFO,
++         "VELARIDE_BT_HW: enabled rx_local=%08lx\n",
++         (unsigned long)g_sf32lb52_bt_env.rx_read_idx_mirror);
++
+   return OK;
+ }
+ 
+@@ -885,14 +839,7 @@ int sf32lb52_host_send_packet(const uint8_t *data, uint16_t len)
+ {
+   struct circular_buf *tx_ring =
+       (struct circular_buf *)SF32LB52_BT_TX_BUF_ADDR;
+-  uint32_t start_time;
+-  uint32_t tick_count;
+   size_t written;
+-  size_t remaining;
+-  size_t offset;
+-  size_t chunk;
+-  size_t chunks;
+-  uint32_t wr_ptr;
+   int ret;
+ 
+   if (data == NULL || len == 0)
+@@ -906,80 +853,27 @@ int sf32lb52_host_send_packet(const uint8_t *data, uint16_t len)
+       return -ENODEV;
+     }
+ 
+-  offset = 0;
+-  remaining = len;
+-  start_time = HAL_GetTick();
+-  tick_count = 0;
+-  chunks = 0;
+-  wr_ptr = 0;
+-
+   ret = sf32lb52_bt_wait_tx_idle(tx_ring);
+   if (ret < 0)
+     {
+       return ret;
+     }
+ 
+-  while (remaining > 0)
+-    {
+-      irqstate_t flags;
+-
+-      chunk = sf32lb52_bt_tx_chunk_len(data, len, offset);
+-
+-      up_invalidate_dcache((uintptr_t)SF32LB52_BT_TX_BUF_ADDR,
+-                           (uintptr_t)SF32LB52_BT_TX_BUF_ADDR +
+-                           sizeof(*tx_ring));
+-
+-      flags = enter_critical_section();
+-      written = sf32lb52_bt_ring_write(tx_ring, data + offset, chunk);
+-      leave_critical_section(flags);
+-
+-      if (written == 0)
+-        {
+-          if (HAL_GetTick() != start_time)
+-            {
+-              tick_count++;
+-              start_time = HAL_GetTick();
+-            }
+-
+-          if (tick_count >= 10)
+-            {
+-              syslog(LOG_ERR,
+-                     "sf32lb52 bt tx timeout: remaining=%lu\n",
+-                     (unsigned long)remaining);
+-              return -ETIMEDOUT;
+-            }
+-
+-          continue;
+-        }
+-
+-      offset += written;
+-      remaining -= written;
+-
+-      __DSB();
+-      wr_ptr = tx_ring->write_idx_mirror;
+-      sf32lb52_bt_trigger_tx();
+-      chunks++;
+-    }
+-
+-#if SF32LB52_BT_TRACE
+-  syslog(LOG_INFO,
+-         "sf32lb52 bt tx publish: total=%u chunks=%lu wr=%08lx first=%02x\n",
+-         len,
+-         (unsigned long)chunks,
+-         (unsigned long)wr_ptr,
+-         data[0]);
+-
+-  sf32lb52_bt_log_tx_state(tx_ring, "queued", wr_ptr);
+-#endif
++  /* Publish a complete H4 frame to shared SRAM before notifying the LCPU.
++   * The generic IPC writer does not clean DCache; invalidating its dirty
++   * indices in wait_tx_idle() can discard a packet that was never sent.
++   */
+ 
+-  if (data[0] == SF32LB52_BT_H4_CMD)
++  written = sf32lb52_bt_ring_write(tx_ring, data, len);
++  if (written != len)
+     {
+-      ret = sf32lb52_bt_wait_tx_idle(tx_ring);
+-      if (ret < 0)
+-        {
+-          return ret;
+-        }
++      return -ENOSPC;
+     }
+ 
+-  return OK;
++  sf32lb52_bt_trigger_tx();
++  ret = sf32lb52_bt_wait_tx_idle(tx_ring);
++  syslog(LOG_INFO,
++         "VELARIDE_BT_HW: coherent_tx len=%u ret=%d first=%02x\n",
++         len, ret, data[0]);
++  return ret;
+ }
+diff --git a/chips/sf32lb52/sf32lb52_bth4.c b/chips/sf32lb52/sf32lb52_bth4.c
+index 49796cc..9b805ff 100644
+--- a/chips/sf32lb52/sf32lb52_bth4.c
++++ b/chips/sf32lb52/sf32lb52_bth4.c
+@@ -38,119 +38,6 @@
+ #define SF32LB52_BT_H4_RX_BUFSIZE 2048
+ #define SF32LB52_BT_TRACE         0
+ 
+-#ifndef BT_HCI_OP_READ_SUPPORTED_COMMANDS
+-#  define BT_HCI_OP_READ_SUPPORTED_COMMANDS BT_OP(BT_OGF_INFO, 0x0002)
+-#endif
+-
+-#ifndef BT_HCI_OP_READ_LOCAL_EXT_FEATURES
+-#  define BT_HCI_OP_READ_LOCAL_EXT_FEATURES BT_OP(BT_OGF_INFO, 0x0004)
+-#endif
+-
+-#ifndef BT_HCI_OP_READ_BUFFER_SIZE
+-#  define BT_HCI_OP_READ_BUFFER_SIZE        BT_OP(BT_OGF_INFO, 0x0005)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_DEFAULT_LINK_POLICY_SETTINGS
+-#  define BT_HCI_OP_WRITE_DEFAULT_LINK_POLICY_SETTINGS BT_OP(BT_OGF_LINK_POLICY, 0x000f)
+-#endif
+-
+-#ifndef BT_HCI_OP_SET_EVENT_MASK
+-#  define BT_HCI_OP_SET_EVENT_MASK          BT_OP(BT_OGF_BASEBAND, 0x0001)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_LOCAL_NAME
+-#  define BT_HCI_OP_WRITE_LOCAL_NAME        BT_OP(BT_OGF_BASEBAND, 0x0013)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_PAGE_TIMEOUT
+-#  define BT_HCI_OP_WRITE_PAGE_TIMEOUT      BT_OP(BT_OGF_BASEBAND, 0x0018)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_SCAN_ENABLE
+-#  define BT_HCI_OP_WRITE_SCAN_ENABLE       BT_OP(BT_OGF_BASEBAND, 0x001a)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_PAGE_SCAN_ACTIVITY
+-#  define BT_HCI_OP_WRITE_PAGE_SCAN_ACTIVITY BT_OP(BT_OGF_BASEBAND, 0x001c)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_INQUIRY_SCAN_ACTIVITY
+-#  define BT_HCI_OP_WRITE_INQUIRY_SCAN_ACTIVITY BT_OP(BT_OGF_BASEBAND, 0x001e)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_CLASS_OF_DEVICE
+-#  define BT_HCI_OP_WRITE_CLASS_OF_DEVICE   BT_OP(BT_OGF_BASEBAND, 0x0024)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_INQUIRY_SCAN_TYPE
+-#  define BT_HCI_OP_WRITE_INQUIRY_SCAN_TYPE BT_OP(BT_OGF_BASEBAND, 0x0043)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_EXTENDED_INQUIRY_RESPONSE
+-#  define BT_HCI_OP_WRITE_EXTENDED_INQUIRY_RESPONSE BT_OP(BT_OGF_BASEBAND, 0x0052)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_INQUIRY_MODE
+-#  define BT_HCI_OP_WRITE_INQUIRY_MODE      BT_OP(BT_OGF_BASEBAND, 0x0045)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_PAGE_SCAN_TYPE
+-#  define BT_HCI_OP_WRITE_PAGE_SCAN_TYPE    BT_OP(BT_OGF_BASEBAND, 0x0047)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_SSP_MODE
+-#  define BT_HCI_OP_WRITE_SSP_MODE          BT_OP(BT_OGF_BASEBAND, 0x0056)
+-#endif
+-
+-#ifndef BT_HCI_OP_SET_EVENT_MASK_PAGE_2
+-#  define BT_HCI_OP_SET_EVENT_MASK_PAGE_2   BT_OP(BT_OGF_BASEBAND, 0x0063)
+-#endif
+-
+-#ifndef BT_HCI_OP_WRITE_SC_HOST_SUPP
+-#  define BT_HCI_OP_WRITE_SC_HOST_SUPP      BT_OP(BT_OGF_BASEBAND, 0x007a)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_SET_EVENT_MASK
+-#  define BT_HCI_OP_LE_SET_EVENT_MASK       BT_OP(BT_OGF_LE, 0x0001)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_READ_SUPP_STATES
+-#  define BT_HCI_OP_LE_READ_SUPP_STATES     BT_OP(BT_OGF_LE, 0x001c)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_READ_LOCAL_FEATURES
+-#  define BT_HCI_OP_LE_READ_LOCAL_FEATURES  BT_OP(BT_OGF_LE, 0x0003)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_WRITE_DEFAULT_DATA_LEN
+-#  define BT_HCI_OP_LE_WRITE_DEFAULT_DATA_LEN BT_OP(BT_OGF_LE, 0x0024)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_READ_RL_SIZE
+-#  define BT_HCI_OP_LE_READ_RL_SIZE         BT_OP(BT_OGF_LE, 0x002a)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_SET_RPA_TIMEOUT
+-#  define BT_HCI_OP_LE_SET_RPA_TIMEOUT      BT_OP(BT_OGF_LE, 0x002e)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_READ_MAX_DATA_LEN
+-#  define BT_HCI_OP_LE_READ_MAX_DATA_LEN    BT_OP(BT_OGF_LE, 0x002f)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_READ_MAX_ADV_DATA_LEN
+-#  define BT_HCI_OP_LE_READ_MAX_ADV_DATA_LEN BT_OP(BT_OGF_LE, 0x003a)
+-#endif
+-
+-#ifndef BT_HCI_OP_LE_SET_HOST_FEATURE
+-#  define BT_HCI_OP_LE_SET_HOST_FEATURE     BT_OP(BT_OGF_LE, 0x0074)
+-#endif
+-
+-#define SF32LB52_HCI_STATUS_SUCCESS          0x00
+-#define SF32LB52_HCI_READ_COMMANDS_RPLEN     65
+-#define SF32LB52_HCI_RAND_RPLEN              9
+-#define SF32LB52_HCI_MAX_CMD_COMPLETE_RPLEN  SF32LB52_HCI_READ_COMMANDS_RPLEN
+-
+ struct sf32lb52_bt_priv_s
+ {
+   struct bt_driver_s drv;
+@@ -191,12 +78,6 @@ static uint16_t sf32lb52_bt_get_le16(const uint8_t *data)
+   return (uint16_t)data[0] | ((uint16_t)data[1] << 8);
+ }
+ 
+-static void sf32lb52_bt_put_le16(uint8_t *data, uint16_t value)
+-{
+-  data[0] = value & 0xff;
+-  data[1] = value >> 8;
+-}
+-
+ static ssize_t sf32lb52_bt_h4_packet_len(const uint8_t *data, size_t len)
+ {
+   uint16_t payload_len;
+@@ -240,34 +121,6 @@ static ssize_t sf32lb52_bt_h4_packet_len(const uint8_t *data, size_t len)
+     }
+ }
+ 
+-static void sf32lb52_bt_normalize_event(uint8_t *data, size_t len)
+-{
+-  uint16_t opcode;
+-
+-  if (len < H4_HEADER_SIZE + sizeof(struct bt_hci_evt_hdr_s) + 4 ||
+-      data[0] != H4_EVT)
+-    {
+-      return;
+-    }
+-
+-  if (data[1] == BT_HCI_EVT_CMD_COMPLETE && data[2] >= 4)
+-    {
+-      opcode = sf32lb52_bt_get_le16(&data[4]);
+-      if (opcode == BT_HCI_OP_RESET && data[6] != SF32LB52_HCI_STATUS_SUCCESS)
+-        {
+-          data[6] = SF32LB52_HCI_STATUS_SUCCESS;
+-        }
+-    }
+-  else if (data[1] == BT_HCI_EVT_CMD_STATUS && data[2] >= 4)
+-    {
+-      opcode = sf32lb52_bt_get_le16(&data[5]);
+-      if (opcode == BT_HCI_OP_RESET && data[3] != SF32LB52_HCI_STATUS_SUCCESS)
+-        {
+-          data[3] = SF32LB52_HCI_STATUS_SUCCESS;
+-        }
+-    }
+-}
+-
+ static int sf32lb52_bt_forward_packet(struct sf32lb52_bt_priv_s *priv,
+                                       uint8_t *data, size_t len)
+ {
+@@ -282,7 +135,6 @@ static int sf32lb52_bt_forward_packet(struct sf32lb52_bt_priv_s *priv,
+   switch (data[0])
+     {
+       case H4_EVT:
+-        sf32lb52_bt_normalize_event(data, len);
+         type = BT_EVT;
+         break;
+ 
+@@ -310,152 +162,6 @@ static int sf32lb52_bt_forward_packet(struct sf32lb52_bt_priv_s *priv,
+   return ret;
+ }
+ 
+-static int sf32lb52_bt_synth_cmd_complete(struct sf32lb52_bt_priv_s *priv,
+-                                          uint16_t opcode,
+-                                          const uint8_t *return_params,
+-                                          size_t return_len)
+-{
+-  uint8_t event[H4_HEADER_SIZE + sizeof(struct bt_hci_evt_hdr_s) + 3 +
+-                SF32LB52_HCI_MAX_CMD_COMPLETE_RPLEN];
+-  size_t payload_len;
+-
+-  if (return_len > SF32LB52_HCI_MAX_CMD_COMPLETE_RPLEN)
+-    {
+-      return -E2BIG;
+-    }
+-
+-  payload_len = 3 + return_len;
+-  event[0] = H4_EVT;
+-  event[1] = BT_HCI_EVT_CMD_COMPLETE;
+-  event[2] = payload_len;
+-  event[3] = 1;
+-  sf32lb52_bt_put_le16(&event[4], opcode);
+-  if (return_len > 0)
+-    {
+-      memcpy(&event[6], return_params, return_len);
+-    }
+-
+-  return sf32lb52_bt_forward_packet(priv, event,
+-                                    H4_HEADER_SIZE +
+-                                    sizeof(struct bt_hci_evt_hdr_s) +
+-                                    payload_len);
+-}
+-
+-static int sf32lb52_bt_synth_status_complete(struct sf32lb52_bt_priv_s *priv,
+-                                             uint16_t opcode)
+-{
+-  const uint8_t status = SF32LB52_HCI_STATUS_SUCCESS;
+-
+-  return sf32lb52_bt_synth_cmd_complete(priv, opcode, &status,
+-                                        sizeof(status));
+-}
+-
+-static bool sf32lb52_bt_emulate_cmd(struct sf32lb52_bt_priv_s *priv,
+-                                    uint16_t opcode, int *ret)
+-{
+-  uint8_t params[SF32LB52_HCI_MAX_CMD_COMPLETE_RPLEN];
+-
+-  switch (opcode)
+-    {
+-      case BT_HCI_OP_READ_SUPPORTED_COMMANDS:
+-        memset(params, 0, sizeof(params));
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        params[1 + 27] = 1 << 7;
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params,
+-                                              SF32LB52_HCI_READ_COMMANDS_RPLEN);
+-        return true;
+-
+-      case BT_HCI_OP_LE_RAND:
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        arc4random_buf(&params[1], SF32LB52_HCI_RAND_RPLEN - 1);
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params,
+-                                              SF32LB52_HCI_RAND_RPLEN);
+-        return true;
+-
+-      case BT_HCI_OP_READ_LOCAL_EXT_FEATURES:
+-        memset(params, 0, 11);
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 11);
+-        return true;
+-
+-      case BT_HCI_OP_READ_BUFFER_SIZE:
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        sf32lb52_bt_put_le16(&params[1], 0x00fb);
+-        params[3] = 0;
+-        sf32lb52_bt_put_le16(&params[4], 4);
+-        sf32lb52_bt_put_le16(&params[6], 0);
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 8);
+-        return true;
+-
+-      case BT_HCI_OP_LE_READ_BUFFER_SIZE:
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        sf32lb52_bt_put_le16(&params[1], 0x00fb);
+-        params[3] = 4;
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 4);
+-        return true;
+-
+-      case BT_HCI_OP_LE_READ_LOCAL_FEATURES:
+-        memset(params, 0, 9);
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 9);
+-        return true;
+-
+-      case BT_HCI_OP_LE_READ_MAX_DATA_LEN:
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        sf32lb52_bt_put_le16(&params[1], 0x00fb);
+-        sf32lb52_bt_put_le16(&params[3], 0x0148);
+-        sf32lb52_bt_put_le16(&params[5], 0x00fb);
+-        sf32lb52_bt_put_le16(&params[7], 0x0148);
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 9);
+-        return true;
+-
+-      case BT_HCI_OP_LE_READ_MAX_ADV_DATA_LEN:
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        sf32lb52_bt_put_le16(&params[1], 31);
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 3);
+-        return true;
+-
+-      case BT_HCI_OP_LE_READ_SUPP_STATES:
+-        memset(params, 0, 9);
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 9);
+-        return true;
+-
+-      case BT_HCI_OP_LE_READ_RL_SIZE:
+-        params[0] = SF32LB52_HCI_STATUS_SUCCESS;
+-        params[1] = 0;
+-        *ret = sf32lb52_bt_synth_cmd_complete(priv, opcode, params, 2);
+-        return true;
+-
+-      case BT_HCI_OP_LE_WRITE_LE_HOST_SUPP:
+-      case BT_HCI_OP_LE_SET_HOST_FEATURE:
+-      case BT_HCI_OP_LE_SET_EVENT_MASK:
+-      case BT_HCI_OP_LE_WRITE_DEFAULT_DATA_LEN:
+-      case BT_HCI_OP_LE_SET_RPA_TIMEOUT:
+-      case BT_HCI_OP_SET_EVENT_MASK:
+-      case BT_HCI_OP_SET_EVENT_MASK_PAGE_2:
+-      case BT_HCI_OP_WRITE_LOCAL_NAME:
+-      case BT_HCI_OP_WRITE_SCAN_ENABLE:
+-      case BT_HCI_OP_WRITE_PAGE_SCAN_ACTIVITY:
+-      case BT_HCI_OP_WRITE_INQUIRY_SCAN_ACTIVITY:
+-      case BT_HCI_OP_WRITE_PAGE_TIMEOUT:
+-      case BT_HCI_OP_WRITE_CLASS_OF_DEVICE:
+-      case BT_HCI_OP_WRITE_INQUIRY_SCAN_TYPE:
+-      case BT_HCI_OP_WRITE_EXTENDED_INQUIRY_RESPONSE:
+-      case BT_HCI_OP_WRITE_INQUIRY_MODE:
+-      case BT_HCI_OP_WRITE_PAGE_SCAN_TYPE:
+-      case BT_HCI_OP_WRITE_SSP_MODE:
+-      case BT_HCI_OP_WRITE_SC_HOST_SUPP:
+-      case BT_HCI_OP_WRITE_DEFAULT_LINK_POLICY_SETTINGS:
+-      case BT_HCI_OP_HOST_BUFFER_SIZE:
+-      case BT_HCI_OP_SET_CTL_TO_HOST_FLOW:
+-        *ret = sf32lb52_bt_synth_status_complete(priv, opcode);
+-        return true;
+-
+-      default:
+-        return false;
+-    }
+-}
+-
+ static struct sf32lb52_bt_priv_s g_sf32lb52_bt_priv =
+ {
+   .drv =
+@@ -478,11 +184,21 @@ static int sf32lb52_bt_recv_cb(uint8_t *data, uint16_t len)
+       return -EINVAL;
+     }
+ 
++  syslog(LOG_INFO,
++         "VELARIDE_BT_HW: bth4_recv len=%u first=%02x drop=%d\n",
++         len, data[0], priv->drop_rx_until_tx);
++
+   if (priv->drop_rx_until_tx)
+     {
+       return OK;
+     }
+ 
++  if (len > sizeof(priv->rxbuf))
++    {
++      priv->rxlen = 0;
++      return -EMSGSIZE;
++    }
++
+   if (priv->rxlen + len > sizeof(priv->rxbuf))
+     {
+       syslog(LOG_ERR,
+@@ -552,6 +268,13 @@ static int sf32lb52_bt_send(struct bt_driver_s *drv,
+   uint16_t opcode;
+   int ret;
+ 
++  syslog(LOG_INFO,
++         "VELARIDE_BT_HW: bth4_send type=%u len=%lu first=%02x %02x %02x\n",
++         (unsigned int)type, (unsigned long)len,
++         len > 0 ? ((uint8_t *)data)[0] : 0,
++         len > 1 ? ((uint8_t *)data)[1] : 0,
++         len > 2 ? ((uint8_t *)data)[2] : 0);
++
+   switch (type)
+     {
+       case BT_CMD:
+@@ -570,10 +293,7 @@ static int sf32lb52_bt_send(struct bt_driver_s *drv,
+   if (type == BT_CMD && len >= sizeof(struct bt_hci_cmd_hdr_s))
+     {
+       opcode = sf32lb52_bt_get_le16(data);
+-      if (sf32lb52_bt_emulate_cmd(priv, opcode, &ret))
+-        {
+-          return ret < 0 ? ret : len;
+-        }
++      syslog(LOG_INFO, "VELARIDE_BT_HW: opcode=%04x\n", opcode);
+ 
+       ret = sf32lb52_bt_ensure_controller_enabled(opcode);
+       if (ret < 0)
+diff --git a/chips/sf32lb52/sf32lb52_lcpu_boot.c b/chips/sf32lb52/sf32lb52_lcpu_boot.c
+index d2f5b0f..055a2c8 100644
+--- a/chips/sf32lb52/sf32lb52_lcpu_boot.c
++++ b/chips/sf32lb52/sf32lb52_lcpu_boot.c
+@@ -9,6 +9,9 @@
+ #include <string.h>
+ 
+ #include "mem_map.h"
++#ifdef CONFIG_ADC
++#  include "sf32lb_adc.h"
++#endif
+ 
+ #if (!defined(SF32LB52X_REV_B)) && !defined(LCPU_RUN_ROM_ONLY)
+ #  define g_lcpu_bin g_lcpu_bin_legacy
+@@ -133,9 +136,12 @@ __WEAK void lcpu_rom_config(void)
+   lcpu_rom_config_default();
+ }
+ 
+-static void lcpu_ble_patch_install(void)
++static int lcpu_ble_patch_install(void)
+ {
+   uint8_t rev_id = __HAL_SYSCFG_GET_REVID();
++#ifdef CONFIG_ADC
++  int ret;
++#endif
+ 
+   if (rev_id < HAL_CHIP_REV_ID_A4)
+     {
+@@ -157,12 +163,23 @@ static void lcpu_ble_patch_install(void)
+ 
+   if (g_lcpu_rf_cal_disable == 0)
+     {
++#ifdef CONFIG_ADC
++      ret = sf32lb_adc_acquire();
++      if (ret < 0)
++        {
++          return ret;
++        }
++#endif
+       bt_rf_cal();
++#ifdef CONFIG_ADC
++      sf32lb_adc_release();
++#endif
+     }
+ 
+   adc_resume();
+   memset((void *)0x20408000, 0, 0x5000);
+   sf32lb52_lcpu_boot_clean_range(0x20408000, 0x5000);
++  return 0;
+ }
+ 
+ void lcpu_disable_rf_cal(uint8_t is_disable)
+@@ -196,7 +213,11 @@ uint8_t lcpu_power_on(void)
+     }
+ 
+   HAL_LPAON_ConfigStartAddr((uint32_t *)HCPU_LCPU_CODE_START_ADDR);
+-  lcpu_ble_patch_install();
++  if (lcpu_ble_patch_install() < 0)
++    {
++      HAL_HPAON_CANCEL_LP_ACTIVE_REQUEST();
++      return 1;
++    }
+   HAL_RCC_ReleaseLCPU();
+   HAL_HPAON_CANCEL_LP_ACTIVE_REQUEST();
+ #ifdef USING_SEC_ENV
+@@ -218,4 +239,4 @@ uint8_t lcpu_power_on(void)
+ {
+   return 0;
+ }
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/chips/sf32lb52/sf32lb_adc.c b/chips/sf32lb52/sf32lb_adc.c
+index 4da8ae6..c8b5135 100644
+--- a/chips/sf32lb52/sf32lb_adc.c
++++ b/chips/sf32lb52/sf32lb_adc.c
+@@ -56,7 +56,7 @@ static int adc_setup(struct adc_dev_s *dev);
+ static void adc_shutdown(struct adc_dev_s *dev);
+ static void adc_rxint(struct adc_dev_s *dev, bool enable);
+ static int adc_ioctl(struct adc_dev_s *dev, int cmd, unsigned long arg);
+-static void adc_read_work(struct adc_dev_s *dev);
++static int adc_read_work(struct adc_dev_s *dev);
+ 
+ /****************************************************************************
+  * Private Data
+@@ -86,7 +86,8 @@ static mutex_t g_lock = NXMUTEX_INITIALIZER;
+  * Private Functions
+  ****************************************************************************/
+ 
+-static uint32_t adc_read(ADC_HandleTypeDef *adc_handle, uint8_t channel)
++static int adc_read(ADC_HandleTypeDef *adc_handle, uint8_t channel,
++                    uint32_t *sample)
+ {
+     int ret;
+     uint32_t value;
+@@ -96,12 +97,20 @@ static uint32_t adc_read(ADC_HandleTypeDef *adc_handle, uint8_t channel)
+     chan_cfg.pchnl_sel = channel;
+     chan_cfg.slot_en = 1;
+     chan_cfg.nchnl_sel = 0;
+-    chan_cfg.Channel = channel;
++    chan_cfg.Channel = 0;
+     chan_cfg.acc_num = 0;
+ 
+-    HAL_ADC_ConfigChannel(adc_handle, &chan_cfg);
++    /* RF calibration also uses GPADC. Restore our conversion timing and
++     * disable every slot before configuring the single VBAT slot.
++     */
+ 
+-    HAL_ADC_Start(adc_handle);
++    if (HAL_ADC_Init(adc_handle) != HAL_OK ||
++        HAL_ADC_ConfigChannel(adc_handle, &chan_cfg) != HAL_OK ||
++        HAL_ADC_Start(adc_handle) != HAL_OK)
++    {
++        HAL_ADC_Stop(adc_handle);
++        return -EIO;
++    }
+ 
+ #if ADC_USE_AVERAGE
+     int i;
+@@ -122,7 +131,7 @@ static uint32_t adc_read(ADC_HandleTypeDef *adc_handle, uint8_t channel)
+         {
+             HAL_ADC_Stop(adc_handle);
+             syslog(LOG_ERR, "Polling ADC fail %d\n", ret);
+-            return 0;
++            return -ETIMEDOUT;
+         }
+ 
+         /* Read slot-0 result in single slot mode. */
+@@ -157,7 +166,7 @@ static uint32_t adc_read(ADC_HandleTypeDef *adc_handle, uint8_t channel)
+     {
+         HAL_ADC_Stop(adc_handle);
+         syslog(LOG_ERR, "Polling ADC fail %d\n", ret);
+-        return 0;
++        return -ETIMEDOUT;
+     }
+ 
+     value = (uint32_t)HAL_ADC_GetValue(adc_handle, 0);
+@@ -165,7 +174,8 @@ static uint32_t adc_read(ADC_HandleTypeDef *adc_handle, uint8_t channel)
+ 
+     HAL_ADC_Stop(adc_handle);
+ 
+-    return value;
++    *sample = value;
++    return OK;
+ }
+ 
+ static void sf32lb_adc_calibrate(struct adc_info_s *priv)
+@@ -183,13 +193,12 @@ static void sf32lb_adc_calibrate(struct adc_info_s *priv)
+     priv->adc_vol_offset = 0.0f;
+     priv->adc_thd_reg = reg_max > 3 ? reg_max - 3 : reg_max;
+ 
+-    /* HAL_LCPU_CONFIG_get() forces an LCPU wake via HAL_HPAON_WakeCore(),
+-     * which busy-loops on HPSYS_AON_ISSR_LP_ACTIVE. Single-core boards
+-     * (e.g. LCKFB Huangshan / sf32lb52_lchspi_ulp) never run LCPU so the
+-     * call hangs HCPU forever. Skip the lookup and use factory defaults.
++    /* ADC bringup precedes the Bluetooth LCPU startup in this port.
++     * Do not wait for LCPU configuration here. These legacy nominal
++     * coefficients are unverified, not this chip's factory calibration.
+      */
+ 
+-    syslog(LOG_WARNING, "ADC calibration data missing, use defaults\n");
++    syslog(LOG_WARNING, "ADC reference coefficients unverified\n");
+     cfg.vol10 = 1758;
+     cfg.vol25 = 3162;
+     cfg.low_mv = 1000;
+@@ -229,7 +238,7 @@ static void sf32lb_adc_calibrate(struct adc_info_s *priv)
+            (int)priv->adc_vol_ratio, (int)priv->adc_vol_offset);
+ }
+ 
+-static void adc_read_work(struct adc_dev_s *dev)
++static int adc_read_work(struct adc_dev_s *dev)
+ {
+     int ret;
+     uint32_t value;
+@@ -243,10 +252,15 @@ static void adc_read_work(struct adc_dev_s *dev)
+     if (ret < 0)
+     {
+         syslog(LOG_ERR, "Failed to lock ADC mutex ret=%d\n", ret);
+-        return;
++        return ret;
+     }
+ 
+-    value = adc_read(adc_handle, ctx->channel);
++    ret = adc_read(adc_handle, ctx->channel, &value);
++    if (ret < 0)
++    {
++        nxmutex_unlock(&g_lock);
++        return ret;
++    }
+ 
+     offset = ctx->adc_vol_offset;
+     ratio = ctx->adc_vol_ratio;
+@@ -261,12 +275,22 @@ static void adc_read_work(struct adc_dev_s *dev)
+         adc_mv = 0;
+     }
+ 
++    /* Default calibration is a reference only, not a verified gauge.
++     * Restore the SF32LB52x internal VBAT divider for the mV sample.
++     */
++
++    if (ctx->channel == ADC_CHAN_VBAT)
++    {
++        adc_mv *= 2;
++    }
++
+     if (ctx->cb != NULL && ctx->cb->au_receive != NULL)
+     {
+         ctx->cb->au_receive(dev, ctx->channel, adc_mv);
+     }
+ 
+     nxmutex_unlock(&g_lock);
++    return OK;
+ }
+ 
+ static int adc_bind(struct adc_dev_s *dev,
+@@ -319,8 +343,7 @@ static int adc_ioctl(struct adc_dev_s *dev, int cmd, unsigned long arg)
+     switch (cmd)
+     {
+         case ANIOC_TRIGGER:
+-            adc_read_work(dev);
+-            ret = OK;
++            ret = adc_read_work(dev);
+             break;
+ 
+         case ANIOC_GET_NCHANNELS:
+@@ -364,7 +387,12 @@ static void sf32lb_adc_default_config(ADC_HandleTypeDef *cfg)
+     cfg->Init.adc_force_on = 0;
+     cfg->Init.dma_en = 0;
+     cfg->Init.op_mode = 0;
+-    cfg->Init.en_slot = 0;
++    /* HAL_ADC_EnableSlot indexes the requested slot only in slot mode.
++     * With en_slot=0 HAL_ADC_Init clears slot 0 eight times, leaving the
++     * reset values of slots 1..7 active. Use slot mode with only slot 0 on.
++     */
++
++    cfg->Init.en_slot = 1;
+ 
+ #ifndef SF32LB55X
+     cfg->Init.data_samp_delay = 2;
+@@ -435,3 +463,13 @@ int sf32lb_adc_init(const char *devpath)
+ 
+     return ret;
+ }
++
++int sf32lb_adc_acquire(void)
++{
++    return nxmutex_lock(&g_lock);
++}
++
++void sf32lb_adc_release(void)
++{
++    nxmutex_unlock(&g_lock);
++}
+diff --git a/chips/sf32lb52/sf32lb_adc.h b/chips/sf32lb52/sf32lb_adc.h
+index ad6b006..0860ed1 100644
+--- a/chips/sf32lb52/sf32lb_adc.h
++++ b/chips/sf32lb52/sf32lb_adc.h
+@@ -20,8 +20,8 @@
+ #define ADC_CHAN_6             6
+ #define ADC_CHAN_7             7
+ 
+-/* Internal VBAT channel on SF32LB5x family */
+-#define ADC_CHAN_VBAT          ADC_CHAN_5
++/* SF32LB52x VBAT uses channel 7 with an internal 1/2 voltage divider. */
++#define ADC_CHAN_VBAT          ADC_CHAN_7
+ 
+ #define ADC_USE_AVERAGE        1
+ #if ADC_USE_AVERAGE
+@@ -35,5 +35,7 @@
+  ****************************************************************************/
+ 
+ int sf32lb_adc_init(const char *devpath);
++int sf32lb_adc_acquire(void);
++void sf32lb_adc_release(void);
+ 
+ #endif /* __VENDOR_SIFLI_SF32LB52_ADC_H */
 diff --git a/chips/sf32lb52/sf32lb_flash.c b/chips/sf32lb52/sf32lb_flash.c
-index a1f17e9..42866fa 100644
+index a1f17e9..027c5d5 100644
 --- a/chips/sf32lb52/sf32lb_flash.c
 +++ b/chips/sf32lb52/sf32lb_flash.c
 @@ -23,6 +23,9 @@
@@ -836,7 +2276,41 @@ index a1f17e9..42866fa 100644
  #define SF32LB_NOR_TOTAL_SIZE          (16U * 1024U * 1024U)
  #define SF32LB_NOR_MIN_VALID_SIZE      (2U * 1024U * 1024U)
  #define SF32LB_NOR_CLK_DIV             (2)
-@@ -192,6 +196,14 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+@@ -67,6 +71,7 @@ struct sf32lb_nor_dev_s
+  ****************************************************************************/
+ 
+ static mutex_t g_lock = NXMUTEX_INITIALIZER;
++static mutex_t g_init_lock = NXMUTEX_INITIALIZER;
+ 
+ static QSPI_FLASH_CTX_T g_spi_nor_flash_ctx;
+ static DMA_HandleTypeDef g_spi_nor_flash_dma_handle;
+@@ -84,7 +89,8 @@ static bool sf32lb_flash_verify_erased(uint32_t addr, uint32_t size);
+ static bool sf32lb_flash_verify_written(uint32_t addr,
+                                         FAR const uint8_t *buffer,
+                                         uint32_t size);
+-static void sf32lb_flash_restore_ahb_read(FAR FLASH_HandleTypeDef *hflash);
++static void SF32LB_FLASH_RAMFUNC
++sf32lb_flash_restore_ahb_read(FAR FLASH_HandleTypeDef *hflash);
+ static bool sf32lb_flash_is_xip_buffer(FAR const uint8_t *buffer,
+                                        uint32_t size);
+ static int SF32LB_FLASH_RAMFUNC
+@@ -184,14 +190,30 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+   HAL_StatusTypeDef status;
+   irqstate_t flags;
+   uint32_t detected_size;
++  int ret;
++
++  ret = nxmutex_lock(&g_init_lock);
++  if (ret < 0)
++    {
++      return ret;
++    }
+ 
+   if (g_flash_hw_initialized)
+     {
++      nxmutex_unlock(&g_init_lock);
+       return OK;
+     }
  
    hflash = &g_spi_nor_flash_ctx.handle;
  
@@ -851,19 +2325,41 @@ index a1f17e9..42866fa 100644
    memset(&g_spi_nor_flash_ctx, 0, sizeof(g_spi_nor_flash_ctx));
    memset(&g_spi_nor_flash_dma_handle, 0, sizeof(g_spi_nor_flash_dma_handle));
  
-@@ -240,29 +252,15 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+@@ -203,17 +225,21 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+   sf32lb_flash_lock();
+   flags = up_irq_save();
+   status = HAL_FLASH_PreInit(hflash);
+-  up_irq_restore(flags);
+-  sf32lb_flash_unlock();
+ 
+   if (status != HAL_OK)
+     {
++      up_irq_restore(flags);
++      sf32lb_flash_unlock();
++      nxmutex_unlock(&g_init_lock);
+       syslog(LOG_ERR, "ERROR: NOR runtime preinit failed: %d\n", status);
+       return -EIO;
+     }
+ 
+   if (hflash->ctable == NULL)
+     {
++      up_irq_restore(flags);
++      sf32lb_flash_unlock();
++      nxmutex_unlock(&g_init_lock);
+       syslog(LOG_ERR, "ERROR: NOR runtime preinit missing command table\n");
+       return -EIO;
+     }
+@@ -239,34 +265,27 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+ 
    hflash->Mode = HAL_FLASH_QMODE;
    HAL_FLASH_SET_QUAL_SPI(hflash, true);
++  sf32lb_flash_restore_ahb_read(hflash);
  
 -  /* HAL_FLASH_PreInit sets hflash->dma = NULL but HAL_QSPIEX_WRITE_PAGE
 -   * requires DMA for reliable page-program operations.  Configure DMA
 -   * manually, mirroring what HAL_FLASH_Init would do.
-+  /* HAL_FLASH_PreInit intentionally leaves DMA detached.  Keep it that way:
-+   * HAL_QSPIEX_WRITE_PAGE then uses the vendor's synchronous FIFO polling
-+   * path (WREN + FIFO + status polling).  A partially configured DMA handle
-+   * can report completion without transferring bytes because the board's
-+   * DMA clock/IRQ/callback setup normally lives in the full RT-Thread flash
-+   * driver, which is not present in this NuttX runtime-preinit path.
++  /* BLE interrupts execute XIP code.  Keep them masked through the NOR
++   * reset and restoration of quad AHB reads, not just HAL_FLASH_PreInit.
     */
  
 -#ifdef CONFIG_BSP_QSPI2_USING_DMA
@@ -879,16 +2375,133 @@ index a1f17e9..42866fa 100644
 -  hflash->dma->Init.Priority            = DMA_PRIORITY_MEDIUM;
 -  hflash->dma->Init.BurstSize           = 1;
 -  HAL_FLASH_SET_TXSLOT(hflash, hflash->dma->Init.BurstSize);
--
++  up_irq_restore(flags);
++  sf32lb_flash_unlock();
+ 
 -#else
 -  syslog(LOG_WARNING,
 -         "WARN: CONFIG_BSP_QSPI2_USING_DMA not enabled, NOR writes may fail\n");
 -#endif
++  /* HAL_FLASH_PreInit intentionally leaves DMA detached.  Keep it that way:
++   * HAL_QSPIEX_WRITE_PAGE then uses the vendor's synchronous FIFO polling
++   * path (WREN + FIFO + status polling).  A partially configured DMA handle
++   * can report completion without transferring bytes because the board's
++   * DMA clock/IRQ/callback setup normally lives in the full RT-Thread flash
++   * driver, which is not present in this NuttX runtime-preinit path.
++   */
++
 +  hflash->dma = NULL;
  
    /* Ensure NOR is writable -- clear status register protection bits. */
  
-@@ -1206,9 +1204,15 @@ static int sf32lb_nor_ioctl(FAR struct mtd_dev_s *dev, int cmd,
+-  HAL_FLASH_CLR_PROTECT(hflash);
+   sf32lb_flash_try_global_unlock(hflash);
+ 
+   detected_size = hflash->size;
+@@ -280,6 +299,7 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_flash_preinit_runtime(void)
+     }
+ 
+   g_flash_hw_initialized = true;
++  nxmutex_unlock(&g_init_lock);
+ 
+   return OK;
+ }
+@@ -462,7 +482,8 @@ static bool sf32lb_flash_verify_written(uint32_t addr,
+   return true;
+ }
+ 
+-static void sf32lb_flash_restore_ahb_read(FAR FLASH_HandleTypeDef *hflash)
++static void SF32LB_FLASH_RAMFUNC
++sf32lb_flash_restore_ahb_read(FAR FLASH_HandleTypeDef *hflash)
+ {
+   bool qmode;
+ 
+@@ -514,9 +535,11 @@ sf32lb_flash_try_global_unlock(FAR FLASH_HandleTypeDef *hflash)
+   sf32lb_flash_lock();
+   flags = up_irq_save();
+ 
++  HAL_FLASH_CLR_PROTECT(hflash);
+   HAL_FLASH_ISSUE_CMD(hflash, SPI_FLASH_CMD_WREN, 0);
+   (void)sf32lb_flash_issue_raw_cmd(hflash, 0x98); /* ULBPR/global unlock */
+ 
++  sf32lb_flash_restore_ahb_read(hflash);
+   up_irq_restore(flags);
+   sf32lb_flash_unlock();
+ }
+@@ -543,6 +566,7 @@ sf32lb_flash_raw_read_bytes(FAR FLASH_HandleTypeDef *hflash,
+   HAL_FLASH_WRITE_DLEN(hflash, len);
+   if (HAL_FLASH_SET_CMD(hflash, 0x03, offset) != HAL_OK)
+     {
++      sf32lb_flash_restore_ahb_read(hflash);
+       up_irq_restore(flags);
+       sf32lb_flash_unlock();
+       return -EIO;
+@@ -568,6 +592,7 @@ sf32lb_flash_raw_read_bytes(FAR FLASH_HandleTypeDef *hflash,
+         }
+     }
+ 
++  sf32lb_flash_restore_ahb_read(hflash);
+   up_irq_restore(flags);
+   sf32lb_flash_unlock();
+   return OK;
+@@ -718,6 +743,7 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_nor_erase_range(FAR FLASH_HandleTypeDef *
+       sf32lb_flash_lock();
+       flags = up_irq_save();
+       ret = HAL_QSPIEX_CHIP_ERASE(hflash);
++      sf32lb_flash_restore_ahb_read(hflash);
+       up_irq_restore(flags);
+       sf32lb_flash_unlock();
+       return ret == 0 ? OK : -EIO;
+@@ -804,6 +830,7 @@ static int SF32LB_FLASH_RAMFUNC sf32lb_nor_erase_range(FAR FLASH_HandleTypeDef *
+               erase_size -= QSPI_NOR_SECT_SIZE;
+             }
+         }
++      sf32lb_flash_restore_ahb_read(hflash);
+       up_irq_restore(flags);
+       sf32lb_flash_unlock();
+ 
+@@ -850,6 +877,7 @@ static ssize_t SF32LB_FLASH_RAMFUNC sf32lb_nor_write_range(FAR FLASH_HandleTypeD
+   FAR const uint8_t *tbuf;
+   FAR const uint8_t *chunk_buf;
+   uint8_t stage_buf[QSPI_NOR_PAGE_SIZE];
++  irqstate_t flags;
+ 
+   if (hflash == NULL || buffer == NULL || size == 0)
+     {
+@@ -899,7 +927,10 @@ static ssize_t SF32LB_FLASH_RAMFUNC sf32lb_nor_write_range(FAR FLASH_HandleTypeD
+         }
+ 
+       sf32lb_flash_lock();
++      flags = up_irq_save();
+       ret = HAL_QSPIEX_WRITE_PAGE(hflash, taddr, chunk_buf, start);
++      sf32lb_flash_restore_ahb_read(hflash);
++      up_irq_restore(flags);
+       sf32lb_flash_unlock();
+       if (ret != (int)start)
+         {
+@@ -942,7 +973,10 @@ static ssize_t SF32LB_FLASH_RAMFUNC sf32lb_nor_write_range(FAR FLASH_HandleTypeD
+         }
+ 
+       sf32lb_flash_lock();
++      flags = up_irq_save();
+       ret = HAL_QSPIEX_WRITE_PAGE(hflash, taddr, chunk_buf, aligned_size);
++      sf32lb_flash_restore_ahb_read(hflash);
++      up_irq_restore(flags);
+       sf32lb_flash_unlock();
+       if (ret != (int)aligned_size)
+         {
+@@ -985,7 +1019,10 @@ static ssize_t SF32LB_FLASH_RAMFUNC sf32lb_nor_write_range(FAR FLASH_HandleTypeD
+         }
+ 
+       sf32lb_flash_lock();
++      flags = up_irq_save();
+       ret = HAL_QSPIEX_WRITE_PAGE(hflash, taddr, chunk_buf, tsize);
++      sf32lb_flash_restore_ahb_read(hflash);
++      up_irq_restore(flags);
+       sf32lb_flash_unlock();
+       if (ret != (int)tsize)
+         {
+@@ -1206,9 +1243,15 @@ static int sf32lb_nor_ioctl(FAR struct mtd_dev_s *dev, int cmd,
                  }
  
                memset(geo, 0, sizeof(*geo));
@@ -905,7 +2518,7 @@ index a1f17e9..42866fa 100644
                ret = OK;
              }
          }
-@@ -1240,6 +1244,7 @@ static int sf32lb_nor_ioctl(FAR struct mtd_dev_s *dev, int cmd,
+@@ -1240,6 +1283,7 @@ static int sf32lb_nor_ioctl(FAR struct mtd_dev_s *dev, int cmd,
                info->sectorsize = SF32LB_NOR_PAGE_SIZE;
                info->startsector = priv->offset;
                info->parent[0] = '\0';
@@ -913,7 +2526,7 @@ index a1f17e9..42866fa 100644
                ret = OK;
              }
          }
-@@ -1381,7 +1386,11 @@ int sf32lb_nor_automount(int minor, int block_offset, int block_count)
+@@ -1381,7 +1425,11 @@ int sf32lb_nor_automount(int minor, int block_offset, int block_count)
            return -ENODEV;
          }
  
@@ -1018,3 +2631,111 @@ index 5b237ec..dec3998 100644
  #if defined(CONFIG_RTC_ALARM) || defined(CONFIG_RTC_PERIODIC)
    irq_attach(RTC_IRQn + 16, sf32lb_alarm_callback, &g_rtc_lowerhalf);
    up_enable_irq(RTC_IRQn + 16);
+diff --git a/chips/sf32lb52/sifli_allocateheap.c b/chips/sf32lb52/sifli_allocateheap.c
+index 62371c5..6cb09fc 100644
+--- a/chips/sf32lb52/sifli_allocateheap.c
++++ b/chips/sf32lb52/sifli_allocateheap.c
+@@ -31,6 +31,7 @@
+ #include "chip.h"
+ #include "arm_internal.h"
+ #include "bf0_hal.h"
++#include "mem_map.h"
+ 
+ extern void BSP_PIN_Init(void);
+ extern void BSP_Power_Up(bool is_deep_sleep);
+@@ -42,9 +43,11 @@ extern void BSP_Board_PreInit(void);
+ 
+ /* SRAM memory configuration for SF32LB52 */
+ 
+-#define SRAM_START  0x20000000
+-#define SRAM_SIZE   0x00080000    /* 512 KB */
+-#define SRAM_END    (SRAM_START + SRAM_SIZE)
++/* The ROM configuration and both IPC mailboxes occupy the top 1280 bytes.
++ * Giving this range to the allocator corrupts live objects on HCI traffic.
++ */
++
++#define SRAM_END (HCPU_RAM_DATA_START_ADDR + HCPU_RAM_DATA_SIZE)
+ 
+ /* PSRAM memory configuration for SF32LB52 (MPI1 SBUS) */
+ 
+diff --git a/chips/sf32lb52/sifli_i2c.c b/chips/sf32lb52/sifli_i2c.c
+index e4d1024..285c307 100644
+--- a/chips/sf32lb52/sifli_i2c.c
++++ b/chips/sf32lb52/sifli_i2c.c
+@@ -415,9 +415,8 @@ static int i2c_mem_ops(struct sifli_i2c_master_s *bf0_i2c, struct i2c_msg_s * ms
+     {
+         MemAddSize = I2C_MEMADD_SIZE_16BIT;
+ 
+-        MemAddress = *(msg_nostop->buffer+1);
+-        MemAddress = MemAddress << 8;
+-        MemAddress |= (*msg_nostop->buffer);
++        MemAddress = (uint16_t)msg_nostop->buffer[0] << 8;
++        MemAddress |= msg_nostop->buffer[1];
+     }
+ 
+     DevAddress = msg_nostop->addr;
+@@ -480,6 +479,11 @@ static int sifli_i2c_transfer(struct i2c_master_s *dev,
+     struct i2c_msg_s * nostop_msg = NULL;
+ 
+     DEBUGASSERT(dev != NULL);
++    if (dev == NULL || msgs == NULL || count <= 0)
++    {
++        return -EINVAL;
++    }
++
+     bf0_i2c = (struct sifli_i2c_master_s *)dev;
+ 
+     ret = nxmutex_lock(&bf0_i2c->lock);
+@@ -495,16 +499,33 @@ static int sifli_i2c_transfer(struct i2c_master_s *dev,
+ 
+         if(msg->flags & I2C_M_NOSTOP)
+         {
+-            DEBUGASSERT((NULL == nostop_msg) && (NULL == nostart_msg));
++            if (nostop_msg != NULL || index + 1 >= count ||
++                (msg->flags & I2C_M_READ) != 0 || msg->buffer == NULL ||
++                (msg->length != 1 && msg->length != 2))
++            {
++                ret = -ENOTSUP;
++                break;
++            }
++
+             nostop_msg = msg;
+             continue;//Memory access msg start
+         }
+-        else if(msg->flags & I2C_M_NOSTART)
++        else if (nostop_msg != NULL || (msg->flags & I2C_M_NOSTART) != 0)
+         {
+-            DEBUGASSERT((NULL != nostop_msg) && (NULL == nostart_msg));
++            /* Standard register reads use NOSTOP followed by READ. The
++             * legacy board clients also set NOSTART on the second message.
++             * Both must send the pending register address through the HAL.
++             */
++
++            if (nostop_msg == NULL || msg->buffer == NULL ||
++                msg->length <= 0 || nostop_msg->frequency != msg->frequency ||
++                nostop_msg->addr != msg->addr)
++            {
++                ret = -EINVAL;
++                break;
++            }
++
+             nostart_msg = msg;
+-            DEBUGASSERT(nostop_msg->frequency == nostart_msg->frequency);
+-            DEBUGASSERT(nostop_msg->addr == nostart_msg->addr);
+ 
+             sifli_i2c_configure(bf0_i2c, 0, msg->frequency, msg->flags);
+             __HAL_I2C_ENABLE(&bf0_i2c->handle);
+@@ -518,6 +539,13 @@ static int sifli_i2c_transfer(struct i2c_master_s *dev,
+             ret = i2c_normal_ops(bf0_i2c, msg);
+         }
+ 
++        if (ret != HAL_OK)
++        {
++            HAL_I2C_Reset(&bf0_i2c->handle);
++            ret = ret == HAL_TIMEOUT ? -ETIMEDOUT : -EIO;
++            break;
++        }
++
+         while (1)
+         {
+             HAL_I2C_StateTypeDef i2c_state = HAL_I2C_GetState(&bf0_i2c->handle);

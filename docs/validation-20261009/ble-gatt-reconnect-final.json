@@ -1,0 +1,158 @@
+[
+  {
+    "event": "found",
+    "name": "VelaRide",
+    "cycle": 1
+  },
+  {
+    "event": "connected",
+    "mtu": 253
+  },
+  {
+    "command": "ping",
+    "reply": {
+      "ok": true,
+      "event": "pong"
+    }
+  },
+  {
+    "command": "ride_status",
+    "reply": {
+      "ok": true,
+      "event": "ride_status",
+      "active": false,
+      "paused": false,
+      "motion": 0,
+      "elapsed_s": 0,
+      "moving_s": 0,
+      "still_s": 0,
+      "impacts": 0,
+      "pause_count": 0,
+      "rest_count": 0,
+      "latest_sequence": 6
+    }
+  },
+  {
+    "command": "ride_latest",
+    "reply": {
+      "ok": true,
+      "event": "ride_latest",
+      "sequence": 6,
+      "active": false,
+      "elapsed_s": 8,
+      "moving_s": 5,
+      "still_s": 1,
+      "impacts": 0,
+      "pause_count": 1,
+      "rest_count": 0
+    }
+  },
+  {
+    "event": "disconnected",
+    "cycle": 1
+  },
+  {
+    "event": "found",
+    "name": "VelaRide",
+    "cycle": 2
+  },
+  {
+    "event": "connected",
+    "mtu": 253
+  },
+  {
+    "command": "ping",
+    "reply": {
+      "ok": true,
+      "event": "pong"
+    }
+  },
+  {
+    "command": "ride_status",
+    "reply": {
+      "ok": true,
+      "event": "ride_status",
+      "active": false,
+      "paused": false,
+      "motion": 0,
+      "elapsed_s": 0,
+      "moving_s": 0,
+      "still_s": 0,
+      "impacts": 0,
+      "pause_count": 0,
+      "rest_count": 0,
+      "latest_sequence": 6
+    }
+  },
+  {
+    "command": "ride_latest",
+    "reply": {
+      "ok": true,
+      "event": "ride_latest",
+      "sequence": 6,
+      "active": false,
+      "elapsed_s": 8,
+      "moving_s": 5,
+      "still_s": 1,
+      "impacts": 0,
+      "pause_count": 1,
+      "rest_count": 0
+    }
+  },
+  {
+    "event": "disconnected",
+    "cycle": 2
+  },
+  {
+    "event": "found",
+    "name": "VelaRide",
+    "cycle": 3
+  },
+  {
+    "event": "connected",
+    "mtu": 253
+  },
+  {
+    "command": "ping",
+    "reply": {
+      "ok": true,
+      "event": "pong"
+    }
+  },
+  {
+    "command": "ride_status",
+    "reply": {
+      "ok": true,
+      "event": "ride_status",
+      "active": false,
+      "paused": false,
+      "motion": 0,
+      "elapsed_s": 0,
+      "moving_s": 0,
+      "still_s": 0,
+      "impacts": 0,
+      "pause_count": 0,
+      "rest_count": 0,
+      "latest_sequence": 6
+    }
+  },
+  {
+    "command": "ride_latest",
+    "reply": {
+      "ok": true,
+      "event": "ride_latest",
+      "sequence": 6,
+      "active": false,
+      "elapsed_s": 8,
+      "moving_s": 5,
+      "still_s": 1,
+      "impacts": 0,
+      "pause_count": 1,
+      "rest_count": 0
+    }
+  },
+  {
+    "event": "disconnected",
+    "cycle": 3
+  }
+]

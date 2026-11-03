@@ -1,0 +1,152 @@
+{
+  "schema_version": 2,
+  "started_at": "2026-11-01T06:22:49.844716+00:00",
+  "requested_cycles": 5,
+  "cycles": [
+    {
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "touch_error": false,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=13,-35,-985 up=1.00 err=0 sleeps=1 raises=0 idle=21113ms",
+      "wake_ok": true,
+      "sfbl": 0,
+      "passed": true,
+      "cycle": 1,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true
+    },
+    {
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "touch_error": false,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=10,-31,-993 up=1.00 err=0 sleeps=1 raises=0 idle=21083ms",
+      "wake_ok": true,
+      "sfbl": 0,
+      "passed": true,
+      "cycle": 2,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true
+    },
+    {
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "touch_error": false,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=12,-32,-989 up=1.00 err=0 sleeps=1 raises=0 idle=21092ms",
+      "wake_ok": true,
+      "sfbl": 0,
+      "passed": true,
+      "cycle": 3,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true
+    },
+    {
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "touch_error": false,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=13,-33,-991 up=1.00 err=0 sleeps=1 raises=0 idle=21097ms",
+      "wake_ok": true,
+      "sfbl": 0,
+      "passed": true,
+      "cycle": 4,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true
+    },
+    {
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "touch_error": false,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=13,-35,-989 up=1.00 err=0 sleeps=1 raises=0 idle=21109ms",
+      "wake_ok": true,
+      "sfbl": 0,
+      "passed": true,
+      "cycle": 5,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true
+    }
+  ],
+  "idle": null,
+  "ble": {
+    "passed": true,
+    "events": [
+      {
+        "event": "found",
+        "name": "VelaRide",
+        "cycle": 1
+      },
+      {
+        "event": "connected",
+        "mtu": 253
+      },
+      {
+        "command": "ping",
+        "reply": {
+          "ok": true,
+          "event": "pong"
+        }
+      },
+      {
+        "command": "ride_status",
+        "reply": {
+          "ok": true,
+          "event": "ride_status",
+          "active": false,
+          "paused": false,
+          "motion": 0,
+          "elapsed_s": 0,
+          "moving_s": 0,
+          "still_s": 0,
+          "impacts": 0,
+          "pause_count": 0,
+          "rest_count": 0,
+          "latest_sequence": 11,
+          "phone_valid": false,
+          "speed_kmh": 0.0,
+          "distance_km": 0.0
+        }
+      },
+      {
+        "command": "ride_latest",
+        "reply": {
+          "ok": true,
+          "event": "ride_latest",
+          "sequence": 11,
+          "active": false,
+          "elapsed_s": 23,
+          "moving_s": 19,
+          "still_s": 1,
+          "impacts": 2,
+          "pause_count": 1,
+          "rest_count": 0
+        }
+      },
+      {
+        "event": "disconnected",
+        "cycle": 1
+      }
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "log": "backup\\phone-gps-20261101\\10-boot-ble.ble-1793514332794042200.json"
+  },
+  "error": null,
+  "passed": true,
+  "scope": "Automated checks only; no cold power cycle or physical UI/audio acceptance.",
+  "requested": {
+    "port": "COM5",
+    "boot_wait": 25,
+    "idle_seconds": 0,
+    "ble": true,
+    "check_tf": false
+  },
+  "finished_at": "2026-11-01T06:25:36.198476+00:00"
+}

@@ -1,0 +1,14 @@
+{
+  "firmware_sha256": "bf903878d38bd48554919a19558b30147718875929a65351550df8dfb309a71b",
+  "firmware_bytes": 9765516,
+  "flash_verify": "PASS",
+  "boot_cycles": 1,
+  "boot_and_legacy_ble_passed": true,
+  "scope": "Only connection information UI changed relative to prior GPS candidate; configuration unchanged. No extra audio playback.",
+  "actual_build_tree_lvgl_tests": "PASS: settings route, empty state, timer-driven live update and expiry placeholders, original UI regressions",
+  "screenshots": "Host-rendered examples; GPS values are synthetic fixture inputs",
+  "user_physical_display_and_touch": "PENDING",
+  "apk_unchanged": "0.1.3",
+  "entry": "Watch face > short side key > Settings gear > scroll up > Connection and time sync",
+  "previous_delivery_correction": "00e511f1 lacked GPS display; prior canonical-tree tests did not establish installed UI behavior."
+}

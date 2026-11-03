@@ -1,0 +1,24 @@
+{
+  "stage": "watch-utilities-2: visual daily alarm candidate",
+  "parent_firmware_sha256": "0c836f2186bdbdd7d3c2f5423cb1aa0942667971b3f0d4c6848129ca34c8e71f",
+  "firmware_sha256": "980353fbf0b53d009882e1fe04770539aceba7f5639508d65ed94116c79ade54",
+  "firmware_bytes": 9600748,
+  "config_only_change": "CONFIG_EXAMPLES_VELARIDE_ALARM=y",
+  "files": {
+    "alarm.patch": "35503d60cc3b8cec20280b9349b8281c789b9395d5b4cc99412fb72b7a0cbd11",
+    "app-source.tar.gz": "2c83407653fb6b9075aaf58466f220f3b1bcff86a03f4623815f3cddf3715911",
+    "build_alarm_stage.sh": "a77529cfa2651e0448f44a7d661f007d15ced223ef07b962f39bfe562c0177c7",
+    "config": "8d74212db9984bebb4ece56cc3cad5694a17e91d13a239b947732842b2fafe1f",
+    "firmware.bin": "980353fbf0b53d009882e1fe04770539aceba7f5639508d65ed94116c79ade54"
+  },
+  "source_note": "Exact app snapshot on the accepted countdown source tree; bit-identical full rebuild still affected by upstream generated-source ordering and timestamps.",
+  "validation": {
+    "host": "ASan/UBSan alarm scheduling/storage tests and LVGL sport/shell suites passed",
+    "hardware": "v2: 5 RTS resets + legacy BLE + persisted settings and reboot confirmation + actual 16:03 alarm passed; concurrent countdown preserved",
+    "user": "pending",
+    "feature_disabled_host_ui": "PASS: countdown and previous UI suites with ALARM=OFF"
+  },
+  "audio": "visual alarm only; no audio test commands",
+  "revision": "v2: independent NuttX save task survives NSH caller exit",
+  "evidence": "../../docs/validation-alarm-20261027"
+}

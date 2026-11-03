@@ -3,6 +3,8 @@
 Thumbs.db
 *.swp
 *.tmp
+__pycache__/
+*.pyc
 
 # Local credentials and environment
 .env

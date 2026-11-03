@@ -1,0 +1,7 @@
+{
+  "changed_from_installed_gps_version": [
+    "velaride_sport_ui.c"
+  ],
+  "config_changes": [],
+  "parent_sha256": "00e511f13ac1200a492f95fb50ebbed63f4a7c1cc5b65ce2e3edbc1858c20515"
+}

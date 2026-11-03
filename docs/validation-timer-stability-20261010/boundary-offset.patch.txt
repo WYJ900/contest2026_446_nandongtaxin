@@ -1,0 +1,1 @@
+Diagnostic WSL-only g_timer.timebase = UINT32_MAX / USEC_PER_TICK - 3000; normal source remains zero-initialized.

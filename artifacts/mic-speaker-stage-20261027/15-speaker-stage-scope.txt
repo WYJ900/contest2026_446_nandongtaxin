@@ -1,0 +1,3 @@
+Files /home/wyj/velaride_microphone_stage/vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/CMakeLists.txt and /home/wyj/velaride_speaker_stage/vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/CMakeLists.txt differ
+Only in /home/wyj/velaride_speaker_stage/vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src: speaker_test.c
+Only in /home/wyj/velaride_speaker_stage/vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src: voice_test_dsp.h

@@ -1,0 +1,36 @@
+
+COMMAND: date
+date
+Tue, Oct 27 14:43:03 2026
+nsh> [KVELARIDE_PREVIEW: index=4 scene=4 ready in=1020ms
+
+COMMAND: ls /dev/input0
+ls /dev/input0
+ /dev/input0
+nsh> [K
+COMMAND: ps
+ps
+  PID GROUP PRI POLICY   TYPE    NPX STATE    EVENT     SIGMASK            STACK COMMAND
+    0     0   0 FIFO     Kthread   - Ready              0000000000000000 0016016 CPU0 IDLE
+    1     0 224 RR       Kthread   - Waiting  Semaphore 0000000000000000 0015968 hpwork 0x20000540 0x20000588
+    2     0 100 RR       Kthread   - Waiting  Semaphore 0000000000000000 0015968 lpwork 0x200004c0 0x20000508
+    5     0 110 FIFO     pthread   - Waiting  Semaphore 0000000000000000 0032688 sysworkq 0x120d27ad 0x600b3b28
+    6     0  10 FIFO     pthread   - Waiting  Semaphore 0000000000000000 0001320 BT LW WQ 0x120d27ad 0x600b3c30
+    7     7 100 RR       Task      - Running            0000000000000000 0015992 nsh_main
+    8     8 100 RR       Task      - Waiting  Signal    0000000000000000 0032664 ai_agent
+    9     8  50 FIFO     pthread   - Waiting  Semaphore 0000000000000000 0016304 ai_agent 0x1214af29 0x600af580
+   10     8  50 FIFO     pthread   - Waiting  MQ empty  0000000000000000 0016304 ai_agent 0x1214af29 0x600aed70
+   11     8  40 FIFO     pthread   - Waiting  Semaphore 0000000000000000 0008112 ai_agent 0x12152a1d 0x600addc8
+   12     8   3 FIFO     pthread   - Waiting  Signal    0000000000000000 0004016 ai_agent 0x12153705 0x600addd8
+   14     8  30 FIFO     pthread   - Ready              0000000000000000 0016304 ai_agent 0x12153949 0x600af9c8
+   15    15 100 RR       Task      - Waiting  Semaphore fffffffffff7fdff 0040856 velaride
+   19     0 100 RR       Kthread   - Waiting  Semaphore 0000000000000000 0001944 lcd_task
+   20    15  40 RR       pthread   - Ready              0000000000000000 0008112 velaride 0x1217296d 0
+   29    29 100 RR       Task      - Waiting  Semaphore 0000000000000000 0008088 velaride_ble
+   30    29 108 FIFO     pthread   - Waiting  Signal    0000000000000000 0002992 BT Driver /dev/ttyHCI0 0x120d27ad 0x600b3b28
+nsh> [K
+COMMAND: velaride wake-status
+velaride wake-status
+VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=67,-82,-983 up=0.99 err=0 sleeps=3 raises=0 idle=29720ms
+nsh> [KVELARIDE_PREVIEW: index=3 scene=3 ready in=23ms
+VELARIDE_PREVIEW: index=4 scene=4 ready in=17ms

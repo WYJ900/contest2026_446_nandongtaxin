@@ -1,0 +1,22 @@
+{
+    "ok":  true,
+    "source":  "compatible-anthropic",
+    "review":  "骑行仅25秒，移动22秒，停1秒，有1次暂停和1次冲击。建议检查设备，确保距离记录开启。",
+    "watch_review":  "骑行仅25秒，移动22秒，停1秒，有1次暂停和1次冲击。建议检查设备，确保距离记录开启。",
+    "watch_source":  "compatible-anthropic",
+    "ride":  {
+                 "elapsed_s":  25,
+                 "moving_s":  22,
+                 "still_s":  1,
+                 "pause_count":  1,
+                 "impacts":  1,
+                 "distance_km":  0
+             },
+    "fallback_reason":  null,
+    "upstream_status":  null,
+    "provider":  "m",
+    "model":  "deepseek-v4-flash-0731",
+    "protocol":  "anthropic",
+    "configured":  true,
+    "measured_latency_ms":  7336
+}

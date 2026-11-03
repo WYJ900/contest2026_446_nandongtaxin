@@ -8,7 +8,8 @@ $workspaceRoot = (Resolve-Path (Join-Path $teamRoot '..')).Path
 
 # git 通常不在 PowerShell 的 PATH 里（Git for Windows 只写进 Git Bash 的 PATH）。
 $git = $null
-$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue
+$gitCommand = Get-Command git -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1
 if ($gitCommand) { $git = $gitCommand.Source }
 if (-not $git) {
     foreach ($candidate in @(
@@ -25,7 +26,10 @@ $patches = @(
     @{ Repo = 'apps'; Patch = 'apps.patch' },
     @{ Repo = 'nuttx'; Patch = 'nuttx.patch' },
     @{ Repo = 'packages/ai_agent'; Patch = 'packages-ai-agent.patch' },
-    @{ Repo = 'vendor/sifli'; Patch = 'vendor-sifli.patch' }
+    @{ Repo = 'vendor/sifli'; Patch = 'vendor-sifli.patch' },
+    @{ Repo = 'apps/graphics/lvgl/lvgl'; Patch = 'lvgl.patch' },
+    @{ Repo = 'external/zblue/zblue'; Patch = 'zblue.patch' },
+    @{ Repo = 'external'; Patch = 'external.patch' }
 )
 
 function Invoke-RepositoryPatch {
@@ -98,6 +102,10 @@ foreach ($item in $patches) {
     Invoke-RepositoryPatch -RepoRelative $item.Repo -PatchName $item.Patch
 }
 
+Install-Overlay 'nuttx/drivers/sensors/mmc5603.c' 'nuttx/drivers/sensors/mmc5603.c'
+Install-Overlay 'nuttx/include/nuttx/sensors/mmc5603.h' 'nuttx/include/nuttx/sensors/mmc5603.h'
+Install-Overlay 'nuttx/drivers/sensors/ltr303.c' 'nuttx/drivers/sensors/ltr303.c'
+Install-Overlay 'nuttx/include/nuttx/sensors/ltr303.h' 'nuttx/include/nuttx/sensors/ltr303.h'
 Install-Overlay 'apps/system/libuv/nuttx_threadpool.c' 'apps/system/libuv/nuttx_threadpool.c'
 Install-Overlay 'vendor/sifli/chips/drivers/epic/drv_epic.c' 'vendor/sifli/chips/drivers/epic/drv_epic.c'
 Install-Overlay 'vendor/sifli/chips/drivers/epic/drv_epic.h' 'vendor/sifli/chips/drivers/epic/drv_epic.h'

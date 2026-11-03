@@ -1,0 +1,558 @@
+--- a/velaride_shell.c
++++ b/velaride_shell.c
+@@ -42,6 +42,7 @@
+ #include "velaride_icons.h"
+ #include "velaride_compass.h"
+ #include "velaride_theme.h"
++#include "velaride_night_ui.h"
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+ #include "velaride_countdown.h"
+ #endif
+@@ -261,6 +262,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+   APP_SOUND,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  APP_NIGHT,
++#endif
+   APP_COUNT
+ };
+ 
+@@ -296,6 +300,9 @@
+ #endif
+ #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+   {"声音", VR_ICON_SOUND, 0x9571c9, -2, 2},
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  {"夜骑模式", VR_ICON_MOON, 0xc25448, 0, 2},
+ #endif
+ };
+ 
+@@ -794,7 +801,7 @@
+   lv_draw_line_dsc_t line;
+ 
+   lv_draw_line_dsc_init(&line);
+-  line.color = color;
++  line.color = velaride_night_color(color);
+   line.opa = opa;
+   line.width = width;
+   line.round_start = 1;
+@@ -813,7 +820,7 @@
+ 
+   lv_draw_rect_dsc_init(&dot);
+   dot.radius = LV_RADIUS_CIRCLE;
+-  dot.bg_color = color;
++  dot.bg_color = velaride_night_color(color);
+   dot.bg_opa = LV_OPA_COVER;
+   area.x1 = DIAL_CX - radius;
+   area.y1 = DIAL_CY - radius;
+@@ -858,7 +865,7 @@
+ 
+   lv_draw_label_dsc_init(&text);
+   text.font = &velaride_num_44;
+-  text.color = lv_color_hex(VR_INK);
++  text.color = velaride_night_color(lv_color_hex(VR_INK));
+   text.align = LV_TEXT_ALIGN_CENTER;
+   for (i = 0; i < 4; i++)
+     {
+@@ -878,7 +885,7 @@
+ 
+   face_date_text(date, sizeof(date));
+   text.font = &velaride_font_cn_20;
+-  text.color = vr_accent();
++  text.color = velaride_night_color(vr_accent());
+   text.text = date;
+   area.x1 = DIAL_CX - 100;
+   area.x2 = DIAL_CX + 100;
+@@ -2455,6 +2462,27 @@
+   update_current_scene();
+ }
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++static void night_cache_invalidate(void)
++{
++  for (int i = 0; i < PREVIEW_COUNT; i++) g_nav.preview_ready[i] = false;
++  if (!velaride_sport_ui_active()) preview_schedule();
++}
++
++static void night_watch_cb(lv_timer_t *timer)
++{
++  struct velaride_device_snapshot_s device;
++  LV_UNUSED(timer);
++  velaride_device_get(&device);
++  velaride_night_poll(lv_tick_get(), device.light_samples,
++                      device.light_valid, device.light_lux);
++  if (!g_nav.dragging && !g_nav.transition_active)
++    {
++      velaride_night_ui_apply(velaride_sport_ui_night_exempt());
++    }
++}
++#endif
++
+ /* Launcher. The same apps appear as a honeycomb (Apple Watch style: icons
+  * shrink and draw inward near the screen's rounded edges, the grid drifts
+  * with inertia) or as a list whose rows fade near the top and bottom. The
+@@ -2591,7 +2619,7 @@
+       lv_draw_rect_dsc_init(&rect);
+       rect.radius = LV_RADIUS_CIRCLE;
+       rect.bg_opa = LV_OPA_COVER;
+-      rect.bg_color = app_color(i);
++      rect.bg_color = velaride_night_color(app_color(i));
+       if (i == APP_RIDE && velaride_sport_ui_active() == false &&
+           g_menu.riding)
+         {
+@@ -2599,7 +2627,7 @@
+ 
+           rect.outline_width = 3;
+           rect.outline_pad = 4;
+-          rect.outline_color = vr_accent();
++          rect.outline_color = velaride_night_color(vr_accent());
+           rect.outline_opa = LV_OPA_COVER;
+         }
+ 
+@@ -3624,6 +3652,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+     [APP_SOUND] = VELARIDE_INFO_SOUND,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++    [APP_NIGHT] = VELARIDE_INFO_NIGHT,
++#endif
+   };
+   bool from_menu = g_menu.active;
+ 
+@@ -4050,6 +4081,11 @@
+   preview_schedule();
+   lv_timer_create(button_timer_cb, BUTTON_POLL_MS, NULL);
+   wake_init();
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  velaride_night_ui_on_change(night_cache_invalidate);
++  night_watch_cb(NULL);
++  lv_timer_create(night_watch_cb, 250, NULL);
++#endif
+   lv_timer_create(honey_inertia_timer_cb, 16, NULL);
+   update_current_scene();
+ }
+@@ -4145,6 +4181,19 @@
+       lv_obj_invalidate(lv_screen_active());
+       review_watch();
+       _lv_display_refr_timer(NULL);
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++      {
++        struct velaride_night_s night;
++        velaride_night_get(&night);
++        if (night.active && !night.exempt)
++          {
++            uint8_t target = velaride_night_brightness(velaride_display_tick());
++            int brightness_ret = health_fd < 0 ? -1 :
++              ioctl(health_fd, LCDDEVIO_SETBRIGHTNESS, target);
++            velaride_display_applied(target, brightness_ret < 0 ? -errno : 0);
++          }
++      }
++#endif
+       ret_power = health_fd < 0 ? -1 :
+                   ioctl(health_fd, LCDDEVIO_SETPOWER, CONFIG_LCD_MAXPOWER);
+       g_screen_dark = false;
+@@ -4167,6 +4216,9 @@
+       uint8_t target = velaride_display_tick();
+       int ret;
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++      target = velaride_night_brightness(target);
++#endif
+       last_brightness = lv_tick_get();
+       velaride_display_get(&display);
+       if (display.applied != target || display.apply_error != 0)
+@@ -4509,6 +4561,43 @@
+              (unsigned long)velaride_sound_hardware_state(),
+              status);
+       return status == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
++    }
++#endif
++
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  if (argc > 1 && strcmp(argv[1], "night") == 0)
++    {
++      struct velaride_night_s night;
++      int ret = 0;
++      velaride_night_get(&night);
++      if (argc == 3 && strcmp(argv[2], "on") == 0)
++        ret = velaride_night_set(VR_NIGHT_ON, night.limit);
++      else if (argc == 3 && strcmp(argv[2], "off") == 0)
++        ret = velaride_night_set(VR_NIGHT_OFF, night.limit);
++      else if (argc == 3 && strcmp(argv[2], "auto") == 0)
++        ret = velaride_night_set(VR_NIGHT_AUTO, night.limit);
++      else if (argc == 4 && strcmp(argv[2], "limit") == 0)
++        {
++          char *end;
++          unsigned long limit;
++          errno = 0;
++          limit = strtoul(argv[3], &end, 10);
++          if (errno || end == argv[3] || *end || limit < 20 || limit > 40)
++            return EXIT_FAILURE;
++          ret = velaride_night_set(night.mode, limit);
++        }
++      else if (argc != 2 && !(argc == 3 && strcmp(argv[2], "status") == 0))
++        {
++          printf("usage: velaride night [status|off|on|auto|limit 20..40]\n");
++          return EXIT_FAILURE;
++        }
++      velaride_night_get(&night);
++      printf("VELARIDE_NIGHT: mode=%u limit=%u active=%d exempt=%d "
++             "light_valid=%d lux=%.2f saving=%d error=%d ret=%d\n",
++             night.mode, night.limit, night.active, night.exempt,
++             night.light_valid, (double)night.lux, night.saving,
++             night.save_error, ret);
++      return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+     }
+ #endif
+ 
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -20,6 +20,7 @@
+ #include "velaride_compass.h"
+ #include "velaride_icons.h"
+ #include "velaride_theme.h"
++#include "velaride_night_ui.h"
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+ #include "velaride_countdown.h"
+ #endif
+@@ -129,6 +130,11 @@
+   lv_obj_t *sound_slider;
+   lv_obj_t *sound_volume_label;
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  lv_obj_t *night_modes[3];
++  lv_obj_t *night_slider;
++  lv_obj_t *night_value;
++#endif
+   uint32_t sw_acc_ms;
+   uint32_t sw_start;
+   uint32_t sw_laps[3];
+@@ -294,6 +300,10 @@
+   g_sport.auto_button = NULL;
+   g_sport.compass_face = NULL;
+   g_sport.page = page;
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  velaride_night_ui_apply(page == SPORT_PAGE_INFO &&
++                          g_sport.info == VELARIDE_INFO_LIGHT);
++#endif
+   g_sport.clock = NULL;
+   g_sport.body = NULL;
+   g_sport.time_label = NULL;
+@@ -363,6 +373,9 @@
+   velaride_compass_enable(false);
+   lv_timer_pause(g_sport.countdown_timer);
+   g_sport.page = SPORT_PAGE_HIDDEN;
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  velaride_night_ui_apply(false);
++#endif
+   lv_obj_add_flag(g_sport.root, LV_OBJ_FLAG_HIDDEN);
+   if (g_sport.exit_cb != NULL)
+     {
+@@ -759,7 +772,7 @@
+       int x = area.x1 + SPORT_W / 2 + (int)lroundf((d - heading) * 4);
+       bool major = d % 45 == 0;
+ 
+-      line.color = lv_color_hex(major ? VR_INK : 0x55555a);
++      line.color = velaride_night_color(lv_color_hex(major ? VR_INK : 0x55555a));
+       line.width = major ? 3 : 2;
+       line.p1.x = x;
+       line.p1.y = area.y1 + 8;
+@@ -773,11 +786,12 @@
+           text.text = cardinal((float)d);
+           text.color = ((d % 360) + 360) % 360 == 0 ? vr_accent() :
+                                                       lv_color_hex(VR_INK2);
++          text.color = velaride_night_color(text.color);
+           lv_draw_label(layer, &text, &box);
+         }
+     }
+ 
+-  line.color = vr_accent();
++  line.color = velaride_night_color(vr_accent());
+   line.width = 3;
+   line.p1.x = area.x1 + SPORT_W / 2;
+   line.p1.y = area.y1;
+@@ -1452,7 +1466,7 @@
+   lv_draw_line_dsc_t line;
+ 
+   lv_draw_line_dsc_init(&line);
+-  line.color = color;
++  line.color = velaride_night_color(color);
+   line.width = width;
+   line.round_start = 1;
+   line.round_end = 1;
+@@ -1504,6 +1518,7 @@
+       text.text = names[i];
+       text.color = !live ? lv_color_hex(VR_INK3) :
+                    i == 0 ? vr_accent() : lv_color_hex(VR_INK);
++      text.color = velaride_night_color(text.color);
+       lv_draw_label(layer, &text, &box);
+     }
+ 
+@@ -2343,6 +2358,88 @@
+ }
+ #endif
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++static void update_night(void)
++{
++  struct velaride_night_s night;
++  char text[96];
++  velaride_night_get(&night);
++  set_label(g_sport.status_label, night.save_error ? "设置保存失败，请重试" :
++            night.saving ? "正在保存" : night.mode == VR_NIGHT_OFF ? "使用原有显示" :
++            night.mode == VR_NIGHT_ON ? "夜骑显示已开启" :
++            !night.light_valid ? "光感不可用，保持当前显示" :
++            night.active ? "暗光中 · 夜骑显示" : "光线明亮 · 原有显示");
++  for (int i = 0; i < 3; i++)
++    {
++      bool selected = night.mode == i;
++      lv_obj_set_style_bg_color(g_sport.night_modes[i],
++                                selected ? vr_accent() : lv_color_hex(VR_TILE2), 0);
++      lv_obj_set_style_text_color(lv_obj_get_child(g_sport.night_modes[i], 0),
++                                  selected ? vr_accent_ink() : lv_color_hex(TEXT_COLOR), 0);
++    }
++  snprintf(text, sizeof(text), "夜间亮度上限  %u%%", night.limit);
++  set_label(g_sport.night_value, text);
++  if (!lv_slider_is_dragged(g_sport.night_slider) &&
++      lv_slider_get_value(g_sport.night_slider) != night.limit)
++    lv_slider_set_value(g_sport.night_slider, night.limit, LV_ANIM_OFF);
++  if (night.light_valid)
++    snprintf(text, sizeof(text), "环境光  %.1f lux", (double)night.lux);
++  else
++    snprintf(text, sizeof(text), "环境光  暂不可用");
++  set_label(g_sport.body, text);
++}
++
++static void night_action_cb(lv_event_t *event)
++{
++  int action = (int)(intptr_t)lv_event_get_user_data(event);
++  struct velaride_night_s night;
++  velaride_night_get(&night);
++  if (action < 3) night.mode = action;
++  else if (action == 3) night.limit = night.limit > 25 ? night.limit - 5 : 20;
++  else night.limit = night.limit < 35 ? night.limit + 5 : 40;
++  velaride_night_set(night.mode, night.limit);
++  velaride_night_ui_apply(false);
++  update_night();
++}
++
++static void night_slider_cb(lv_event_t *event)
++{
++  struct velaride_night_s night;
++  velaride_night_get(&night);
++  velaride_night_set(night.mode, lv_slider_get_value(lv_event_get_target(event)));
++  update_night();
++}
++
++static void build_night(void)
++{
++  static const char *names[] = {"关闭", "开启", "自动"};
++  g_sport.status_label = label(g_sport.root, "", MUTED_COLOR,
++                               &velaride_font_cn_20, 18, 110, 354);
++  for (int i = 0; i < 3; i++)
++    g_sport.night_modes[i] = button(names[i], BTN_TILE, 25 + 117 * i, 153,
++                                    106, 48, night_action_cb, i);
++  g_sport.night_value = label(g_sport.root, "", TEXT_COLOR,
++                              &velaride_font_cn_20, 18, 225, 354);
++  button("-5", BTN_TILE, 25, 260, 48, 44, night_action_cb, 3);
++  button("+5", BTN_TILE, 317, 260, 48, 44, night_action_cb, 4);
++  g_sport.night_slider = lv_slider_create(g_sport.root);
++  lv_obj_set_pos(g_sport.night_slider, 90, 279);
++  lv_obj_set_size(g_sport.night_slider, 210, 8);
++  lv_slider_set_range(g_sport.night_slider, 20, 40);
++  lv_obj_set_ext_click_area(g_sport.night_slider, 16);
++  lv_obj_remove_flag(g_sport.night_slider, LV_OBJ_FLAG_GESTURE_BUBBLE);
++  lv_obj_set_style_bg_color(g_sport.night_slider, vr_accent(), LV_PART_INDICATOR);
++  lv_obj_set_style_bg_color(g_sport.night_slider, vr_accent(), LV_PART_KNOB);
++  lv_obj_set_style_pad_all(g_sport.night_slider, 8, LV_PART_KNOB);
++  lv_obj_add_event_cb(g_sport.night_slider, night_slider_cb, LV_EVENT_VALUE_CHANGED, NULL);
++  g_sport.body = label(g_sport.root, "", MUTED_COLOR,
++                        &velaride_font_cn_20, 18, 326, 354);
++  label(g_sport.root, "自动：持续变暗后开启\n关闭后恢复原显示，夜骑灯不受影响",
++        MUTED_COLOR, &velaride_font_cn_20, 25, 373, 340);
++  update_night();
++}
++#endif
++
+ static void update_info(void)
+ {
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+@@ -2366,6 +2463,14 @@
+     {
+       update_clock();
+       update_sound();
++      return;
++    }
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  if (g_sport.info == VELARIDE_INFO_NIGHT)
++    {
++      update_clock();
++      update_night();
+       return;
+     }
+ #endif
+@@ -2434,6 +2539,15 @@
+                display.save_pending ? "正在保存设置" :
+                display.automatic && !device.light_valid ?
+                "光线不可用，使用手动亮度" : "设置已保存");
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++      {
++        struct velaride_night_s night;
++        velaride_night_get(&night);
++        if (night.active && !night.exempt)
++          snprintf(text + strlen(text), sizeof(text) - strlen(text),
++                   "\n夜骑模式限制至 %u%%", night.limit);
++      }
++#endif
+       static const uint8_t levels[] = {20, 50, 80};
+       for (int i = 0; i < 3; i++)
+         {
+@@ -2712,6 +2826,13 @@
+   return ride.active;
+ }
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++bool velaride_sport_ui_night_exempt(void)
++{
++  return g_sport.page == SPORT_PAGE_INFO && g_sport.info == VELARIDE_INFO_LIGHT;
++}
++#endif
++
+ static void show_saved(bool ai)
+ {
+   if (g_sport.root == NULL || g_sport.session_started)
+@@ -3045,6 +3166,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+      , "声音与提示"
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++     , "夜骑模式"
++#endif
+     };
+ 
+   if (g_sport.root == NULL || g_sport.session_started ||
+@@ -3080,6 +3204,13 @@
+   if (info == VELARIDE_INFO_SOUND)
+     {
+       build_sound();
++    }
++  else
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  if (info == VELARIDE_INFO_NIGHT)
++    {
++      build_night();
+     }
+   else
+ #endif
+@@ -3098,9 +3229,19 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+       setting_row(list, "声音与提示", VR_ICON_SOUND, VELARIDE_INFO_SOUND, 7);
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++      setting_row(list, "夜骑模式", VR_ICON_MOON, VELARIDE_INFO_NIGHT,
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++                  8);
++#else
++                  7);
++#endif
++#endif
+       g_sport.body = label(list, "", MUTED_COLOR, &velaride_font_cn_20,
+                            18,
+-#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++#if defined(CONFIG_EXAMPLES_VELARIDE_SOUND) && defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
++                           9 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
++#elif defined(CONFIG_EXAMPLES_VELARIDE_SOUND) || defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
+                            8 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+ #else
+                            7 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+--- a/velaride_sport_ui.h
++++ b/velaride_sport_ui.h
+@@ -35,6 +35,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+   VELARIDE_INFO_SOUND,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++  VELARIDE_INFO_NIGHT,
++#endif
+ };
+ 
+ void velaride_sport_ui_init(lv_obj_t *screen,
+@@ -52,5 +55,8 @@
+  */
+ 
+ bool velaride_sport_ui_keep_awake(void);
++#ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
++bool velaride_sport_ui_night_exempt(void);
++#endif
+ 
+ #endif
+--- a/velaride_icons.h
++++ b/velaride_icons.h
+@@ -6,6 +6,7 @@
+ #define __APPS_EXAMPLES_VELARIDE_ICONS_H
+ 
+ #include <lvgl/lvgl.h>
++#include "velaride_night_ui.h"
+ 
+ enum velaride_icon_e
+ {
+@@ -24,7 +25,7 @@
+ {
+   lv_draw_line_dsc_t line;
+   lv_draw_line_dsc_init(&line);
+-  line.color = color;
++  line.color = velaride_night_color(color);
+   line.width = size >= 28 ? 3 : 2;
+   line.round_start = line.round_end = 1;
+   line.p1.x = x + a * size / 24;
+@@ -40,7 +41,7 @@
+ {
+   lv_draw_arc_dsc_t arc;
+   lv_draw_arc_dsc_init(&arc);
+-  arc.color = color;
++  arc.color = velaride_night_color(color);
+   arc.width = size >= 28 ? 3 : 2;
+   arc.center.x = x + cx * size / 24;
+   arc.center.y = y + cy * size / 24;
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19,6 +19,9 @@
+   endif()
+   if(CONFIG_EXAMPLES_VELARIDE_SOUND)
+     set(VELARIDE_TITLE_FONT velaride_font_sound_28.c)
++  endif()
++  if(CONFIG_EXAMPLES_VELARIDE_NIGHT)
++    set(VELARIDE_TITLE_FONT velaride_font_night_28.c)
+   endif()
+   nuttx_add_application(
+     NAME
+@@ -58,6 +61,9 @@
+     target_sources(apps_velaride PRIVATE velaride_sound.c
+       velaride_sound_render.c velaride_sound_assets.c)
+   endif()
++  if(CONFIG_EXAMPLES_VELARIDE_NIGHT)
++    target_sources(apps_velaride PRIVATE velaride_night.c velaride_night_ui.c)
++  endif()
+ 
+   if(CONFIG_BT AND CONFIG_BT_GATT_DYNAMIC_DB)
+     nuttx_add_application(
+--- a/Kconfig
++++ b/Kconfig
+@@ -48,6 +48,14 @@
+ 	string "Program name"
+ 	default "velaride"
+ 
++config EXAMPLES_VELARIDE_NIGHT
++	bool "Night riding display"
++	default n
++	select LV_USE_COLOR_FILTER
++	---help---
++		Warm-red inherited style filter and temporary brightness ceiling.
++		Supports manual and ambient-light modes without replacing day settings.
++
+ config EXAMPLES_VELARIDE_PRIORITY
+ 	int "Task priority"
+ 	default 100

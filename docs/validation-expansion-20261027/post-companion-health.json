@@ -1,0 +1,10 @@
+{
+  "input0": true,
+  "velaride_task": true,
+  "nsh_prompt": true,
+  "touch_error": false,
+  "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=67,-82,-983 up=0.99 err=0 sleeps=3 raises=0 idle=29720ms",
+  "wake_ok": true,
+  "sfbl": 0,
+  "passed": true
+}

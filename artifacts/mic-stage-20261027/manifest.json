@@ -1,0 +1,35 @@
+{
+  "stage": "2 - microphone on rc17 baseline",
+  "date": "2026-10-27",
+  "firmware": {
+    "file": "firmware.bin",
+    "bytes": 9584672,
+    "sha256": "31610eb17fe7ecbe20167654e1aaa95d056f6c1f9755a935e1c05006da0f24a8",
+    "build_time": "Oct 26 2026 18:43:03"
+  },
+  "config_sha256": "3b9a0a34bd4acd1d7c1e58ab23dca657609751dff7e755afc126a932e04995e3",
+  "parent": {
+    "reconstructed_rc17_sha256": "f1226911281ba6fe72cb0af04bf84bae785c1f89a0bfa6cf0dfc67f1b3511cd0",
+    "original_rc17_sha256": "b04d766146ac6c9b9dda8c7a9e276afdf7e007d5f49b8dba4adfcb7a51c1d81d",
+    "config_identical_to_parent": true
+  },
+  "change": "adds NSH command mic_test (mic_test.c, audio_test_lock.c, audio_test.h) and its CMake registration; no boot-time execution; no playback",
+  "stage_source_sha256": {
+    "audio_test.h": "3977695ab9c5d66527a6add8cbee2acd1f34c76b5c071050c008f3a658e345a9",
+    "audio_test_lock.c": "060f1ad48ab814cc701b6b84dd8816380a4cd7e86786cd9014ebe60a682bdae8",
+    "build_microphone_stage.sh": "548333a58deee7bad69ef4dc37c801f3e0323a8b040e172a3cdb493dedc26355",
+    "mic_test.c": "10ca47120d24e28a5fb9823c59a75421e2c94a5584b83b0a8f0ae59686c94df6"
+  },
+  "evidence": {
+    "rts_reset_x5": "PASSED (08-mic-only-reset-x5.json)",
+    "user_hands_on": "2026-10-27 user: swipe and raise-to-wake normal; nav-stats 7 swipes avg 51.9 Hz max_gap 49 ms slow 0; raises counted",
+    "voice": "take2 5 s, peak 1658, rms 44.8, checksum aa54eb45; user listened to 7.2x preview: can hear clearly",
+    "after_recording": "no reboot, /dev/input0 present, raise wake still works, ride record 11 intact"
+  },
+  "not_covered": [
+    "30 min idle",
+    "full cold power cycle",
+    "BLE advertising paused during capture (captured with advertising on)"
+  ],
+  "hardware_note": "Before this stage user fixed the screen-side FPC cable by hand."
+}

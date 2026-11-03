@@ -1,0 +1,24 @@
+{
+  "stage": "sound service candidate",
+  "parent_firmware_sha256": "980353fbf0b53d009882e1fe04770539aceba7f5639508d65ed94116c79ade54",
+  "firmware_sha256": "93d3692d6273440a84a90f157dce58d8ed15f0d539334453c32b7c36e8d22f74",
+  "firmware_bytes": 9756932,
+  "config_only_change": "CONFIG_EXAMPLES_VELARIDE_SOUND=y",
+  "files": {
+    "app-source.tar.gz": "84068b5e8786923bc3f695c07192ac31d0838fd1dde343a135f75530ab71d2a1",
+    "board-source.tar.gz": "4488b40ced6f71a7c4f49616838df1c105545712aacb8680045df33cf5bfe243",
+    "build_sound_stage.sh": "6814c2174d457afffc5e399da91e55c36983b68da6da4af7726ee7305ea55a46",
+    "config": "8ec99a90167769b1b213b5b34499fef7a2d7b12822c684182702a76e9fd1d331",
+    "firmware.bin": "93d3692d6273440a84a90f157dce58d8ed15f0d539334453c32b7c36e8d22f74",
+    "sound-assets.json": "fa2af0bf318ded97fc3fb33f21130fdcc5b3a5affd1bcf30f99c0861d4567c0d",
+    "sound.patch": "35abc8b037037aba06f398f18e7a1d267d4c6641666ee31bd545a221308d4636"
+  },
+  "source_note": "Exact candidate app and board files on preserved alarm-stage tree; full bit-identical rebuild remains affected by original JIDL generation/timestamps.",
+  "audio_policy": "PCM peak <6000; DAC gain restricted to 0 or +3 dB; silent default, DND and cancellation; alarm <=10 s; PA off on cleanup",
+  "validation": {
+    "host": "ASan/UBSan service and backend-failure tests passed; real LVGL sound settings and countdown event wiring passed",
+    "hardware": "pending",
+    "user_listening": "v5 3/2/1/go user: ??????; old ???? first syllable unclear; new ride phrase pending"
+  },
+  "revision": "speech v6: ride announcement changed to ??????; seven other clips unchanged; v5 gain and pre-roll retained"
+}

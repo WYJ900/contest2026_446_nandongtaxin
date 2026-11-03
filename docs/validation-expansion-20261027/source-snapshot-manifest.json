@@ -1,0 +1,51 @@
+{
+  "created_at": "2026-10-27T06:17:09.091668+00:00",
+  "source": "/home/wyj/velaride_speaker_stage",
+  "status": "Verified archive of current source tree; clean rebuild not yet verified",
+  "firmware_sha256": "23ea7b74e6f6aa4bbe9c2e9e925b034eed1ef1cf5a37fa255f2f105222068941",
+  "source_entries": 202311,
+  "source_bytes": 3896767573,
+  "archive_payloads_verified": 202311,
+  "git_heads": {},
+  "exclusions": [
+    ".git metadata",
+    "cmake_out (selected build files saved separately)"
+  ],
+  "external_symlinks": [],
+  "limitations": [
+    "Toolchain and host packages are external and not archived.",
+    "External symlink targets are not included.",
+    "This archive is not evidence of a clean or bit-identical rebuild.",
+    "Hardware acceptance is recorded separately in expansion-20261027."
+  ],
+  "files": {
+    ".config": {
+      "bytes": 111710,
+      "sha256": "3b9a0a34bd4acd1d7c1e58ab23dca657609751dff7e755afc126a932e04995e3"
+    },
+    "CMakeCache.txt": {
+      "bytes": 20980,
+      "sha256": "131e7e1c65e2a601c884e36dd2fd93df50664967439d7fd4fa8a7de3187fe78a"
+    },
+    "build.ninja": {
+      "bytes": 13403574,
+      "sha256": "d6cce44e09de225849081e70681267293d5e5f0c7ff29e255d29b66a337b472f"
+    },
+    "nuttx": {
+      "bytes": 127548692,
+      "sha256": "0ea881006f1d8cc0008a7ff5ed4bb1d060e02001b4cc046f5c383a297a505834"
+    },
+    "nuttx.bin": {
+      "bytes": 9592552,
+      "sha256": "23ea7b74e6f6aa4bbe9c2e9e925b034eed1ef1cf5a37fa255f2f105222068941"
+    },
+    "source-inventory.json": {
+      "bytes": 41583324,
+      "sha256": "0745d6217910852582d42a8ea63835a39f6483f9aae7f3c121a8889ec9dd1298"
+    },
+    "source.tar.gz": {
+      "bytes": 1690753233,
+      "sha256": "f2f16eac9b04bcc600c6266e154486668d4973a0915519afb16bb58b3af7939f"
+    }
+  }
+}

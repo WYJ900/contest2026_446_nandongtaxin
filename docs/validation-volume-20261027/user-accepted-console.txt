@@ -1,0 +1,17 @@
+
+COMMAND: velaride sound status
+velaride sound status
+VELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=7 cancelled=2 skipped=0 hw=0 ret=0
+nsh> [K
+COMMAND: velaride nav-stats
+velaride nav-stats
+VELARIDE_NAV_STATS: mode=slide swipes=17 frames=169 avg=53.6Hz max_gap=54ms slow=2
+VELARIDE_NAV_STATS: mode=blinds swipes=0 frames=0 avg=0.0Hz max_gap=0ms slow=0
+VELARIDE_NAV_STATS: mode=iris swipes=0 frames=0 avg=0.0Hz max_gap=0ms slow=0
+VELARIDE_MENU_STATS: style=honey moves=0 frames=0 avg=0.0Hz max_gap=0ms slow=0
+VELARIDE_MENU_STATS: style=list moves=2 frames=52 avg=37.7Hz max_gap=230ms slow=1
+nsh> [K
+COMMAND: velaride wake-status
+velaride wake-status
+VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=63,-88,-982 up=0.99 err=0 sleeps=3 raises=0 idle=31770ms
+nsh> [K

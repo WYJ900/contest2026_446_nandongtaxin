@@ -1,0 +1,324 @@
+--- a/velaride_ble.c
++++ b/velaride_ble.c
+@@ -213,6 +213,7 @@
+ {
+   struct velaride_ride_snapshot_s ride;
+   struct velaride_ride_record_s record;
++  struct velaride_ride_gps_s gps;
+   char cmd[32];
+   char review[384];
+   char response[640];
+@@ -289,6 +290,7 @@
+       phone_valid = velaride_ride_session_get_phone_data(&phone_speed,
+                                                        &phone_distance);
+       velaride_ride_session_get(&ride);
++      velaride_ride_session_get_gps(&gps);
+       ret = velaride_ride_session_load_latest(&record);
+       snprintf(response, sizeof(response),
+                "{\"ok\":true,\"event\":\"ride_status\","
+@@ -297,13 +299,15 @@
+                "\"still_s\":%" PRIu32 ",\"impacts\":%u,"
+                "\"pause_count\":%u,\"rest_count\":%u,"
+                "\"latest_sequence\":%" PRIu32 ",\"phone_valid\":%s,"
+-               "\"speed_kmh\":%.2f,\"distance_km\":%.3f}",
++               "\"speed_kmh\":%.2f,\"distance_km\":%.3f,"
++               "\"ride_gps_time_ms\":%" PRIu32 ",\"ride_distance_m\":%" PRIu32 "}",
+                ride.active ? "true" : "false",
+                ride.paused ? "true" : "false", ride.motion,
+                ride.elapsed_s, ride.moving_s, ride.still_s,
+                ride.impact_count, ride.pause_count, ride.rest_count,
+                ret == 0 ? record.sequence : 0,
+-               phone_valid ? "true" : "false", phone_speed, phone_distance);
++               phone_valid ? "true" : "false", phone_speed, phone_distance,
++               gps.time_ms, gps.distance_m);
+       velaride_notify_json(conn, response);
+     }
+   else if (strcmp(cmd, "ride_latest") == 0)
+@@ -321,10 +325,13 @@
+                "\"sequence\":%" PRIu32 ",\"active\":false,"
+                "\"elapsed_s\":%" PRIu32 ",\"moving_s\":%" PRIu32 ","
+                "\"still_s\":%" PRIu32 ",\"impacts\":%u,"
+-               "\"pause_count\":%u,\"rest_count\":%u}",
++               "\"pause_count\":%u,\"rest_count\":%u,"
++               "\"gps_time_ms\":%" PRIu32 ",\"gps_distance_m\":%" PRIu32 ","
++               "\"gps_avg_centi\":%" PRIu32 ",\"gps_max_centi\":%" PRIu32 "}",
+                record.sequence, record.elapsed_s, record.moving_s,
+                record.still_s, record.impact_count, record.pause_count,
+-               record.rest_count);
++               record.rest_count, record.gps.time_ms, record.gps.distance_m,
++               record.gps.avg_speed_centi, record.gps.max_speed_centi);
+       velaride_notify_json(conn, response);
+     }
+   else if (strcmp(cmd, "ride_review") == 0)
+--- a/velaride_ride_session.c
++++ b/velaride_ride_session.c
+@@ -26,7 +26,7 @@
+ #include "velaride_ride_session.h"
+ 
+ #define RIDE_RECORD_MAGIC 0x564c5244u
+-#define RIDE_RECORD_VERSION 1
++#define RIDE_RECORD_VERSION 2
+ #define RIDE_RECORD_KEY "persist.velaride.latest"
+ #define RIDE_REVIEW_MAGIC 0x56525256u
+ #define RIDE_REVIEW_VERSION 1
+@@ -86,6 +86,66 @@
+ 
+ static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
+ 
++/* BLE only touches this accumulator while holding g_phone_lock. Lifecycle
++ * changes invalidate the anchor so pre-start, paused and missing segments
++ * cannot be attached to a later ride. */
++
++static struct
++{
++  bool running;
++  bool anchor;
++  uint64_t last_ms;
++  double last_km;
++  double distance_km;
++  double max_speed;
++  uint32_t time_ms;
++} g_ride_gps;
++
++/* Exact original record layout, including ABI padding, for read-only V1
++ * migration. Do not reinterpret an enlarged V2 record as V1. */
++
++struct ride_record_v1_s
++{
++  uint32_t sequence;
++  int64_t start_epoch;
++  int64_t end_epoch;
++  uint32_t elapsed_s;
++  uint32_t moving_s;
++  uint32_t still_s;
++  uint16_t pause_count;
++  uint16_t impact_count;
++  uint16_t rest_count;
++};
++
++struct ride_record_disk_v1_s
++{
++  uint32_t magic;
++  uint16_t version;
++  uint16_t size;
++  struct ride_record_v1_s record;
++  uint32_t crc32;
++};
++
++static void ride_gps_snapshot(struct velaride_ride_gps_s *gps)
++{
++  memset(gps, 0, sizeof(*gps));
++  if (g_ride_gps.time_ms > 0)
++    {
++      gps->distance_m = (uint32_t)(g_ride_gps.distance_km * 1000.0 + 0.5);
++      gps->time_ms = g_ride_gps.time_ms;
++      gps->avg_speed_centi = (uint32_t)(g_ride_gps.distance_km *
++                                      360000000.0 / gps->time_ms + 0.5);
++      gps->max_speed_centi = (uint32_t)(g_ride_gps.max_speed * 100.0 + 0.5);
++    }
++}
++
++void velaride_ride_session_get_gps(struct velaride_ride_gps_s *gps)
++{
++  pthread_mutex_lock(&g_phone_lock);
++  ride_gps_snapshot(gps);
++  pthread_mutex_unlock(&g_phone_lock);
++}
++
+ struct ride_record_disk_s
+ {
+   uint32_t magic;
+@@ -237,6 +297,11 @@
+ void velaride_ride_session_start_with_goal(uint32_t goal_s)
+ {
+   bool sensor_ready = g_ride.state.sensor_ready;
++
++  pthread_mutex_lock(&g_phone_lock);
++  memset(&g_ride_gps, 0, sizeof(g_ride_gps));
++  g_ride_gps.running = true;
++  pthread_mutex_unlock(&g_phone_lock);
+ 
+   memset(&g_ride.state, 0, sizeof(g_ride.state));
+   g_ride.state.active = true;
+@@ -267,6 +332,10 @@
+     }
+ 
+   g_ride.state.paused = paused;
++  pthread_mutex_lock(&g_phone_lock);
++  g_ride_gps.running = !paused;
++  g_ride_gps.anchor = false;
++  pthread_mutex_unlock(&g_phone_lock);
+   g_ride.consecutive_still_s = 0;
+   g_ride.post_impact_still_s = 0;
+   g_ride.impact_pending = false;
+@@ -471,6 +540,12 @@
+   latest.impact_count = g_ride.state.impact_count;
+   latest.rest_count = g_ride.state.rest_count;
+ 
++  pthread_mutex_lock(&g_phone_lock);
++  g_ride_gps.running = false;
++  g_ride_gps.anchor = false;
++  ride_gps_snapshot(&latest.gps);
++  pthread_mutex_unlock(&g_phone_lock);
++
+   g_ride.state.active = false;
+   ret = velaride_ride_session_save_record(&latest);
+ 
+@@ -494,6 +569,30 @@
+ 
+   memset(&disk, 0, sizeof(disk));
+   ret = property_get_buffer(RIDE_RECORD_KEY, &disk, sizeof(disk));
++  if (ret == sizeof(struct ride_record_disk_v1_s) &&
++      disk.magic == RIDE_RECORD_MAGIC && disk.version == 1 &&
++      disk.size == sizeof(struct ride_record_disk_v1_s))
++    {
++      struct ride_record_disk_v1_s old;
++      memcpy(&old, &disk, sizeof(old));
++      if (old.crc32 != ride_crc32(&old,
++                                 offsetof(struct ride_record_disk_v1_s, crc32)))
++        {
++          return -EBADMSG;
++        }
++
++      if (record != NULL)
++        {
++          memset(record, 0, sizeof(*record));
++          /* Copy the unchanged prefix only, never V1's trailing padding. */
++          memcpy(record, &old.record,
++                 offsetof(struct ride_record_v1_s, rest_count) +
++                 sizeof(old.record.rest_count));
++        }
++
++      return 0;
++    }
++
+   if (ret != sizeof(disk) || disk.magic != RIDE_RECORD_MAGIC ||
+       disk.version != RIDE_RECORD_VERSION || disk.size != sizeof(disk))
+     {
+@@ -503,6 +602,16 @@
+   expected = ride_crc32(&disk,
+                         offsetof(struct ride_record_disk_s, crc32));
+   if (expected != disk.crc32)
++    {
++      return -EBADMSG;
++    }
++
++  if (disk.record.gps.avg_speed_centi > 20000 ||
++      disk.record.gps.max_speed_centi > 20000 ||
++      (disk.record.gps.time_ms == 0 &&
++       (disk.record.gps.distance_m != 0 ||
++        disk.record.gps.avg_speed_centi != 0 ||
++        disk.record.gps.max_speed_centi != 0)))
+     {
+       return -EBADMSG;
+     }
+@@ -553,6 +662,7 @@
+       clock_gettime(CLOCK_MONOTONIC, &now) < 0)
+     {
+       memset(&g_phone_data, 0, sizeof(g_phone_data));
++      g_ride_gps.anchor = false;
+       pthread_mutex_unlock(&g_phone_lock);
+       return;
+     }
+@@ -562,6 +672,31 @@
+   g_phone_data.updated_ms = (uint64_t)now.tv_sec * 1000 +
+                             now.tv_nsec / 1000000;
+   g_phone_data.valid = true;
++  if (g_ride_gps.running)
++    {
++      uint64_t ms = g_phone_data.updated_ms;
++      double delta = distance_km - g_ride_gps.last_km;
++      uint64_t dt = ms >= g_ride_gps.last_ms ?
++                    ms - g_ride_gps.last_ms : 0;
++
++      if (g_ride_gps.anchor && dt > 0 && dt < 15000 && delta >= 0 &&
++          delta * 3600000.0 / dt <= 200.0 &&
++          dt <= UINT32_MAX - g_ride_gps.time_ms &&
++          g_ride_gps.distance_km + delta <= UINT32_MAX / 1000.0)
++        {
++          g_ride_gps.distance_km += delta;
++          g_ride_gps.time_ms += dt;
++        }
++
++      if (speed_kmh > g_ride_gps.max_speed)
++        {
++          g_ride_gps.max_speed = speed_kmh;
++        }
++
++      g_ride_gps.last_ms = ms;
++      g_ride_gps.last_km = distance_km;
++      g_ride_gps.anchor = true;
++    }
+   pthread_mutex_unlock(&g_phone_lock);
+ }
+ 
+@@ -569,6 +704,7 @@
+ {
+   pthread_mutex_lock(&g_phone_lock);
+   memset(&g_phone_data, 0, sizeof(g_phone_data));
++  g_ride_gps.anchor = false;
+   pthread_mutex_unlock(&g_phone_lock);
+ }
+ 
+--- a/velaride_ride_session.h
++++ b/velaride_ride_session.h
+@@ -43,6 +43,14 @@
+   bool goal_reached;
+ };
+ 
++struct velaride_ride_gps_s
++{
++  uint32_t distance_m;
++  uint32_t time_ms;
++  uint32_t avg_speed_centi;
++  uint32_t max_speed_centi;
++};
++
+ struct velaride_ride_record_s
+ {
+   uint32_t sequence;
+@@ -54,6 +62,7 @@
+   uint16_t pause_count;
+   uint16_t impact_count;
+   uint16_t rest_count;
++  struct velaride_ride_gps_s gps;
+ };
+ 
+ int velaride_ride_session_init(void);
+@@ -71,6 +80,7 @@
+ void velaride_ride_session_second_tick(void);
+ int velaride_ride_session_finish(struct velaride_ride_record_s *record);
+ void velaride_ride_session_get(struct velaride_ride_snapshot_s *snapshot);
++void velaride_ride_session_get_gps(struct velaride_ride_gps_s *gps);
+ void velaride_ride_session_ack_alert(void);
+ int velaride_ride_session_load_latest(struct velaride_ride_record_s *record);
+ int velaride_ride_session_save_record(
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -1411,6 +1411,26 @@
+   stat_cell(scroll, 208, y + 140, "记录编号", value);
+ 
+   y += 218;
++  if (rec->gps.time_ms > 0)
++    {
++      snprintf(text, sizeof(text), "GPS  %.2f km", rec->gps.distance_m / 1000.0);
++      left_label(scroll, text, ACCENT_COLOR, &velaride_font_cn_20, 40, y);
++      snprintf(text, sizeof(text), "平均 %.2f / 最高 %.2f km/h",
++               rec->gps.avg_speed_centi / 100.0,
++               rec->gps.max_speed_centi / 100.0);
++      left_label(scroll, text, TEXT_COLOR, &velaride_font_cn_20, 40, y + 30);
++      snprintf(text, sizeof(text), "GPS 采样时长 %lu s",
++               (unsigned long)(rec->gps.time_ms / 1000));
++      left_label(scroll, text, MUTED_COLOR, &velaride_font_cn_20, 40, y + 60);
++      y += 100;
++    }
++  else
++    {
++      left_label(scroll, "GPS  --", MUTED_COLOR,
++                 &velaride_font_cn_20, 40, y);
++      y += 40;
++    }
++
+   card = lv_obj_create(scroll);
+   lv_obj_remove_style_all(card);
+   lv_obj_set_pos(card, 22, y);

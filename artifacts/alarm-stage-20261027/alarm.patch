@@ -1,0 +1,379 @@
+--- a/velaride_shell.c
++++ b/velaride_shell.c
+@@ -44,6 +44,9 @@
+ #include "velaride_theme.h"
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+ #include "velaride_countdown.h"
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++#include "velaride_alarm.h"
+ #endif
+ 
+ #ifdef CONFIG_LV_USE_NUTTX_LIBUV
+@@ -249,6 +252,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   APP_COUNTDOWN,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  APP_ALARM,
++#endif
+   APP_COUNT
+ };
+ 
+@@ -279,6 +285,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   {"倒计时", VR_ICON_TIMER, 0xc98536, -2, 1},
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  {"闹钟", VR_ICON_TIMER, 0xc95c54, -2, 0},
++#endif
+ };
+ 
+ enum cc_item_e
+@@ -315,6 +324,9 @@
+   NOTE_LINK_DOWN,
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   NOTE_COUNTDOWN,
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  NOTE_ALARM,
+ #endif
+   NOTE_KIND_COUNT
+ };
+@@ -409,7 +421,7 @@
+ static void screen_wake(bool raise);
+ static void note_tap(lv_point_t point);
+ static void note_watch(void);
+-#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++#if defined(CONFIG_EXAMPLES_VELARIDE_COUNTDOWN) || defined(CONFIG_EXAMPLES_VELARIDE_ALARM)
+ static void note_post(enum note_kind_e kind);
+ #endif
+ 
+@@ -2410,6 +2422,15 @@
+ static void data_timer_cb(lv_timer_t *timer)
+ {
+   LV_UNUSED(timer);
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  velaride_alarm_tick(time(NULL));
++  if (!g_nav.dragging && !g_nav.transition_active &&
++      velaride_alarm_take_due())
++    {
++      note_post(NOTE_ALARM);
++      printf("VELARIDE_ALARM: completed notification=1\n");
++    }
++#endif
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   /* Keep running outside the page and while the screen is dark. Defer the
+    * banner during a drag/transition so it cannot replace a moving scene.
+@@ -3189,6 +3210,10 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   [NOTE_COUNTDOWN] = {"倒计时结束", "时间到，点击查看",
+                       VR_ICON_TIMER, 0xc98536, APP_COUNTDOWN},
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  [NOTE_ALARM] = {"闹钟提醒", "已到设定时间，点击查看",
++                  VR_ICON_TIMER, 0xc95c54, APP_ALARM},
+ #endif
+ };
+ 
+@@ -3564,6 +3589,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+     [APP_COUNTDOWN] = VELARIDE_INFO_COUNTDOWN,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++    [APP_ALARM] = VELARIDE_INFO_ALARM,
++#endif
+   };
+   bool from_menu = g_menu.active;
+ 
+@@ -4312,6 +4340,59 @@
+              " remaining_ms=%" PRIu32 " completions=%" PRIu32 " ret=%d\n",
+              countdown.state, countdown.duration_s, countdown.remaining_ms,
+              countdown.completions, status);
++      return status == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
++    }
++#endif
++
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  if (argc > 1 && strcmp(argv[1], "alarm") == 0)
++    {
++      struct velaride_alarm_s alarm;
++      int status = 0;
++      velaride_alarm_get(&alarm);
++      if (argc == 5 && strcmp(argv[2], "set") == 0)
++        {
++          char *end;
++          unsigned long hour;
++          unsigned long minute;
++          errno = 0;
++          hour = strtoul(argv[3], &end, 10);
++          if (errno || end == argv[3] || *end || hour > 23)
++            {
++              return EXIT_FAILURE;
++            }
++          minute = strtoul(argv[4], &end, 10);
++          if (errno || end == argv[4] || *end || minute > 59)
++            {
++              return EXIT_FAILURE;
++            }
++          status = velaride_alarm_set(hour, minute, true, time(NULL));
++        }
++      else if (argc == 3 && strcmp(argv[2], "off") == 0)
++        {
++          status = velaride_alarm_set(alarm.hour, alarm.minute, false,
++                                      time(NULL));
++        }
++      else if (argc == 3 && strcmp(argv[2], "confirm") == 0)
++        {
++          status = velaride_alarm_set(alarm.hour, alarm.minute, true,
++                                      time(NULL));
++        }
++      else if (argc == 3 && strcmp(argv[2], "ack") == 0)
++        {
++          velaride_alarm_ack();
++        }
++      else if (argc != 2 && !(argc == 3 && strcmp(argv[2], "status") == 0))
++        {
++          printf("usage: velaride alarm [status|set HH MM|off|confirm|ack]\n");
++          return EXIT_FAILURE;
++        }
++      velaride_alarm_get(&alarm);
++      printf("VELARIDE_ALARM: hour=%u minute=%u enabled=%d confirm=%d "
++             "saving=%d error=%d ringing=%d completions=%" PRIu32 " ret=%d\n",
++             alarm.hour, alarm.minute, alarm.enabled, alarm.needs_confirmation,
++             alarm.saving, alarm.save_error, alarm.ringing, alarm.completions,
++             status);
+       return status == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+     }
+ #endif
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -21,6 +21,9 @@
+ #include "velaride_theme.h"
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+ #include "velaride_countdown.h"
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++#include "velaride_alarm.h"
+ #endif
+ 
+ #define SPORT_W 390
+@@ -111,6 +114,11 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   lv_obj_t *countdown_adjust[6];
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  lv_obj_t *alarm_adjust[4];
++  uint8_t alarm_hour;
++  uint8_t alarm_minute;
++#endif
+   uint32_t sw_acc_ms;
+   uint32_t sw_start;
+   uint32_t sw_laps[3];
+@@ -2055,12 +2063,132 @@
+ }
+ #endif
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++static void update_alarm(void)
++{
++  struct velaride_alarm_s alarm;
++  char text[16];
++  int i;
++  velaride_alarm_get(&alarm);
++  snprintf(text, sizeof(text), "%02u:%02u", g_sport.alarm_hour,
++           g_sport.alarm_minute);
++  set_label(g_sport.time_label, text);
++  set_label(g_sport.status_label, alarm.saving ? "正在保存" :
++            alarm.save_error != 0 ? "保存失败，请重试" :
++            alarm.ringing ? "时间到了" :
++            alarm.needs_confirmation ? "请先核对右上角时间" :
++            (alarm.hour != g_sport.alarm_hour ||
++             alarm.minute != g_sport.alarm_minute) ? "尚未保存" :
++            alarm.enabled ? "每天提醒 · 已开启" : "已关闭");
++  set_label(lv_obj_get_child(g_sport.setting_buttons[0], 0),
++            alarm.needs_confirmation ? "确认时间并开启" :
++            alarm.save_error != 0 ? "重试保存" : "保存并开启");
++  set_label(lv_obj_get_child(g_sport.setting_buttons[1], 0),
++            alarm.ringing ? "知道了" : "关闭闹钟");
++  for (i = 0; i < 6; i++)
++    {
++      lv_obj_t *obj = i < 4 ? g_sport.alarm_adjust[i] :
++                              g_sport.setting_buttons[i - 4];
++      if (alarm.saving)
++        {
++          lv_obj_add_state(obj, LV_STATE_DISABLED);
++        }
++      else
++        {
++          lv_obj_remove_state(obj, LV_STATE_DISABLED);
++        }
++    }
++}
++
++static void alarm_action_cb(lv_event_t *event)
++{
++  intptr_t action = (intptr_t)lv_event_get_user_data(event);
++  struct velaride_alarm_s alarm;
++  velaride_alarm_get(&alarm);
++  if (alarm.saving)
++    {
++      return;
++    }
++  switch (action)
++    {
++      case 0:
++        g_sport.alarm_hour = (g_sport.alarm_hour + 23) % 24;
++        break;
++      case 1:
++        g_sport.alarm_hour = (g_sport.alarm_hour + 1) % 24;
++        break;
++      case 2:
++        g_sport.alarm_minute = (g_sport.alarm_minute + 59) % 60;
++        break;
++      case 3:
++        g_sport.alarm_minute = (g_sport.alarm_minute + 1) % 60;
++        break;
++      case 4:
++        if (velaride_alarm_set(g_sport.alarm_hour, g_sport.alarm_minute,
++                               true, time(NULL)) < 0)
++          {
++            set_label(g_sport.status_label, "请先校准手表时间");
++            return;
++          }
++        break;
++      case 5:
++        if (alarm.ringing)
++          {
++            velaride_alarm_ack();
++          }
++        else
++          {
++            velaride_alarm_set(alarm.hour, alarm.minute, false, time(NULL));
++          }
++        break;
++    }
++  update_alarm();
++}
++
++static void build_alarm(void)
++{
++  struct velaride_alarm_s alarm;
++  static const char *names[] = {"时 -", "时 +", "分 -", "分 +"};
++  int i;
++  velaride_alarm_get(&alarm);
++  g_sport.alarm_hour = alarm.hour;
++  g_sport.alarm_minute = alarm.minute;
++  g_sport.time_label = label(g_sport.root, "07:00", TEXT_COLOR,
++                             &velaride_num_60, 18, 115, 354);
++  g_sport.status_label = label(g_sport.root, "", ACCENT_COLOR,
++                               &velaride_font_cn_20, 18, 195, 354);
++  label(g_sport.root, "每天一次 · 亮屏提醒 · 静音", MUTED_COLOR,
++        &velaride_font_cn_20, 18, 235, 354);
++  for (i = 0; i < 4; i++)
++    {
++      g_sport.alarm_adjust[i] = button(names[i], BTN_TILE, 18 + i * 89,
++                                      274, 87, 44, alarm_action_cb, i);
++      lv_obj_add_event_cb(g_sport.alarm_adjust[i], alarm_action_cb,
++                          LV_EVENT_LONG_PRESSED_REPEAT, (void *)(intptr_t)i);
++    }
++  g_sport.setting_buttons[0] = button("保存并开启", BTN_PRIMARY, 40, 334,
++                                      310, 48, alarm_action_cb, 4);
++  g_sport.setting_buttons[1] = button("关闭闹钟", BTN_SECONDARY, 100, 394,
++                                      190, 40, alarm_action_cb, 5);
++  update_alarm();
++}
++#endif
++
+ static void update_info(void)
+ {
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   if (g_sport.info == VELARIDE_INFO_COUNTDOWN)
+     {
++      update_clock();
+       update_countdown();
++      return;
++    }
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  if (g_sport.info == VELARIDE_INFO_ALARM)
++    {
++      update_clock();
++      update_alarm();
+       return;
+     }
+ #endif
+@@ -2731,6 +2859,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+      , "倒计时"
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++     , "闹钟"
++#endif
+     };
+ 
+   if (g_sport.root == NULL || g_sport.session_started ||
+@@ -2752,6 +2883,13 @@
+   if (info == VELARIDE_INFO_COUNTDOWN)
+     {
+       build_countdown();
++    }
++  else
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  if (info == VELARIDE_INFO_ALARM)
++    {
++      build_alarm();
+     }
+   else
+ #endif
+--- a/velaride_sport_ui.h
++++ b/velaride_sport_ui.h
+@@ -29,6 +29,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   VELARIDE_INFO_COUNTDOWN,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  VELARIDE_INFO_ALARM,
++#endif
+ };
+ 
+ void velaride_sport_ui_init(lv_obj_t *screen,
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -13,6 +13,9 @@
+   set(VELARIDE_TITLE_FONT velaride_font_cn_28.c)
+   if(CONFIG_EXAMPLES_VELARIDE_COUNTDOWN)
+     set(VELARIDE_TITLE_FONT velaride_font_countdown_28.c)
++  endif()
++  if(CONFIG_EXAMPLES_VELARIDE_ALARM)
++    set(VELARIDE_TITLE_FONT velaride_font_alarm_28.c)
+   endif()
+   nuttx_add_application(
+     NAME
+@@ -45,6 +48,9 @@
+   if(CONFIG_EXAMPLES_VELARIDE_COUNTDOWN)
+     target_sources(apps_velaride PRIVATE velaride_countdown.c)
+   endif()
++  if(CONFIG_EXAMPLES_VELARIDE_ALARM)
++    target_sources(apps_velaride PRIVATE velaride_alarm.c)
++  endif()
+ 
+   if(CONFIG_BT AND CONFIG_BT_GATT_DYNAMIC_DB)
+     nuttx_add_application(
+--- a/Kconfig
++++ b/Kconfig
+@@ -28,6 +28,13 @@
+ 		Monotonic countdown with pause/resume and a visual notification.
+ 		Runs independently of the ride timer. No audio or phone is required.
+ 
++config EXAMPLES_VELARIDE_ALARM
++	bool "Daily visual alarm"
++	default n
++	---help---
++		Save an alarm time locally and show a daily visual notification.
++		The alarm requires clock confirmation after each reboot.
++
+ config EXAMPLES_VELARIDE_PROGNAME
+ 	string "Program name"
+ 	default "velaride"

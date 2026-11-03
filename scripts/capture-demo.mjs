@@ -1,4 +1,4 @@
-// 用本机 Chrome 的无头模式驱动 VelaRide Web 网关，验证「生成复盘」拿到的是真实
+// 用本机 Chrome 的无头模式加载归档历史样例，验证「生成复盘」拿到的是真实
 // MiMo 原文，而不是本地降级文本。输出 1600x1000 的 PNG 供人工核对与录屏参考。
 //
 //   node scripts/capture-demo.mjs [--out <dir>] [--url http://127.0.0.1:4173]
@@ -145,7 +145,7 @@ async function main() {
       throw new Error('服务端报告 ai=fallback，未配置 MiMo 凭据，拒绝出图');
     }
 
-    await evaluate(session, 'document.getElementById("demoButton").click(); true');
+    await evaluate(session, 'document.getElementById("sampleButton").click(); true');
     await sleep(600);
     const prefilled = await evaluate(session, 'JSON.stringify({'
       + 'elapsed: document.getElementById("elapsedInput").value,'

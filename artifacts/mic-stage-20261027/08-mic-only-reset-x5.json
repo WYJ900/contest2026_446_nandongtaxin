@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "cycles": [
+    {
+      "cycle": 1,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true,
+      "touch_error": false,
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=23,-38,-990 up=1.00 err=0 sleeps=1 raises=0 idle=21210ms"
+    },
+    {
+      "cycle": 2,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true,
+      "touch_error": false,
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=22,-41,-988 up=1.00 err=0 sleeps=1 raises=0 idle=21164ms"
+    },
+    {
+      "cycle": 3,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true,
+      "touch_error": false,
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=22,-48,-987 up=1.00 err=0 sleeps=1 raises=0 idle=21164ms"
+    },
+    {
+      "cycle": 4,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true,
+      "touch_error": false,
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=23,-37,-985 up=1.00 err=0 sleeps=1 raises=0 idle=21167ms"
+    },
+    {
+      "cycle": 5,
+      "sfbl_during_boot": 1,
+      "sfbl_after_boot": 0,
+      "app_banner": true,
+      "touch_error": false,
+      "input0": true,
+      "velaride_task": true,
+      "nsh_prompt": true,
+      "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=21,-44,-989 up=1.00 err=0 sleeps=1 raises=0 idle=21170ms"
+    }
+  ]
+}

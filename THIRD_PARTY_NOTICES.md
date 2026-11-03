@@ -26,6 +26,10 @@
 中文位图由 Noto Sans SC 按需生成。Noto 字体采用 SIL Open Font License 1.1。
 本仓只包含编译所需的字形子集 C 数据，不包含原始字体文件。
 
+数字位图（`velaride_num_*.c`）由 Outfit 生成，Copyright 2021 The Outfit Project
+Authors，采用 SIL Open Font License 1.1，许可全文见 `app/velaride/OFL-Outfit.txt`。
+生成时把可变字体实例化为固定字重，并把数字替换为字体自带的等宽字形。
+
 ## Xiaomi MiMo
 
 Xiaomi MiMo 通过运行时 API 调用，不在仓库保存模型、Token 或服务端凭据。模型与

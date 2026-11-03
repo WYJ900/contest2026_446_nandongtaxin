@@ -61,6 +61,9 @@ apply_patch_file apps apps.patch
 apply_patch_file nuttx nuttx.patch
 apply_patch_file packages/ai_agent packages-ai-agent.patch
 apply_patch_file vendor/sifli vendor-sifli.patch
+apply_patch_file apps/graphics/lvgl/lvgl lvgl.patch
+apply_patch_file external/zblue/zblue zblue.patch
+apply_patch_file external external.patch
 
 install_overlay apps/system/libuv/nuttx_threadpool.c apps/system/libuv/nuttx_threadpool.c
 install_overlay vendor/sifli/chips/drivers/epic/drv_epic.c vendor/sifli/chips/drivers/epic/drv_epic.c

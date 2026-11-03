@@ -1,0 +1,633 @@
+--- a/velaride_shell.c
++++ b/velaride_shell.c
+@@ -47,6 +47,9 @@
+ #endif
+ #ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
+ #include "velaride_alarm.h"
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++#include "velaride_sound.h"
+ #endif
+ 
+ #ifdef CONFIG_LV_USE_NUTTX_LIBUV
+@@ -255,6 +258,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
+   APP_ALARM,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  APP_SOUND,
++#endif
+   APP_COUNT
+ };
+ 
+@@ -287,6 +293,9 @@
+ #endif
+ #ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
+   {"闹钟", VR_ICON_TIMER, 0xc95c54, -2, 0},
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  {"声音", VR_ICON_SOUND, 0x9571c9, -2, 2},
+ #endif
+ };
+ 
+@@ -3163,6 +3172,9 @@
+         break;
+       case CC_DND:
+         g_notes.dnd = !g_notes.dnd;
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++        velaride_sound_set_dnd(g_notes.dnd);
++#endif
+         break;
+       case CC_AUTO:
+         velaride_display_get(&display);
+@@ -3372,6 +3384,9 @@
+ {
+   int kind = (int)(intptr_t)lv_obj_get_user_data(lv_event_get_target(event));
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  velaride_sound_stop_alerts();
++#endif
+   lv_timer_pause(g_notes.banner_timer);
+   lv_obj_add_flag(g_notes.banner, LV_OBJ_FLAG_HIDDEN);
+   if (g_note_kinds[kind].app >= 0 && !velaride_sport_ui_active())
+@@ -3459,6 +3474,20 @@
+     {
+       screen_wake(false);
+       banner_show(kind);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++      if (kind == NOTE_ALARM)
++        {
++          velaride_sound_request(VR_SOUND_ALARM);
++        }
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++      if (kind == NOTE_COUNTDOWN)
++        {
++          velaride_sound_request(VR_SOUND_COUNTDOWN);
++        }
++#endif
++#endif
+     }
+ }
+ 
+@@ -3592,6 +3621,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
+     [APP_ALARM] = VELARIDE_INFO_ALARM,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++    [APP_SOUND] = VELARIDE_INFO_SOUND,
++#endif
+   };
+   bool from_menu = g_menu.active;
+ 
+@@ -3887,6 +3919,9 @@
+ 
+   g_menu.button_has_action = true;
+   g_menu.button_action_us = now;
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  velaride_sound_stop_alerts();
++#endif
+   if (g_wake.off)
+     {
+       screen_wake(false);
+@@ -4392,6 +4427,69 @@
+              "saving=%d error=%d ringing=%d completions=%" PRIu32 " ret=%d\n",
+              alarm.hour, alarm.minute, alarm.enabled, alarm.needs_confirmation,
+              alarm.saving, alarm.save_error, alarm.ringing, alarm.completions,
++             status);
++      return status == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
++    }
++#endif
++
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  if (argc > 1 && strcmp(argv[1], "sound") == 0)
++    {
++      struct velaride_sound_s sound;
++      int status = 0;
++      velaride_sound_get(&sound);
++      if (argc == 3 && strcmp(argv[2], "mute") == 0)
++        {
++          status = velaride_sound_set(false, sound.voice, sound.rings,
++                                      sound.volume);
++        }
++      else if (argc == 3 && strcmp(argv[2], "on") == 0)
++        {
++          status = velaride_sound_set(true, sound.voice, sound.rings,
++                                      sound.volume);
++        }
++      else if (argc == 3 && strcmp(argv[2], "stop") == 0)
++        {
++          velaride_sound_stop(VR_SOUND_NONE);
++        }
++      else if (argc == 4 && strcmp(argv[2], "volume") == 0 &&
++               (strcmp(argv[3], "soft") == 0 ||
++                strcmp(argv[3], "normal") == 0))
++        {
++          status = velaride_sound_set(sound.enabled, sound.voice, sound.rings,
++                                      strcmp(argv[3], "normal") == 0);
++        }
++      else if (argc == 4 && strcmp(argv[2], "play") == 0)
++        {
++          static const char *names[] = {"none", "ride", "3", "2", "1",
++            "go", "alarm", "countdown", "alarm-mode", "countdown-mode",
++            "stopwatch"};
++          int cue;
++          status = -EINVAL;
++          for (cue = 1; cue < VR_SOUND_CUE_COUNT; cue++)
++            {
++              if (strcmp(argv[3], names[cue]) == 0)
++                {
++                  status = velaride_sound_request(cue);
++                  break;
++                }
++            }
++        }
++      else if (argc != 2 && !(argc == 3 && strcmp(argv[2], "status") == 0))
++        {
++          printf("usage: velaride sound [status|mute|on|stop|"
++                 "volume soft/normal|play ride/3/2/1/go/alarm/countdown]\n");
++          return EXIT_FAILURE;
++        }
++      velaride_sound_get(&sound);
++      printf("VELARIDE_SOUND_STATUS: enabled=%d voice=%d rings=%d "
++             "volume=%u dnd=%d active=%d pending=%d saving=%d save_error=%d "
++             "error=%d completed=%lu cancelled=%lu skipped=%lu hw=%lu ret=%d\n",
++             sound.enabled, sound.voice, sound.rings, sound.volume, sound.dnd,
++             sound.active, sound.pending, sound.saving, sound.save_error,
++             sound.last_error, (unsigned long)sound.completed,
++             (unsigned long)sound.cancelled, (unsigned long)sound.skipped,
++             (unsigned long)velaride_sound_hardware_state(),
+              status);
+       return status == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+     }
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -6,6 +6,7 @@
+  ****************************************************************************/
+ 
+ #include <nuttx/config.h>
++#include <errno.h>
+ #include <inttypes.h>
+ #include <math.h>
+ #include <stdio.h>
+@@ -24,6 +25,9 @@
+ #endif
+ #ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
+ #include "velaride_alarm.h"
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++#include "velaride_sound.h"
+ #endif
+ 
+ #define SPORT_W 390
+@@ -119,6 +123,10 @@
+   uint8_t alarm_hour;
+   uint8_t alarm_minute;
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  uint8_t spoken_count;
++  lv_obj_t *sound_buttons[8];
++#endif
+   uint32_t sw_acc_ms;
+   uint32_t sw_start;
+   uint32_t sw_laps[3];
+@@ -262,6 +270,12 @@
+ 
+ static void clear_page_state(enum sport_page_e page)
+ {
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  if (g_sport.page == SPORT_PAGE_COUNTDOWN && page != SPORT_PAGE_COUNTDOWN)
++    {
++      velaride_sound_stop_voice();
++    }
++#endif
+   velaride_compass_enable(false);
+   if (g_sport.hold_timer != NULL)
+     {
+@@ -341,6 +355,9 @@
+ 
+ static void leave(void)
+ {
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  velaride_sound_stop_voice();
++#endif
+   velaride_compass_enable(false);
+   lv_timer_pause(g_sport.countdown_timer);
+   g_sport.page = SPORT_PAGE_HIDDEN;
+@@ -1090,11 +1107,24 @@
+       g_sport.ride_view = RIDE_VIEW_DATA;
+       lv_timer_reset(g_sport.session_timer);
+       show_active();
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++      velaride_sound_request(VR_SOUND_GO);
++#endif
+       return;
+     }
+ 
+   snprintf(text, sizeof(text), "%u",
+            (unsigned)((COUNTDOWN_MS - elapsed + 999) / 1000));
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  {
++    uint8_t count = (COUNTDOWN_MS - elapsed + 999) / 1000;
++    if (count != g_sport.spoken_count)
++      {
++        g_sport.spoken_count = count;
++        velaride_sound_request(count == 2 ? VR_SOUND_TWO : VR_SOUND_ONE);
++      }
++  }
++#endif
+   set_label(g_sport.time_label, text);
+   lv_arc_set_value(g_sport.hold_arc,
+                    (int32_t)((COUNTDOWN_MS - elapsed) * 100 / COUNTDOWN_MS));
+@@ -1134,6 +1164,10 @@
+         &velaride_font_cn_20, 18, 326, SPORT_W - 36);
+   button("取消", BTN_SECONDARY, 125, 366, 140, 50, back_cb, 0);
+   g_sport.countdown_start = lv_tick_get();
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  g_sport.spoken_count = 3;
++  velaride_sound_request(VR_SOUND_THREE);
++#endif
+   lv_timer_reset(g_sport.countdown_timer);
+   lv_timer_resume(g_sport.countdown_timer);
+ }
+@@ -2057,7 +2091,11 @@
+                                       50, countdown_action_cb, -3);
+   g_sport.setting_buttons[1] = button("取消", BTN_SECONDARY, 102, 370,
+                                       186, 44, countdown_action_cb, -4);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  label(g_sport.root, "到时亮屏 · 铃声按声音设置", MUTED_COLOR,
++#else
+   label(g_sport.root, "到时亮屏提示 · 静音", MUTED_COLOR,
++#endif
+         &velaride_font_cn_20, 18, 425, 354);
+   update_countdown();
+ }
+@@ -2157,7 +2195,11 @@
+                              &velaride_num_60, 18, 115, 354);
+   g_sport.status_label = label(g_sport.root, "", ACCENT_COLOR,
+                                &velaride_font_cn_20, 18, 195, 354);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  label(g_sport.root, "每天一次 · 铃声最长 10 秒", MUTED_COLOR,
++#else
+   label(g_sport.root, "每天一次 · 亮屏提醒 · 静音", MUTED_COLOR,
++#endif
+         &velaride_font_cn_20, 18, 235, 354);
+   for (i = 0; i < 4; i++)
+     {
+@@ -2174,6 +2216,95 @@
+ }
+ #endif
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++static void update_sound(void)
++{
++  struct velaride_sound_s sound;
++  char text[64];
++  int i;
++
++  velaride_sound_get(&sound);
++  set_label(g_sport.status_label, sound.save_error != 0 ? "设置保存失败，请重试" :
++            sound.saving ? "正在保存" : sound.dnd ? "勿扰中，声音已暂停" :
++            sound.enabled && sound.last_error == -EBUSY ? "音频正忙，稍后再试" :
++            sound.enabled && sound.last_error < 0 &&
++            sound.last_error != -ECANCELED ? "声音暂不可用，请重试" :
++            sound.enabled ? "闹钟铃声最多 10 秒" : "静音，保留亮屏提醒");
++  for (i = 0; i < 4; i++)
++    {
++      bool selected = i < 2 ? sound.enabled == (i == 1) :
++                              sound.volume == (i - 2);
++      lv_obj_set_style_bg_color(g_sport.sound_buttons[i],
++                                selected ? vr_accent() : lv_color_hex(VR_TILE2), 0);
++      lv_obj_set_style_text_color(lv_obj_get_child(g_sport.sound_buttons[i], 0),
++                                  selected ? vr_accent_ink() :
++                                  lv_color_hex(TEXT_COLOR), 0);
++    }
++  snprintf(text, sizeof(text), "模式语音  %s", sound.voice ? "已开启" : "已关闭");
++  set_label(lv_obj_get_child(g_sport.sound_buttons[4], 0), text);
++  snprintf(text, sizeof(text), "提醒铃声  %s", sound.rings ? "已开启" : "已关闭");
++  set_label(lv_obj_get_child(g_sport.sound_buttons[5], 0), text);
++  if (sound.enabled && !sound.dnd && (sound.voice || sound.rings))
++    {
++      lv_obj_remove_state(g_sport.sound_buttons[6], LV_STATE_DISABLED);
++    }
++  else
++    {
++      lv_obj_add_state(g_sport.sound_buttons[6], LV_STATE_DISABLED);
++    }
++}
++
++static void sound_action_cb(lv_event_t *event)
++{
++  int action = (int)(intptr_t)lv_event_get_user_data(event);
++  struct velaride_sound_s sound;
++
++  velaride_sound_get(&sound);
++  switch (action)
++    {
++      case 0: sound.enabled = false; break;
++      case 1: sound.enabled = true; break;
++      case 2: sound.volume = 0; break;
++      case 3: sound.volume = 1; break;
++      case 4: sound.voice = !sound.voice; break;
++      case 5: sound.rings = !sound.rings; break;
++      case 6:
++        velaride_sound_request(sound.voice ? VR_SOUND_RIDE_MODE :
++                                             VR_SOUND_COUNTDOWN);
++        break;
++      case 7: velaride_sound_stop(VR_SOUND_NONE); break;
++    }
++  if (action < 6)
++    {
++      velaride_sound_set(sound.enabled, sound.voice, sound.rings, sound.volume);
++    }
++  update_sound();
++}
++
++static void build_sound(void)
++{
++  g_sport.status_label = label(g_sport.root, "", MUTED_COLOR,
++                               &velaride_font_cn_20, 18, 108, 354);
++  g_sport.sound_buttons[0] = button("静音", BTN_TILE, 25, 145, 164, 48,
++                                    sound_action_cb, 0);
++  g_sport.sound_buttons[1] = button("有声", BTN_TILE, 201, 145, 164, 48,
++                                    sound_action_cb, 1);
++  g_sport.sound_buttons[2] = button("柔和音量", BTN_TILE, 25, 205, 164, 44,
++                                    sound_action_cb, 2);
++  g_sport.sound_buttons[3] = button("标准音量", BTN_TILE, 201, 205, 164, 44,
++                                    sound_action_cb, 3);
++  g_sport.sound_buttons[4] = button("模式语音", BTN_SECONDARY, 25, 264, 340,
++                                    46, sound_action_cb, 4);
++  g_sport.sound_buttons[5] = button("提醒铃声", BTN_SECONDARY, 25, 319, 340,
++                                    46, sound_action_cb, 5);
++  g_sport.sound_buttons[6] = button("试听", BTN_PRIMARY, 25, 383, 164, 46,
++                                    sound_action_cb, 6);
++  g_sport.sound_buttons[7] = button("停止声音", BTN_SECONDARY, 201, 383,
++                                    164, 46, sound_action_cb, 7);
++  update_sound();
++}
++#endif
++
+ static void update_info(void)
+ {
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+@@ -2189,6 +2320,14 @@
+     {
+       update_clock();
+       update_alarm();
++      return;
++    }
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  if (g_sport.info == VELARIDE_INFO_SOUND)
++    {
++      update_clock();
++      update_sound();
+       return;
+     }
+ #endif
+@@ -2509,6 +2648,9 @@
+     {
+       lv_timer_pause(g_sport.countdown_timer);
+       show_select();
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++      velaride_sound_request(VR_SOUND_RIDE_MODE);
++#endif
+     }
+   reveal();
+ }
+@@ -2862,6 +3004,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
+      , "闹钟"
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++     , "声音与提示"
++#endif
+     };
+ 
+   if (g_sport.root == NULL || g_sport.session_started ||
+@@ -2890,6 +3035,13 @@
+   if (info == VELARIDE_INFO_ALARM)
+     {
+       build_alarm();
++    }
++  else
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  if (info == VELARIDE_INFO_SOUND)
++    {
++      build_sound();
+     }
+   else
+ #endif
+@@ -2905,8 +3057,16 @@
+                   VELARIDE_INFO_CONNECTION, 4);
+       setting_row(list, "设备状态", VR_ICON_DEVICE, VELARIDE_INFO_HARDWARE, 5);
+       setting_row(list, "使用帮助", VR_ICON_HELP, VELARIDE_INFO_HELP, 6);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++      setting_row(list, "声音与提示", VR_ICON_SOUND, VELARIDE_INFO_SOUND, 7);
++#endif
+       g_sport.body = label(list, "", MUTED_COLOR, &velaride_font_cn_20,
+-                           18, 7 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
++                           18,
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++                           8 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
++#else
++                           7 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
++#endif
+                            354);
+     }
+   else if (info == VELARIDE_INFO_COMPASS)
+@@ -2966,4 +3126,22 @@
+     }
+   update_info();
+   reveal();
+-}
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  if (info == VELARIDE_INFO_STOPWATCH)
++    {
++      velaride_sound_request(VR_SOUND_STOPWATCH_MODE);
++    }
++#ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
++  else if (info == VELARIDE_INFO_ALARM)
++    {
++      velaride_sound_request(VR_SOUND_ALARM_MODE);
++    }
++#endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  else if (info == VELARIDE_INFO_COUNTDOWN)
++    {
++      velaride_sound_request(VR_SOUND_COUNTDOWN_MODE);
++    }
++#endif
++#endif
++}
+--- a/velaride_sport_ui.h
++++ b/velaride_sport_ui.h
+@@ -32,6 +32,9 @@
+ #ifdef CONFIG_EXAMPLES_VELARIDE_ALARM
+   VELARIDE_INFO_ALARM,
+ #endif
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  VELARIDE_INFO_SOUND,
++#endif
+ };
+ 
+ void velaride_sport_ui_init(lv_obj_t *screen,
+--- a/velaride_alarm.c
++++ b/velaride_alarm.c
+@@ -4,6 +4,7 @@
+  * this board can restore an old saved time after losing USB power.
+  * SPDX-License-Identifier: Apache-2.0
+  ****************************************************************************/
++#include <nuttx/config.h>
+ #include <errno.h>
+ #include <pthread.h>
+ #ifdef __NuttX__
+@@ -12,6 +13,9 @@
+ #include <string.h>
+ #include <kvdb.h>
+ #include "velaride_alarm.h"
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++#include "velaride_sound.h"
++#endif
+ 
+ #define ALARM_KEY "persist.velaride.alarm"
+ #define ALARM_MIN_EPOCH 1704067200
+@@ -189,6 +193,9 @@
+     }
+ 
+   pthread_mutex_unlock(&g_alarm_lock);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  velaride_sound_stop(VR_SOUND_ALARM);
++#endif
+   return -ret;
+ }
+ 
+@@ -232,4 +239,7 @@
+   g_alarm.ringing = false;
+   g_alarm_pending = false;
+   pthread_mutex_unlock(&g_alarm_lock);
+-}
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  velaride_sound_stop(VR_SOUND_ALARM);
++#endif
++}
+--- a/velaride_countdown.c
++++ b/velaride_countdown.c
+@@ -2,9 +2,13 @@
+  * SPDX-License-Identifier: Apache-2.0
+  ****************************************************************************/
+ 
++#include <nuttx/config.h>
+ #include <errno.h>
+ #include <pthread.h>
+ #include "velaride_countdown.h"
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++#include "velaride_sound.h"
++#endif
+ 
+ static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
+ static enum velaride_countdown_state_e g_state;
+@@ -60,6 +64,9 @@
+     }
+ 
+   pthread_mutex_unlock(&g_lock);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  if (ret == 0) velaride_sound_stop(VR_SOUND_COUNTDOWN);
++#endif
+   return ret;
+ }
+ 
+@@ -79,6 +86,9 @@
+     }
+ 
+   pthread_mutex_unlock(&g_lock);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  velaride_sound_stop(VR_SOUND_COUNTDOWN);
++#endif
+ }
+ 
+ void velaride_countdown_pause(uint32_t now)
+@@ -103,6 +113,9 @@
+   g_remaining_ms = g_duration_s * 1000;
+   g_pending = false;
+   pthread_mutex_unlock(&g_lock);
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  velaride_sound_stop(VR_SOUND_COUNTDOWN);
++#endif
+ }
+ 
+ void velaride_countdown_get(uint32_t now, struct velaride_countdown_s *out)
+--- a/velaride_icons.h
++++ b/velaride_icons.h
+@@ -14,6 +14,9 @@
+   VR_ICON_MOON, VR_ICON_AUTO, VR_ICON_COMPASS, VR_ICON_DEVICE,
+   VR_ICON_SPARK, VR_ICON_INFO, VR_ICON_HOME, VR_ICON_PULSE,
+   VR_ICON_BULB, VR_ICON_TIMER, VR_ICON_LEVEL
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++  , VR_ICON_SOUND
++#endif
+ };
+ 
+ static inline void vr_icon_line(lv_layer_t *layer, int x, int y, int size,
+@@ -93,6 +96,18 @@
+ 
+   switch (icon)
+     {
++#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
++      case VR_ICON_SOUND:
++        vr_icon_line(layer,x,y,size,color,4,9,8,9);
++        vr_icon_line(layer,x,y,size,color,8,9,13,5);
++        vr_icon_line(layer,x,y,size,color,13,5,13,19);
++        vr_icon_line(layer,x,y,size,color,13,19,8,15);
++        vr_icon_line(layer,x,y,size,color,8,15,4,15);
++        vr_icon_line(layer,x,y,size,color,4,15,4,9);
++        vr_icon_circle(layer,x,y,size,color,12,12,6,310,50);
++        vr_icon_circle(layer,x,y,size,color,12,12,10,310,50);
++        break;
++#endif
+       case VR_ICON_RIDE:
+         segments = ride; count = sizeof(ride);
+         vr_icon_circle(layer,x,y,size,color,5,17,4,0,360);
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -16,6 +16,9 @@
+   endif()
+   if(CONFIG_EXAMPLES_VELARIDE_ALARM)
+     set(VELARIDE_TITLE_FONT velaride_font_alarm_28.c)
++  endif()
++  if(CONFIG_EXAMPLES_VELARIDE_SOUND)
++    set(VELARIDE_TITLE_FONT velaride_font_sound_28.c)
+   endif()
+   nuttx_add_application(
+     NAME
+@@ -51,6 +54,10 @@
+   if(CONFIG_EXAMPLES_VELARIDE_ALARM)
+     target_sources(apps_velaride PRIVATE velaride_alarm.c)
+   endif()
++  if(CONFIG_EXAMPLES_VELARIDE_SOUND)
++    target_sources(apps_velaride PRIVATE velaride_sound.c
++      velaride_sound_render.c velaride_sound_assets.c)
++  endif()
+ 
+   if(CONFIG_BT AND CONFIG_BT_GATT_DYNAMIC_DB)
+     nuttx_add_application(
+--- a/Kconfig
++++ b/Kconfig
+@@ -35,6 +35,15 @@
+ 		Save an alarm time locally and show a daily visual notification.
+ 		The alarm requires clock confirmation after each reboot.
+ 
++config EXAMPLES_VELARIDE_SOUND
++	bool "Huangshan Pi voice prompts and alert sounds"
++	default n
++	depends on ARCH_CHIP_SF32LB52
++	---help---
++		Bounded application sound service using the Huangshan Pi DAC/PA.
++		Silent by default, with saved voice/ring/volume preferences.
++		Does not enable the general NuttX audio device framework.
++
+ config EXAMPLES_VELARIDE_PROGNAME
+ 	string "Program name"
+ 	default "velaride"

@@ -1,0 +1,409 @@
+--- a/velaride_shell.c
++++ b/velaride_shell.c
+@@ -42,6 +42,9 @@
+ #include "velaride_icons.h"
+ #include "velaride_compass.h"
+ #include "velaride_theme.h"
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++#include "velaride_countdown.h"
++#endif
+ 
+ #ifdef CONFIG_LV_USE_NUTTX_LIBUV
+ #  include <uv.h>
+@@ -243,6 +246,9 @@
+   APP_LIGHT,
+   APP_STOPWATCH,
+   APP_LEVEL,
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  APP_COUNTDOWN,
++#endif
+   APP_COUNT
+ };
+ 
+@@ -270,6 +276,9 @@
+   {"夜骑灯", VR_ICON_BULB, 0xe5534b, 1, -2},
+   {"秒表", VR_ICON_TIMER, 0x5b8db8, -1, 2},
+   {"水平仪", VR_ICON_LEVEL, 0x7a9a3a, 2, 0},
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  {"倒计时", VR_ICON_TIMER, 0xc98536, -2, 1},
++#endif
+ };
+ 
+ enum cc_item_e
+@@ -304,6 +313,9 @@
+   NOTE_REST,
+   NOTE_LINK_UP,
+   NOTE_LINK_DOWN,
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  NOTE_COUNTDOWN,
++#endif
+   NOTE_KIND_COUNT
+ };
+ 
+@@ -397,6 +409,9 @@
+ static void screen_wake(bool raise);
+ static void note_tap(lv_point_t point);
+ static void note_watch(void);
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++static void note_post(enum note_kind_e kind);
++#endif
+ 
+ static uint64_t monotonic_us(void)
+ {
+@@ -2395,6 +2410,18 @@
+ static void data_timer_cb(lv_timer_t *timer)
+ {
+   LV_UNUSED(timer);
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  /* Keep running outside the page and while the screen is dark. Defer the
++   * banner during a drag/transition so it cannot replace a moving scene.
++   */
++
++  if (!g_nav.dragging && !g_nav.transition_active &&
++      velaride_countdown_take_done(lv_tick_get()))
++    {
++      note_post(NOTE_COUNTDOWN);
++      printf("VELARIDE_COUNTDOWN: completed notification=1\n");
++    }
++#endif
+   update_current_scene();
+ }
+ 
+@@ -3159,6 +3186,10 @@
+                     VR_ICON_BLUETOOTH, 0x3d6fe0, APP_CONNECT},
+   [NOTE_LINK_DOWN] = {"蓝牙已断开", "记录会先保存在手表里",
+                       VR_ICON_BLUETOOTH, 0x6e6e73, APP_CONNECT},
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  [NOTE_COUNTDOWN] = {"倒计时结束", "时间到，点击查看",
++                      VR_ICON_TIMER, 0xc98536, APP_COUNTDOWN},
++#endif
+ };
+ 
+ static void note_time(time_t when, char *text, size_t size)
+@@ -3530,6 +3561,9 @@
+     [APP_LIGHT] = VELARIDE_INFO_LIGHT,
+     [APP_STOPWATCH] = VELARIDE_INFO_STOPWATCH,
+     [APP_LEVEL] = VELARIDE_INFO_LEVEL,
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++    [APP_COUNTDOWN] = VELARIDE_INFO_COUNTDOWN,
++#endif
+   };
+   bool from_menu = g_menu.active;
+ 
+@@ -4216,6 +4250,70 @@
+   uv_timer_t frame_timer;
+   void *uv_data;
+   int ret;
++#endif
++
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  if (argc > 1 && strcmp(argv[1], "countdown") == 0)
++    {
++      struct velaride_countdown_s countdown;
++      int status = 0;
++
++      if (!lv_is_initialized())
++        {
++          printf("VELARIDE_COUNTDOWN: UI not initialized\n");
++          return EXIT_FAILURE;
++        }
++
++      if (argc == 4 && strcmp(argv[2], "start") == 0)
++        {
++          char *end;
++          unsigned long seconds;
++
++          errno = 0;
++          seconds = strtoul(argv[3], &end, 10);
++          if (errno != 0 || end == argv[3] || *end != '\0' ||
++              seconds == 0 || seconds > 180 * 60)
++            {
++              return EXIT_FAILURE;
++            }
++
++          status = velaride_countdown_set((uint32_t)seconds);
++          if (status == 0)
++            {
++              velaride_countdown_start(lv_tick_get());
++            }
++        }
++      else if (argc == 3 && strcmp(argv[2], "pause") == 0)
++        {
++          velaride_countdown_pause(lv_tick_get());
++        }
++      else if (argc == 3 && strcmp(argv[2], "resume") == 0)
++        {
++          velaride_countdown_get(lv_tick_get(), &countdown);
++          if (countdown.state != VELARIDE_COUNTDOWN_PAUSED)
++            {
++              return EXIT_FAILURE;
++            }
++
++          velaride_countdown_start(lv_tick_get());
++        }
++      else if (argc == 3 && strcmp(argv[2], "cancel") == 0)
++        {
++          velaride_countdown_cancel();
++        }
++      else if (argc != 2 && !(argc == 3 && strcmp(argv[2], "status") == 0))
++        {
++          printf("usage: velaride countdown [status|start SECONDS|pause|resume|cancel]\n");
++          return EXIT_FAILURE;
++        }
++
++      velaride_countdown_get(lv_tick_get(), &countdown);
++      printf("VELARIDE_COUNTDOWN: state=%d duration=%" PRIu32
++             " remaining_ms=%" PRIu32 " completions=%" PRIu32 " ret=%d\n",
++             countdown.state, countdown.duration_s, countdown.remaining_ms,
++             countdown.completions, status);
++      return status == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
++    }
+ #endif
+ 
+   if (argc > 1 && strcmp(argv[1], "wake-status") == 0)
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -19,6 +19,9 @@
+ #include "velaride_compass.h"
+ #include "velaride_icons.h"
+ #include "velaride_theme.h"
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++#include "velaride_countdown.h"
++#endif
+ 
+ #define SPORT_W 390
+ #define SPORT_H 450
+@@ -105,6 +108,9 @@
+   uint8_t light_mode;
+   bool light_on;
+   bool sw_running;
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  lv_obj_t *countdown_adjust[6];
++#endif
+   uint32_t sw_acc_ms;
+   uint32_t sw_start;
+   uint32_t sw_laps[3];
+@@ -1933,8 +1939,131 @@
+     }
+ }
+ 
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++static void update_countdown(void)
++{
++  struct velaride_countdown_s countdown;
++  char text[24];
++  uint32_t seconds;
++  bool editing;
++  int i;
++
++  velaride_countdown_get(lv_tick_get(), &countdown);
++  seconds = (countdown.remaining_ms + 999) / 1000;
++  snprintf(text, sizeof(text), "%02" PRIu32 ":%02" PRIu32,
++           seconds / 60, seconds % 60);
++  set_label(g_sport.time_label, text);
++  editing = countdown.state == VELARIDE_COUNTDOWN_IDLE ||
++            countdown.state == VELARIDE_COUNTDOWN_DONE;
++  set_label(g_sport.status_label,
++            countdown.state == VELARIDE_COUNTDOWN_DONE ? "时间到" :
++            countdown.state == VELARIDE_COUNTDOWN_RUNNING ? "正在计时" :
++            countdown.state == VELARIDE_COUNTDOWN_PAUSED ? "已暂停" :
++                                                        "设置时长");
++  set_label(lv_obj_get_child(g_sport.setting_buttons[0], 0),
++            countdown.state == VELARIDE_COUNTDOWN_RUNNING ? "暂停" :
++            countdown.state == VELARIDE_COUNTDOWN_PAUSED ? "继续" :
++            countdown.state == VELARIDE_COUNTDOWN_DONE ? "再次开始" : "开始");
++  set_label(lv_obj_get_child(g_sport.setting_buttons[1], 0),
++            countdown.state == VELARIDE_COUNTDOWN_DONE ? "知道了" : "取消");
++  for (i = 0; i < 6; i++)
++    {
++      if (editing)
++        {
++          lv_obj_remove_state(g_sport.countdown_adjust[i], LV_STATE_DISABLED);
++        }
++      else
++        {
++          lv_obj_add_state(g_sport.countdown_adjust[i], LV_STATE_DISABLED);
++        }
++    }
++
++  lv_bar_set_value(g_sport.progress,
++                   (int)(countdown.remaining_ms / countdown.duration_s),
++                   LV_ANIM_OFF);
++}
++
++static void countdown_action_cb(lv_event_t *event)
++{
++  intptr_t action = (intptr_t)lv_event_get_user_data(event);
++  struct velaride_countdown_s countdown;
++  uint32_t now = lv_tick_get();
++
++  velaride_countdown_get(now, &countdown);
++  if (action > 0)
++    {
++      velaride_countdown_set((uint32_t)action * 60);
++    }
++  else if (action == -1 || action == -2)
++    {
++      int minutes = (int)((countdown.duration_s + 59) / 60);
++      minutes += action == -1 ? -1 : 1;
++      velaride_countdown_set((uint32_t)LV_CLAMP(1, minutes, 180) * 60);
++    }
++  else if (action == -3)
++    {
++      if (countdown.state == VELARIDE_COUNTDOWN_RUNNING)
++        {
++          velaride_countdown_pause(now);
++        }
++      else
++        {
++          velaride_countdown_start(now);
++        }
++    }
++  else if (action == -4)
++    {
++      velaride_countdown_cancel();
++    }
++
++  update_countdown();
++}
++
++static void build_countdown(void)
++{
++  static const char *names[] = {"1 分钟", "5 分钟", "10 分钟", "25 分钟"};
++  static const int minutes[] = {1, 5, 10, 25};
++  int i;
++
++  g_sport.time_label = label(g_sport.root, "05:00", TEXT_COLOR,
++                             &velaride_num_60, 18, 112, 354);
++  g_sport.status_label = label(g_sport.root, "设置时长", ACCENT_COLOR,
++                               &velaride_font_cn_20, 18, 184, 354);
++  g_sport.progress = lv_bar_create(g_sport.root);
++  lv_obj_set_pos(g_sport.progress, 40, 220);
++  lv_obj_set_size(g_sport.progress, 310, 6);
++  lv_bar_set_range(g_sport.progress, 0, 1000);
++  lv_obj_set_style_bg_color(g_sport.progress, vr_accent(), LV_PART_INDICATOR);
++  for (i = 0; i < 4; i++)
++    {
++      g_sport.countdown_adjust[i] = button(names[i], BTN_TILE,
++                                          18 + i * 89, 250, 87, 44,
++                                          countdown_action_cb, minutes[i]);
++    }
++
++  g_sport.countdown_adjust[4] = button("-1", BTN_TILE, 18, 308, 72, 50,
++                                      countdown_action_cb, -1);
++  g_sport.countdown_adjust[5] = button("+1", BTN_TILE, 300, 308, 72, 50,
++                                      countdown_action_cb, -2);
++  g_sport.setting_buttons[0] = button("开始", BTN_PRIMARY, 102, 308, 186,
++                                      50, countdown_action_cb, -3);
++  g_sport.setting_buttons[1] = button("取消", BTN_SECONDARY, 102, 370,
++                                      186, 44, countdown_action_cb, -4);
++  label(g_sport.root, "到时亮屏提示 · 静音", MUTED_COLOR,
++        &velaride_font_cn_20, 18, 425, 354);
++  update_countdown();
++}
++#endif
++
+ static void update_info(void)
+ {
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  if (g_sport.info == VELARIDE_INFO_COUNTDOWN)
++    {
++      update_countdown();
++      return;
++    }
++#endif
+   char text[512];
+   struct velaride_ride_snapshot_s ride;
+ 
+@@ -2598,10 +2727,15 @@
+   static const char *titles[] =
+     {"安全提醒", "连接与校时", "设置", "使用帮助", "屏幕设置",
+      "指南针", "设备状态", "外观", "夜骑灯", "秒表", "水平仪",
+-     "亮屏与熄屏"};
++     "亮屏与熄屏"
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++     , "倒计时"
++#endif
++    };
+ 
+   if (g_sport.root == NULL || g_sport.session_started ||
+-      info < VELARIDE_INFO_SAFETY || info > VELARIDE_INFO_WAKE)
++      info < VELARIDE_INFO_SAFETY ||
++      (unsigned int)info >= sizeof(titles) / sizeof(titles[0]))
+     {
+       return;
+     }
+@@ -2614,6 +2748,13 @@
+   g_sport.info = info;
+   g_sport.info_from_settings = false;
+   clear_page(SPORT_PAGE_INFO, titles[info]);
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  if (info == VELARIDE_INFO_COUNTDOWN)
++    {
++      build_countdown();
++    }
++  else
++#endif
+   if (info == VELARIDE_INFO_DEVICE)
+     {
+       lv_obj_t *list = setting_list();
+--- a/velaride_sport_ui.h
++++ b/velaride_sport_ui.h
+@@ -26,6 +26,9 @@
+   VELARIDE_INFO_STOPWATCH,
+   VELARIDE_INFO_LEVEL,
+   VELARIDE_INFO_WAKE,
++#ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
++  VELARIDE_INFO_COUNTDOWN,
++#endif
+ };
+ 
+ void velaride_sport_ui_init(lv_obj_t *screen,
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -10,6 +10,10 @@
+ # ##############################################################################
+ 
+ if(CONFIG_EXAMPLES_VELARIDE)
++  set(VELARIDE_TITLE_FONT velaride_font_cn_28.c)
++  if(CONFIG_EXAMPLES_VELARIDE_COUNTDOWN)
++    set(VELARIDE_TITLE_FONT velaride_font_countdown_28.c)
++  endif()
+   nuttx_add_application(
+     NAME
+     velaride
+@@ -30,13 +34,17 @@
+     velaride_device.c
+     velaride_compass.c
+     velaride_font_cn_20.c
+-    velaride_font_cn_28.c
++    ${VELARIDE_TITLE_FONT}
+     velaride_num_136.c
+     velaride_num_92.c
+     velaride_num_60.c
+     velaride_num_44.c
+     velaride_num_30.c
+     velaride_num_24.c)
++
++  if(CONFIG_EXAMPLES_VELARIDE_COUNTDOWN)
++    target_sources(apps_velaride PRIVATE velaride_countdown.c)
++  endif()
+ 
+   if(CONFIG_BT AND CONFIG_BT_GATT_DYNAMIC_DB)
+     nuttx_add_application(
+--- a/Kconfig
++++ b/Kconfig
+@@ -21,6 +21,13 @@
+ 
+ if EXAMPLES_VELARIDE
+ 
++config EXAMPLES_VELARIDE_COUNTDOWN
++	bool "Standalone watch countdown"
++	default n
++	---help---
++		Monotonic countdown with pause/resume and a visual notification.
++		Runs independently of the ride timer. No audio or phone is required.
++
+ config EXAMPLES_VELARIDE_PROGNAME
+ 	string "Program name"
+ 	default "velaride"

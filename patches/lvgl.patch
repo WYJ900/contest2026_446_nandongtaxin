@@ -1,0 +1,239 @@
+diff --git a/Kconfig b/Kconfig
+index 0188e9d4c..b4476f4f6 100644
+--- a/Kconfig
++++ b/Kconfig
+@@ -328,6 +328,17 @@ menu "LVGL configuration"
+ 			help
+ 				Uses SDL renderer API
+ 
++		config LV_USE_DRAW_EPIC
++			bool "Use SiFli EPIC 2.5D GPU"
++			default n
++			help
++				Hardware-accelerated fill/blend/label/image draw unit for
++				SiFli SF32LB chips (ported from SiFli-SDK
++				middleware/lvgl/lv_drivers_v9/sifli). Requires the
++				vendor/sifli EPIC driver (drv_epic) and HAL. Buffers in
++				PSRAM automatically fall back to the software unit since
++				EPIC cannot access PSRAM.
++
+ 		config LV_USE_DRAW_VG_LITE
+ 			bool "Use VG-Lite GPU"
+ 			default n
+@@ -1845,6 +1856,23 @@ menu "LVGL configuration"
+ 			depends on LV_USE_NUTTX_LCD && LV_NUTTX_LCD_CUSTOM_BUFFER
+ 			default 60
+ 
++		config LV_NUTTX_LCD_STATIC_SRAM_BUFFER
++			bool "Use a static SRAM buffer for RGB565 partial rendering"
++			depends on LV_USE_NUTTX_LCD && LV_NUTTX_LCD_CUSTOM_BUFFER
++			depends on LCD_HOR_RES_MAX > 0
++			default n
++			help
++				Allocate the partial draw buffer as an aligned static array sized
++				from LCD_HOR_RES_MAX and LV_NUTTX_LCD_BUFFER_SIZE instead of
++				using lv_malloc(). This is intended for DMA/GPU engines that
++				cannot access external PSRAM. The display must use RGB565.
++
++		config LV_NUTTX_LCD_PARTIAL_BUFFER_COUNT
++			int "Number of partial draw buffers"
++			range 1 2
++			depends on LV_USE_NUTTX_LCD && LV_NUTTX_LCD_CUSTOM_BUFFER
++			default 1
++
+ 		config LV_USE_NUTTX_TOUCHSCREEN
+ 			bool "Use NuttX touchscreen driver"
+ 			depends on LV_USE_NUTTX
+diff --git a/src/drivers/nuttx/lv_nuttx_lcd.c b/src/drivers/nuttx/lv_nuttx_lcd.c
+index a53f4b8f2..31bf3d740 100644
+--- a/src/drivers/nuttx/lv_nuttx_lcd.c
++++ b/src/drivers/nuttx/lv_nuttx_lcd.c
+@@ -39,6 +39,8 @@ typedef struct {
+     lv_display_t * disp;
+     struct lcddev_area_s area;
+     struct lcddev_area_align_s align_info;
++    bool draw_buf_dynamic;
++    bool async_pending;
+ } lv_nuttx_lcd_t;
+ 
+ /**********************
+@@ -49,6 +51,7 @@ static int32_t align_round_up(int32_t v, uint16_t align);
+ static void rounder_cb(lv_event_t * e);
+ static void flush_cb(lv_display_t * disp, const lv_area_t * area_p,
+                      uint8_t * color_p);
++static void flush_wait_cb(lv_display_t * disp);
+ static lv_display_t * lcd_init(int fd, int hor_res, int ver_res);
+ static void display_release_cb(lv_event_t * e);
+ 
+@@ -56,6 +59,13 @@ static void display_release_cb(lv_event_t * e);
+  *  STATIC VARIABLES
+  **********************/
+ 
++#if defined(CONFIG_LV_NUTTX_LCD_STATIC_SRAM_BUFFER)
++static uint8_t g_lcd_draw_buf[CONFIG_LCD_HOR_RES_MAX *
++                              LV_NUTTX_LCD_BUFFER_SIZE * 2 *
++                              CONFIG_LV_NUTTX_LCD_PARTIAL_BUFFER_COUNT]
++                              __attribute__((aligned(64)));
++#endif
++
+ /**********************
+  *      MACROS
+  **********************/
+@@ -138,13 +148,39 @@ static void flush_cb(lv_display_t * disp, const lv_area_t * area_p,
+                      uint8_t * color_p)
+ {
+     lv_nuttx_lcd_t * lcd = disp->driver_data;
++    lv_draw_buf_t * draw_buf = lv_display_get_buf_active(disp);
+ 
+     lcd->area.row_start = area_p->y1;
+     lcd->area.row_end = area_p->y2;
+     lcd->area.col_start = area_p->x1;
+     lcd->area.col_end = area_p->x2;
++    lcd->area.stride = draw_buf != NULL ? draw_buf->header.stride : 0;
+     lcd->area.data = (uint8_t *)color_p;
+-    ioctl(lcd->fd, LCDDEVIO_PUTAREA, (unsigned long) & (lcd->area));
++    if(ioctl(lcd->fd, LCDDEVIO_PUTAREA_ASYNC,
++             (unsigned long)&lcd->area) == 0) {
++        lcd->async_pending = true;
++        return;
++    }
++
++    ioctl(lcd->fd, LCDDEVIO_PUTAREA, (unsigned long)&lcd->area);
++    lcd->async_pending = false;
++    lv_display_flush_ready(disp);
++}
++
++static void flush_wait_cb(lv_display_t * disp)
++{
++    lv_nuttx_lcd_t * lcd = disp->driver_data;
++
++    if(!lcd->async_pending) {
++        return;
++    }
++
++    if(ioctl(lcd->fd, LCDDEVIO_WAITAREA, 200) < 0) {
++        LV_LOG_ERROR("asynchronous LCD transfer failed");
++        return;
++    }
++
++    lcd->async_pending = false;
+     lv_display_flush_ready(disp);
+ }
+ 
+@@ -174,12 +210,45 @@ static lv_display_t * lcd_init(int fd, int hor_res, int ver_res)
+     lv_display_render_mode_t render_mode = LV_DISPLAY_RENDER_MODE_PARTIAL;
+ #endif
+ 
++#if defined(CONFIG_LV_NUTTX_LCD_STATIC_SRAM_BUFFER)
++    if(render_mode != LV_DISPLAY_RENDER_MODE_PARTIAL ||
++       px_size != 2 || hor_res > CONFIG_LCD_HOR_RES_MAX ||
++       buf_size > sizeof(g_lcd_draw_buf)) {
++        LV_LOG_ERROR("static LCD buffer incompatible: %dx%d, px=%" LV_PRIu32
++                     ", need=%" LV_PRIu32 ", have=%zu",
++                     hor_res, ver_res, px_size, buf_size,
++                     sizeof(g_lcd_draw_buf));
++        lv_free(lcd);
++        lv_display_delete(disp);
++        return NULL;
++    }
++
++    draw_buf = (lv_color_t *)g_lcd_draw_buf;
++#if CONFIG_LV_NUTTX_LCD_PARTIAL_BUFFER_COUNT == 2
++    draw_buf_2 = (lv_color_t *)(g_lcd_draw_buf + buf_size);
++#endif
++    lcd->draw_buf_dynamic = false;
++#else
+     draw_buf = lv_malloc(buf_size);
+     if(draw_buf == NULL) {
+         LV_LOG_ERROR("display draw_buf malloc failed");
+         lv_free(lcd);
+         return NULL;
+     }
++    lcd->draw_buf_dynamic = true;
++#endif
++
++#if !defined(CONFIG_LV_NUTTX_LCD_STATIC_SRAM_BUFFER) && \
++    CONFIG_LV_NUTTX_LCD_PARTIAL_BUFFER_COUNT == 2
++    draw_buf_2 = lv_malloc(buf_size);
++    if(draw_buf_2 == NULL) {
++        LV_LOG_ERROR("display partial draw_buf_2 malloc failed");
++        lv_free(draw_buf);
++        lv_free(lcd);
++        lv_display_delete(disp);
++        return NULL;
++    }
++#endif
+ 
+ #if LV_NUTTX_LCD_BUFFER_COUNT == 2
+     draw_buf_2 = lv_malloc(buf_size);
+@@ -199,6 +268,7 @@ static lv_display_t * lcd_init(int fd, int hor_res, int ver_res)
+     lcd->disp = disp;
+     lv_display_set_buffers(lcd->disp, draw_buf, draw_buf_2, buf_size, render_mode);
+     lv_display_set_flush_cb(lcd->disp, flush_cb);
++    lv_display_set_flush_wait_cb(lcd->disp, flush_wait_cb);
+     lv_display_add_event_cb(lcd->disp, rounder_cb, LV_EVENT_INVALIDATE_AREA, lcd);
+     lv_display_add_event_cb(lcd->disp, display_release_cb, LV_EVENT_DELETE, lcd->disp);
+     lv_display_set_driver_data(lcd->disp, lcd);
+@@ -213,17 +283,21 @@ static void display_release_cb(lv_event_t * e)
+     if(dsc) {
+         lv_display_set_driver_data(disp, NULL);
+         lv_display_set_flush_cb(disp, NULL);
++        lv_display_set_flush_wait_cb(disp, NULL);
+ 
+         /* clear display buffer */
+-        if(disp->buf_1) {
+-            lv_free(disp->buf_1);
+-            disp->buf_1 = NULL;
+-        }
+-        if(disp->buf_2) {
+-            lv_free(disp->buf_2);
+-            disp->buf_2 = NULL;
++        if(dsc->draw_buf_dynamic) {
++            if(disp->buf_1 && disp->buf_1->unaligned_data) {
++                lv_free(disp->buf_1->unaligned_data);
++            }
++            if(disp->buf_2 && disp->buf_2->unaligned_data) {
++                lv_free(disp->buf_2->unaligned_data);
++            }
+         }
+ 
++        disp->buf_1 = NULL;
++        disp->buf_2 = NULL;
++
+         /* close device fb */
+         if(dsc->fd >= 0) {
+             close(dsc->fd);
+diff --git a/src/lv_init.c b/src/lv_init.c
+index 49408ae95..0105fa3f6 100644
+--- a/src/lv_init.c
++++ b/src/lv_init.c
+@@ -197,6 +197,16 @@ void lv_init(void)
+     lv_draw_vglite_init();
+ #endif
+ 
++#ifdef CONFIG_LV_USE_DRAW_EPIC
++    /*SiFli EPIC 2.5D GPU. Registered before the refr system like the
++     *other HW units; the Kconfig symbol is used directly because this
++     *fork's lv_conf_internal.h does not know LV_USE_DRAW_EPIC.*/
++    {
++        extern void lv_draw_epic_init(void);
++        lv_draw_epic_init();
++    }
++#endif
++
+ #if LV_USE_DRAW_PXP
+     lv_draw_pxp_init();
+ #endif
+diff --git a/src/draw/sw/lv_draw_sw_arc.c b/src/draw/sw/lv_draw_sw_arc.c
+index 5a205c173..64fd214d7 100644
+--- a/src/draw/sw/lv_draw_sw_arc.c
++++ b/src/draw/sw/lv_draw_sw_arc.c
+@@ -156,6 +156,8 @@ void lv_draw_sw_arc(lv_draw_unit_t * draw_unit, const lv_draw_arc_dsc_t * dsc, c
+ 
+             circle_mask_tmp += width;
+         }
++        /* Release the radius mask; it holds a circle-cache entry. */
++        lv_draw_sw_mask_free_param(&circle_mask_param);
+         get_rounded_area(start_angle, dsc->radius, width, &round_area_1);
+         lv_area_move(&round_area_1, dsc->center.x, dsc->center.y);
+         get_rounded_area(end_angle, dsc->radius, width, &round_area_2);

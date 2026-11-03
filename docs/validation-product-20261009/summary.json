@@ -1,0 +1,27 @@
+{
+  "firmware_sha256": "EEAD4857CE887C2C41E51B5E84618A368EBDB8185D11FE7232AF3C8A835DD1BD",
+  "firmware_bytes": 9259476,
+  "partition_margin_bytes": 767532,
+  "ride_state_scenarios_passed": 8,
+  "actual_lvgl_ui_test_passed": true,
+  "host_sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "ui_screens_rendered": 14,
+  "new_ui_missing_glyphs": [],
+  "hardware_validation": "installed; user confirmed interaction, but no new saved ride observed yet",
+  "screenshots_are_host_renderings": true,
+  "shell_pointer_menu_routes_passed": 7,
+  "native_faces_rendered": 5,
+  "earlier_candidate_sha256": "FB37773ACF8270C04D87B0E0F3666A12EE71B1D32D473E235F545B5045E8B4CE",
+  "final_hardware_visual_confirmation": "user confirmed menu/back/cancel/review workflow; latest record still 7",
+  "final_ride_flow_confirmation": "awaiting new persisted sequence",
+  "final_gateway_connection": "user confirmed; browser log ping and time_sync acknowledged at 20:04",
+  "final_lcd_sent": 512,
+  "final_lcd_completed": 512,
+  "final_lcd_recoveries": 0,
+  "final_latest_record_sequence": 7,
+  "final_gateway_latest_acknowledged": true,
+  "final_reboot_verification": "post-flash startup checked; independent reboot after new ride pending"
+}

@@ -1,0 +1,90 @@
+{
+  "phase": "timed",
+  "passed": true,
+  "error": null,
+  "events": [
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=8 minute=17 enabled=1 confirm=1 saving=0 error=0 ringing=0 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm set 16 3",
+      "response": "velaride alarm set 16 3\nVELARIDE_ALARM: hour=16 minute=3 enabled=1 confirm=0 saving=1 error=0 ringing=0 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=16 minute=3 enabled=1 confirm=0 saving=0 error=0 ringing=0 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown start 180",
+      "response": "velaride countdown start 180\nVELARIDE_COUNTDOWN: state=1 duration=180 remaining_ms=180000 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=16 minute=3 enabled=1 confirm=0 saving=0 error=0 ringing=1 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown status",
+      "response": "velaride countdown status\nVELARIDE_COUNTDOWN: state=1 duration=180 remaining_ms=110746 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=16 minute=3 enabled=1 confirm=0 saving=0 error=0 ringing=1 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm ack",
+      "response": "velaride alarm ack\nVELARIDE_ALARM: hour=16 minute=3 enabled=1 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm off",
+      "response": "velaride alarm off\nVELARIDE_ALARM: hour=16 minute=3 enabled=0 confirm=0 saving=1 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=16 minute=3 enabled=0 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown cancel",
+      "response": "velaride countdown cancel\nVELARIDE_COUNTDOWN: state=0 duration=180 remaining_ms=180000 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown start 300",
+      "response": "velaride countdown start 300\nVELARIDE_COUNTDOWN: state=1 duration=300 remaining_ms=300000 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown cancel",
+      "response": "velaride countdown cancel\nVELARIDE_COUNTDOWN: state=0 duration=300 remaining_ms=300000 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm set 7 0",
+      "response": "velaride alarm set 7 0\nVELARIDE_ALARM: hour=7 minute=0 enabled=1 confirm=0 saving=1 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=7 minute=0 enabled=1 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm off",
+      "response": "velaride alarm off\nVELARIDE_ALARM: hour=7 minute=0 enabled=0 confirm=0 saving=1 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=7 minute=0 enabled=0 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    }
+  ],
+  "target_local": "2026-10-27T16:03:00",
+  "completion_once": true,
+  "countdown_unaffected": true,
+  "wake_acknowledged": true,
+  "final": {
+    "hour": 7,
+    "minute": 0,
+    "enabled": 0,
+    "confirm": 0,
+    "saving": 0,
+    "error": 0,
+    "ringing": 0,
+    "completions": 1,
+    "ret": 0
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "changed_app_files": [
+    "velaride_ride_session.c",
+    "velaride_ble.c"
+  ],
+  "config_changes": [],
+  "parent_hash_verified": true
+}

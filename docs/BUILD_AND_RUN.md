@@ -1,5 +1,8 @@
 # 构建与运行
 
+当前镜像与接续顺序先看 [当前成果与接续说明](CURRENT_STATE.md)。以下区分通用新工作区
+构建方法与本机 WSL 流程，不能把本机增量成功写成全新工作区已复现。
+
 ## 环境
 
 - Ubuntu 22.04
@@ -40,13 +43,30 @@ vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh
 设备决定，烧录工具和驱动请使用黄山派官方发布版本。普通固件烧录不应覆盖从
 `0x129A0000` 开始的持久化配置区。
 
-提交包中的已验证固件：
+当前硬件阶段、保留的产品候选与显示恢复基线：
 
 ```text
-artifacts/velaride-huangshan-pi-verified.bin
+artifacts/velaride-timer-fix-20261010.bin       # 当前：长时间运行计时修复
+artifacts/velaride-watch-product-20261010.bin   # 历史：图标设置、灵敏调光、地磁校准
+artifacts/velaride-menu-key-20261010.bin        # 保留：取消按键进入骑行
+artifacts/velaride-hardware-s3-20261009.bin      # S3 环境光与屏幕设置基线
+artifacts/velaride-hardware-s01-20261009.bin     # S0/S1 回退基线
+artifacts/velaride-product-20261009.bin          # 产品候选，验收状态见 CURRENT_STATE.md
+artifacts/velaride-huangshan-pi-20261009.bin     # 显示恢复回退基线
 ```
 
 烧录前先核对 `artifacts/SHA256SUMS`。
+名称为 `velaride-huangshan-pi-verified.bin` 的文件是 2026-08-30 历史版本。
+
+本机 Windows 工作区为 `D:\desktop\VelaRide_AI`，WSL 构建副本为 Ubuntu-22.04 的
+`/home/wyj/velaride_ai`。修改文件先定向同步，再运行：
+
+```powershell
+wsl -d Ubuntu-22.04 bash /mnt/d/desktop/VelaRide_AI/tools/wsl_build.sh
+```
+
+确认新镜像正确且需要安装时，才在工作区根目录执行 `.\tools\flash.ps1 -Port COM5`。
+该脚本复制 WSL 当前构建产物并烧录，不自动选择团队仓归档镜像。
 
 ## 设备操作
 
@@ -61,13 +81,15 @@ artifacts/velaride-huangshan-pi-verified.bin
 ```powershell
 cd web-gateway
 npm test
-.\start-mimo.ps1 -Model mimo-v2.5-pro
+.\start-ai.ps1
 ```
 
-打开 `http://127.0.0.1:4173`，录入手表结束页数据后点击“生成复盘”。Token 只在
-当前进程内存在。关闭启动窗口后环境变量会被清除。
+打开 `http://127.0.0.1:4173`，连接 BLE 后读取手表最近记录，生成复盘并回传。
+启动器支持 MiMo、OpenAI/Anthropic 兼容接口及中转站；Token 不写入文件，进程结束后
+需在本机安全输入。历史 `start-mimo.ps1` 继续保留，但不作为当前多接口入口。
 
 ## 本轮验证边界
 
-提交整理阶段没有重新运行完整固件 build 或重新烧录。已有构建和真机证据来自
-`docs/development-notes/`，最终提交前建议在干净工作区执行一次上述构建流程。
+2026-10-09 已在现有 WSL 工作树完成重新编译、多次烧录和实物联调；配置变更期间也
+重新生成配置头并重编全部目标。尚未在全新下载的工作区复现构建。7 份补丁、4 份
+overlay 的本机集成检查通过；完整静态风格检查仍有既有厂商代码问题，不能称为全通过。

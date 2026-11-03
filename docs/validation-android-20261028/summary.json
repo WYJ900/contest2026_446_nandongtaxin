@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-28",
+  "version": "0.1.2",
+  "version_code": 3,
+  "apk_path": "exports\\mobile\\VelaRide-0.1.2-debug.apk",
+  "apk_bytes": 41437,
+  "apk_sha256": "95e7e5693759d5cee6c451fec7aea1dd903ab4ae401707fdd33e51836de7ce34",
+  "source_archive": "backup\\android-history-20261028\\android-0.1.2-source.zip",
+  "source_archive_sha256": "9f27a972c0689900bf029f4a157d769407576e54df2c06c0c62519a7f81f9c9d",
+  "source_files": {
+    "app/src/main/AndroidManifest.xml": "3f2902276ab2320d78469173cd1e9c840388b2b2fd99023ca3ac102f42b7bafc",
+    "app/src/main/java/com/velaride/companion/BleLink.java": "eabe65df942142ddc975badc1c5de93f6554e42707189481c8097c3c8f672fc6",
+    "app/src/main/java/com/velaride/companion/HistoryFile.java": "b18a2360efaa63bfc1790e9286ea37a34ed01b6126cd31c3bccb5f8c12b12e76",
+    "app/src/main/java/com/velaride/companion/MainActivity.java": "8f2bfda7a08501d80aa2042cde7f37a3f6a92dc3606ff82e9aad386fa4f71800",
+    "app/src/main/java/com/velaride/companion/RideHistory.java": "9ab06f1fbc284b6905ed342f9ecfd07ea1a570bbbd2fccb926b161a93a6d7694",
+    "app/src/main/java/com/velaride/companion/WatchHandshake.java": "2c43f00ef9f935289d0e5f7d903845e5434def0428d193f9bf0e9d9cdac9540e",
+    "app/src/main/java/com/velaride/companion/WireCodec.java": "eb0f4d42efab4cd4ee0667a7b202f9c78e77a687a1f2c21baa53d341bf64a0bf",
+    "app/src/main/res/drawable/ic_launcher.xml": "d80fd222443fa25e189130ae2e478b0e637a7b6a4eb9fd8f87b69950c2842cfd",
+    "app/src/main/res/values/styles.xml": "bf594c1aa7f84733b46450c80a390f9f9d40a0e1e13c503a76b747159bf58e9e",
+    "build.ps1": "5694dc2675ffcac4c8352ba889ed66df3a464be6295568194b24ad4550495031",
+    "README.md": "2cd0200ff7a615d13d0764b27b662a19b895093d298d11e70155e76ac9236194",
+    "tests/RideHistoryTest.java": "3a91ae7ca60157a58cebc78efe67c13150356e937e64adb4f0874392a0a12ea1",
+    "tests/WatchHandshakeTest.java": "d39d7d60c0dac18f71efea25dbf0a290aed1ebab6e51efebabd546890e644cc6",
+    "tests/WireCodecTest.java": "346cf0335645e185ec8b92632d60edb17785c6f5afa6900973132e0ae80850e3"
+  },
+  "checks": {
+    "WireCodecTest": "PASS",
+    "WatchHandshakeTest": "PASS",
+    "RideHistoryTest": "PASS",
+    "java_dex_resources": "PASS",
+    "apk_v2_v3_signature": "PASS",
+    "same_signer_as_0.1.1": "b19372ae9e1f79e9980b6161799a33d0a35fa6804dc6b2ef976c6494623d724c",
+    "manifest_permissions_changed": false,
+    "min_api": 26,
+    "target_api": 35
+  },
+  "physical_android_test": "PENDING: adb has no connected Android phone",
+  "emulator_ui_test": "NOT RUN: existing AVD refers to missing SDK and system image",
+  "watch_firmware_changed": false,
+  "watch_audio_played": false,
+  "watch_current_candidate_sha256": "a9bd9f2580da13e0a80753c2531f46ee6f5e730b1ff792474999ed7334a8e90b",
+  "watch_night_physical_acceptance": "still pending",
+  "limitations": [
+    "Only previously synchronized rides can be accumulated; current watch exposes one latest ride.",
+    "Timestamps are sync times, not ride occurrence times. No GPS/route values synthesized.",
+    "Identity uses watch address, sequence and summary; identical data after reset is indistinguishable.",
+    "5000-record hard cap with explicit refusal; no silent eviction.",
+    "GPS extension still requires scoped watch firmware port and phone validation.",
+    "Install/upgrade, permissions, UI, BLE, system document export and sharing require Android runtime validation."
+  ]
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "event": "found",
+    "name": "VelaRide",
+    "cycle": 1
+  },
+  {
+    "event": "connected",
+    "mtu": 253
+  }
+]

@@ -21,9 +21,40 @@ config EXAMPLES_VELARIDE
 
 if EXAMPLES_VELARIDE
 
+config EXAMPLES_VELARIDE_COUNTDOWN
+	bool "Standalone watch countdown"
+	default n
+	---help---
+		Monotonic countdown with pause/resume and a visual notification.
+		Runs independently of the ride timer. No audio or phone is required.
+
+config EXAMPLES_VELARIDE_ALARM
+	bool "Daily visual alarm"
+	default n
+	---help---
+		Save an alarm time locally and show a daily visual notification.
+		The alarm requires clock confirmation after each reboot.
+
+config EXAMPLES_VELARIDE_SOUND
+	bool "Huangshan Pi voice prompts and alert sounds"
+	default n
+	depends on ARCH_CHIP_SF32LB52
+	---help---
+		Bounded application sound service using the Huangshan Pi DAC/PA.
+		Silent by default, with saved voice/ring/volume preferences.
+		Does not enable the general NuttX audio device framework.
+
 config EXAMPLES_VELARIDE_PROGNAME
 	string "Program name"
 	default "velaride"
+
+config EXAMPLES_VELARIDE_NIGHT
+	bool "Night riding display"
+	default n
+	select LV_USE_COLOR_FILTER
+	---help---
+		Warm-red inherited style filter and temporary brightness ceiling.
+		Supports manual and ambient-light modes without replacing day settings.
 
 config EXAMPLES_VELARIDE_PRIORITY
 	int "Task priority"

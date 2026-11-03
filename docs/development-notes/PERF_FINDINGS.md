@@ -4,6 +4,8 @@
 
 本文只记录真机测出的数字和读过的源码。没验证的推断不写在这里。
 
+> 2026-10-17：EPIC 相关内容以 [EPIC 实测交接](../HANDOFF_EPIC_20261017.md) 为准。本文早期关于 EPIC 与 PSRAM 关系的结论及自研 EPIC 移植的 A/B 记录已删除。
+
 ## 结论
 
 已确认的主要渲染吞吐瓶颈是 **LVGL 的 framebuffer 分配在 PSRAM 上**。PSRAM 走 QSPI 串行总线，
@@ -102,41 +104,13 @@ ID、位置有效位和微秒时间戳；并对齐官方 ISR 策略，在 I²C w
 光栅化和整屏滚动重绘。固定 16ms tick 只能按时发起刷新，无法让同步单缓冲渲染并行，
 因此体感变化不大符合测量结果。
 
-下一阶段不再优先调整触摸频率、60/120 行或刷新周期。应对齐思澈官方
-`watch_v9` 的完整图形链路：LVGL EPIC draw unit、SRAM 双 50 行缓冲以及异步 LCD
-flush，并用同一套端到端指标做 A/B 验证。
+下一阶段不再优先调整触摸频率、60/120 行或刷新周期。
 
-仓库中已存在适配 LVGL 9.1/NuttX 的同步 EPIC draw unit 与底层驱动，但此前配置关闭。
-第一阶段 A/B 启用 `CONFIG_LV_USE_DRAW_EPIC=y`，并将 120 行动态单缓冲改为 60 行：
-当前最终链接 SRAM 已使用约 440.7KB，只剩约 83.6KB，120 行 RGB565 需要约 93.6KB，
-无法保证落入 SRAM；EPIC 访问不到 PSRAM，会自动回退软件路径。60 行约 46.8KB，作为
-EPIC 可访问目标缓冲的必要条件。启动时打印 draw buffer 地址和大小，必须看到
-`0x200...` 与 `SRAM/accessible` 才认为 EPIC A/B 前提成立。
-
-首个 EPIC A/B 只让 `LABEL` 任务进入 EPIC，`FILL` 明确保留软件路径：本板已测得
-100×100 实色填充 CPU 70µs、EPIC 193µs，当前单步 EPIC 的约 200µs 固定开销会让
-小矩形填充变慢。文字后端使用连续 glyph blend，可在一个标签内摊薄配置开销；若该
-版本无收益，再基于分阶段耗时决定是否继续 EPIC，而不是盲目把所有任务交给硬件。
-
-同时修正性能统计口径：只有一帧实际应用了非零滚动位移且至少发生一次 LCD flush，
-才计入 `valid` 有效帧率；新增 `layout`、`raster`（render 减 flush）、`flush`、
-`apply_ready` 的平均/最大耗时，以及 EPIC LABEL 接管数和不可达缓冲回退数。旧的
-`putarea calls/s` 只保留作传输调用率，不能再当显示 FPS。
-
-首次可信采样打印 `buffer=0x6005fb38/46800`、`epic_label=0`、
-`epic_fallback=825`：即使缩到 60 行，`lv_malloc()` 仍把缓冲分配到 PSRAM，EPIC
-完全没有接管，肉眼无变化是必然结果。新增
+缓冲位置：`lv_malloc()` 会把 60 行缓冲分到 PSRAM（实测 `0x6005fb38`）。新增
 `CONFIG_LV_NUTTX_LCD_STATIC_SRAM_BUFFER`，将 RGB565 partial buffer 作为 64 字节
 对齐静态数组放入内部 SRAM；链接阶段装不下会直接失败，不再静默回退 PSRAM。
-
-静态 SRAM + LABEL-only EPIC 真机采样确认 `buffer=0x20067c80/46800`，EPIC LABEL
-实际接管约 2000 次，回退极少；有效刷新仍多为 6–10Hz，`layout` 约 1–3ms、
-`raster` 约 60–105ms、`flush` 约 34–43ms、`apply_ready` 约 99–150ms。下一步在
-相同静态 SRAM 条件下关闭 EPIC 做 CPU-only 对照，以分离 SRAM 与文字硬件混合收益。
-
-CPU-only 静态 SRAM 现场日志显示 `raster` 约 100–146ms，LABEL-only EPIC 多数约
-60–105ms，说明 EPIC 文字混合有收益但不是决定性因素，保留 LABEL-only 策略。
-第二阶段新增静态双 32 行 partial buffer（49,920B，只比单 60 行多 3,120B）和异步
+此后 CPU-only 现场日志 `raster` 约 100–146ms。
+第二阶段新增静态双 32 行 partial buffer（49,920B）和异步
 LCD DMA：`PUTAREA_ASYNC` 提交后不提前 `flush_ready`，LVGL 在复用 buffer 前通过
 `WAITAREA` 等待完成，从而允许一块 DMA 传输时渲染另一块。
 
@@ -147,7 +121,7 @@ active draw buffer 复制真实 stride；只有 full-width/tight 区域进入异
 
 双 32 行异步版真机验证后，`flush` 降至约 16–27ms，但每帧 15 个 partial 块仍反复
 遍历并重画文字，`raster` 约 80–145ms，有效刷新仍约 7–10Hz。完整双卡片 RGB565
-快照需要约 702KB，无法放入内部 SRAM，放 PSRAM 后 EPIC 又不可访问。改用滚动 LOD：
+快照需要约 702KB，无法放入内部 SRAM。当时改用滚动 LOD：
 按下时隐藏卡片内部文字/进度条，仅平移整屏色块；松手无动画吸附后恢复完整内容。
 静止页面不降级，目标是把拖动有效刷新提升到 25–30Hz。
 
@@ -241,16 +215,13 @@ LVGL 的 draw buffer 走 `lv_malloc` → `malloc`，351KB 在 SRAM 放不下，�
 
 `epicbench` 同时测了 EPIC。**EPIC 能在 openvela/NuttX 上直接调 HAL 跑通**。
 
-必要条件（缺一个就是 `state` 停在 BUSY、`EOF_IRQ` 恒 0）：
+初始化要点（缺一个就是 `state` 停在 BUSY、`EOF_IRQ` 恒 0）：
 
-1. **buffer 必须在 SRAM** —— EPIC 作为 DMA master 访问不到 PSRAM。
-   这是踩了五轮才找到的原因。官方示例用 `L2_NON_RET_BSS_SECT` + `ALIGN(64)`
-   静态数组就是为此。
-2. **EZIP handle 必须给** —— `HAL_EPIC_Init` 第一行就是
+1. **EZIP handle 必须给** —— `HAL_EPIC_Init` 第一行就是
    `epic->hezip->user_data = (void *)epic;`，本板 `HAL_EZIP_MODULE_ENABLED`
    是开的（`bf0_hal_conf_hcpu.h:30`），`hezip` 为 NULL 时空指针写入，
    但 Init 仍返回 HAL_OK。
-3. 中断挂 NuttX 向量表：`irq_attach(NX_IRQ(EPIC_IRQn), ...)`，
+2. 中断挂 NuttX 向量表：`irq_attach(NX_IRQ(EPIC_IRQn), ...)`，
    `EPIC_IRQn=62` → `nx_irq=78`。
 
 单步模式跑分（100×100 RGB565，buffer 在 SRAM）：
@@ -264,7 +235,7 @@ LVGL 的 draw buffer 走 `lv_malloc` → `malloc`，351KB 在 SRAM 放不下，�
 （配寄存器 + 触发 + 等完成），中小区域完全被这个开销吃掉。
 
 EPIC 的价值不在填充拷贝，在旋转 / 缩放 / alpha 混合这些 CPU 很贵的操作。
-详见 [EPIC_UPSTREAM.md](EPIC_UPSTREAM.md)。
+官方 openvela EPIC 方案的整机 benchmark 见 [EPIC 实测交接](../HANDOFF_EPIC_20261017.md)。
 
 ## 已改动的配置
 

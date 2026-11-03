@@ -1,0 +1,325 @@
+{
+  "passed": true,
+  "error": null,
+  "events": [
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=7 minute=0 enabled=0 confirm=0 saving=0 error=0 ringing=0 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound volume 0",
+      "response": "velaride sound volume 0\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=0 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound on",
+      "response": "velaride sound on\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound play go",
+      "response": "velaride sound play go\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound volume 100",
+      "response": "velaride sound volume 100\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm set 20 37",
+      "response": "velaride alarm set 20 37\nVELARIDE_ALARM: hour=20 minute=37 enabled=1 confirm=0 saving=1 error=0 ringing=0 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=20 minute=37 enabled=1 confirm=0 saving=0 error=0 ringing=0 completions=0 ret=0\nnsh> \u001b[KVELARIDE_PREVIEW: index=3 scene=3"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "ELARIDE_PREVIEW: index=4 scene=4 ready in=22ms\nvelaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=100 dnd=0 active=6 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound volume 40",
+      "response": "velaride sound volume 40\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=40 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=40 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound volume 0",
+      "response": "velaride sound volume 0\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=0 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=11 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound volume 80",
+      "response": "velaride sound volume 80\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=11 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=6 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=1 hw=3 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "ELARIDE_SOUND: cue=6 result=0 completed=1 cancelled=0\nvelaride sound status\nVELARIDE_SOUND_STATUS: enabled=1 voice=1 rings=1 volume=80 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=1 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm ack",
+      "response": "velaride alarm ack\nVELARIDE_ALARM: hour=20 minute=37 enabled=1 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm off",
+      "response": "velaride alarm off\nVELARIDE_ALARM: hour=20 minute=37 enabled=0 confirm=0 saving=1 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=20 minute=37 enabled=0 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm set 7 0",
+      "response": "velaride alarm set 7 0\nVELARIDE_ALARM: hour=7 minute=0 enabled=1 confirm=0 saving=1 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=7 minute=0 enabled=1 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm off",
+      "response": "velaride alarm off\nVELARIDE_ALARM: hour=7 minute=0 enabled=0 confirm=0 saving=1 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride alarm status",
+      "response": "velaride alarm status\nVELARIDE_ALARM: hour=7 minute=0 enabled=0 confirm=0 saving=0 error=0 ringing=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound mute",
+      "response": "velaride sound mute\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=80 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=1 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound volume 63",
+      "response": "velaride sound volume 63\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=63 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=1 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=63 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=1 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=63 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=1 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=63 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=1 cancelled=0 skipped=1 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "",
+      "response": "\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=63 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound volume 100",
+      "response": "velaride sound volume 100\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound mute",
+      "response": "velaride sound mute\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=1 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride sound status",
+      "response": "velaride sound status\nVELARIDE_SOUND_STATUS: enabled=0 voice=1 rings=1 volume=100 dnd=0 active=0 pending=0 saving=0 save_error=0 error=0 completed=0 cancelled=0 skipped=0 hw=0 ret=0\nnsh> \u001b[K"
+    }
+  ],
+  "before_sound": {
+    "enabled": 0,
+    "voice": 1,
+    "rings": 1,
+    "volume": 100,
+    "dnd": 0,
+    "active": 0,
+    "pending": 0,
+    "saving": 0,
+    "save_error": 0,
+    "error": 0,
+    "completed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "hw": 0,
+    "ret": 0
+  },
+  "before_alarm": {
+    "hour": 7,
+    "minute": 0,
+    "enabled": 0,
+    "confirm": 0,
+    "saving": 0,
+    "error": 0,
+    "ringing": 0,
+    "completions": 0,
+    "ret": 0
+  },
+  "target_local": "2026-10-27T20:37:00",
+  "live_steps": [
+    {
+      "enabled": 1,
+      "voice": 1,
+      "rings": 1,
+      "volume": 40,
+      "dnd": 0,
+      "active": 6,
+      "pending": 0,
+      "saving": 1,
+      "save_error": 0,
+      "error": 0,
+      "completed": 0,
+      "cancelled": 0,
+      "skipped": 1,
+      "hw": 3,
+      "ret": 0
+    },
+    {
+      "enabled": 1,
+      "voice": 1,
+      "rings": 1,
+      "volume": 0,
+      "dnd": 0,
+      "active": 6,
+      "pending": 0,
+      "saving": 1,
+      "save_error": 0,
+      "error": 0,
+      "completed": 0,
+      "cancelled": 0,
+      "skipped": 1,
+      "hw": 11,
+      "ret": 0
+    },
+    {
+      "enabled": 1,
+      "voice": 1,
+      "rings": 1,
+      "volume": 80,
+      "dnd": 0,
+      "active": 6,
+      "pending": 0,
+      "saving": 1,
+      "save_error": 0,
+      "error": 0,
+      "completed": 0,
+      "cancelled": 0,
+      "skipped": 1,
+      "hw": 0,
+      "ret": 0
+    }
+  ],
+  "alarm_duration_observed_s": 9.269,
+  "restored_percent": 63,
+  "final_sound": {
+    "enabled": 0,
+    "voice": 1,
+    "rings": 1,
+    "volume": 100,
+    "dnd": 0,
+    "active": 0,
+    "pending": 0,
+    "saving": 0,
+    "save_error": 0,
+    "error": 0,
+    "completed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "hw": 0,
+    "ret": 0
+  },
+  "health": {
+    "input0": true,
+    "velaride_task": true,
+    "nsh_prompt": true,
+    "touch_error": false,
+    "wake_status": "VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=126,-94,-976 up=0.99 err=0 sleeps=1 raises=0 idle=22012ms",
+    "wake_ok": true,
+    "sfbl": 0,
+    "passed": true
+  }
+}

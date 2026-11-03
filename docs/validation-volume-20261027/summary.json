@@ -1,0 +1,32 @@
+{
+  "firmware_sha256": "b054b8e68b73ff97f91136f67f9f2720cb2469aca50be81040f7b32b80ceb48f",
+  "bytes": 9757936,
+  "config_identical_to_parent": true,
+  "volume_range": [
+    0,
+    100
+  ],
+  "hundred_percent_matches_previous_accepted_loudness": true,
+  "reset_cycles": 5,
+  "ble_passed": true,
+  "live_volume_passed": true,
+  "same_dma_mute_resume_passed": true,
+  "alarm_duration_seconds": 9.269,
+  "restored_percent": 63,
+  "saved_ride_sequence": 11,
+  "final_enabled": false,
+  "final_volume": 100,
+  "user_hands_on": "User confirmed watch controls and original functions normal.",
+  "accepted_runtime_settings": {
+    "enabled": true,
+    "volume": 100,
+    "voice": true,
+    "rings": true
+  },
+  "user_slide_stats": {
+    "swipes": 17,
+    "average_hz": 53.6,
+    "max_gap_ms": 54,
+    "slow_frames": 2
+  }
+}

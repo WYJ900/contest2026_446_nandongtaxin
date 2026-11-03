@@ -1,0 +1,38 @@
+{
+  "stage": "live 0-100 volume candidate",
+  "firmware_sha256": "b054b8e68b73ff97f91136f67f9f2720cb2469aca50be81040f7b32b80ceb48f",
+  "firmware_bytes": 9757936,
+  "parent_firmware_sha256": "93d3692d6273440a84a90f157dce58d8ed15f0d539334453c32b7c36e8d22f74",
+  "config_identical_to_parent": true,
+  "files": {
+    "app-source.tar.gz": "25c7e997baad8b3a338c47b090eed1eeca1783914a1af2580a052b9d3d72fd1c",
+    "board-source.tar.gz": "2d7dee5fb670ef44c31dfdcbf1d385038b6e1055a817b64ddf63fab554842ddd",
+    "build_volume_stage.sh": "710cd1df7e1a6820193caf3dc3714638dea8ff2ceaaec50752b2003f33d14777",
+    "config": "8ec99a90167769b1b213b5b34499fef7a2d7b12822c684182702a76e9fd1d331",
+    "firmware.bin": "b054b8e68b73ff97f91136f67f9f2720cb2469aca50be81040f7b32b80ceb48f",
+    "sound-assets.json": "fa2af0bf318ded97fc3fb33f21130fdcc5b3a5affd1bcf30f99c0861d4567c0d",
+    "volume.patch": "76aab3a87e4dd3d7d6adfd786238b2bbdd0bbd6df04a3520131b7e88cee52c23"
+  },
+  "scope": "Live DAC volume only; PCM samples and 100-percent maximum unchanged; VRS1 to VRS2 preference migration",
+  "validation": {
+    "host": "ASan/UBSan core/backend plus LVGL slider pointer drag passed",
+    "hardware": "5 RTS resets + BLE; actual scheduled alarm with 100/40/0/80 volume; same-DMA mute/resume; 63-percent persisted across reset; original ride 11 intact",
+    "user": "User confirmed watch controls and original functions normal."
+  },
+  "source_note": "Exact app/board overlay on preserved sound-stage tree. Bit-identical clean rebuild still affected by original generated-source ordering/timestamps.",
+  "evidence": "../../docs/validation-volume-20261027",
+  "voice_assets_identical_to_parent": true,
+  "status": "accepted live-volume baseline",
+  "accepted_runtime_settings": {
+    "enabled": true,
+    "volume": 100,
+    "voice": true,
+    "rings": true
+  },
+  "user_slide_stats": {
+    "swipes": 17,
+    "average_hz": 53.6,
+    "max_gap_ms": 54,
+    "slow_frames": 2
+  }
+}

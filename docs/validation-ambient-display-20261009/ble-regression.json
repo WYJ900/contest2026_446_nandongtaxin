@@ -1,0 +1,62 @@
+[
+  {
+    "event": "found",
+    "name": "VelaRide",
+    "cycle": 1
+  },
+  {
+    "event": "connected",
+    "mtu": 253
+  },
+  {
+    "command": "time_sync",
+    "reply": {
+      "ok": true,
+      "event": "time_sync",
+      "epoch": 1791555057
+    }
+  },
+  {
+    "command": "ping",
+    "reply": {
+      "ok": true,
+      "event": "pong"
+    }
+  },
+  {
+    "command": "ride_status",
+    "reply": {
+      "ok": true,
+      "event": "ride_status",
+      "active": false,
+      "paused": false,
+      "motion": 0,
+      "elapsed_s": 0,
+      "moving_s": 0,
+      "still_s": 0,
+      "impacts": 0,
+      "pause_count": 0,
+      "rest_count": 0,
+      "latest_sequence": 7
+    }
+  },
+  {
+    "command": "ride_latest",
+    "reply": {
+      "ok": true,
+      "event": "ride_latest",
+      "sequence": 7,
+      "active": false,
+      "elapsed_s": 25,
+      "moving_s": 22,
+      "still_s": 1,
+      "impacts": 1,
+      "pause_count": 1,
+      "rest_count": 0
+    }
+  },
+  {
+    "event": "disconnected",
+    "cycle": 1
+  }
+]

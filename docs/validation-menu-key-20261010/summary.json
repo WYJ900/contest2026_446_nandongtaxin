@@ -1,0 +1,17 @@
+{
+  "firmware": "velaride-menu-key-20261010.bin",
+  "sha256": "F2047A2013DE0BAC17932B59E29E839433A22587D9593C27BB7661E8A5D848B0",
+  "bytes": 9274580,
+  "installed": true,
+  "key_double_click_ride_removed": true,
+  "repeat_guard_ms": 400,
+  "host_lvgl_regression": "passed with ASan/UBSan",
+  "lcd_sent": 173,
+  "lcd_done": 173,
+  "lcd_recoveries": 0,
+  "light_samples": 55,
+  "light_failures": 0,
+  "time_sync": "passed",
+  "ride_active": false,
+  "physical_key_user_confirmation": "pending"
+}

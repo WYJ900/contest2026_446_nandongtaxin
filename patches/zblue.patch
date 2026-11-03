@@ -1,0 +1,397 @@
+diff --git a/port/drivers/bluetooth/hci/h4.c b/port/drivers/bluetooth/hci/h4.c
+index e02609e44d7..41c24f521e0 100644
+--- a/port/drivers/bluetooth/hci/h4.c
++++ b/port/drivers/bluetooth/hci/h4.c
+@@ -38,8 +38,18 @@
+ #include <zephyr/bluetooth/bluetooth.h>
+ #include <zephyr/bluetooth/hci.h>
+ #include <zephyr/drivers/bluetooth.h>
++#include <nuttx/fs/fs.h>
+ 
+-extern void btsnoop_log_capture(uint8_t is_receive, uint8_t *hci_pkt, uint32_t hci_pkt_size);
++extern void btsnoop_log_capture(uint8_t is_receive, uint8_t *hci_pkt,
++			       uint32_t hci_pkt_size) __attribute__((weak));
++
++static void h4_btsnoop_capture(uint8_t is_receive, uint8_t *hci_pkt,
++			       uint32_t hci_pkt_size)
++{
++	if (btsnoop_log_capture) {
++		btsnoop_log_capture(is_receive, hci_pkt, hci_pkt_size);
++	}
++}
+ 
+ #define LOG_LEVEL CONFIG_BT_HCI_DRIVER_LOG_LEVEL
+ #include <zephyr/logging/log.h>
+@@ -50,7 +60,8 @@ LOG_MODULE_REGISTER(bt_driver);
+ #define RX_THREAD_STACK_DEBUG_MODE_SIZE   (4096)
+ 
+ struct h4_data {
+-	int fd;
++	struct file file;
++	bool file_opened;
+ 	pthread_mutex_t mutex;
+ 	bt_hci_recv_t recv;
+ 	void *hci_data;
+@@ -61,6 +72,7 @@ struct h4_data {
+ 	K_KERNEL_STACK_DEFINE(rx_thread_stack, RX_THREAD_STACK_USED_MODE_SIZE);
+ #endif //(CONFIG_BLUETOOTH_SERVICE_LOG_LEVEL > 2 || CONFIG_BT_DEBUG_LOG > 2)
+ 	uint8_t frame[1026];
++	uint8_t trace_count;
+ };
+ 
+ #define HCI_DEBUG 0
+@@ -84,7 +96,8 @@ static int h4_send_data(struct h4_data *h4, uint8_t *buf, size_t count)
+ 	ssize_t ret, nwritten = 0;
+ 
+ 	while (nwritten != count) {
+-		ret = write(h4->fd, buf + nwritten, count - nwritten);
++		ret = file_write(&h4->file, buf + nwritten,
++		                 count - nwritten);
+ 		if (ret < 0) {
+ 			if (ret == -EAGAIN) {
+ 				usleep(500);
+@@ -213,15 +226,6 @@ static int32_t hci_packet_complete(const uint8_t *buf, uint16_t buf_len)
+ 	return (int32_t)header_len + payload_len;
+ }
+ 
+-#if 1
+-static bool h4_ready(struct h4_data *h4)
+-{
+-	struct pollfd pollfd = { .fd = h4->fd, .events = POLLIN };
+-
+-	return (poll(&pollfd, 1, 0) == 1);
+-}
+-#endif
+-
+ static void h4_rx_thread(void *p1, void *p2, void *p3)
+ {
+ 	const struct device *dev = p1;
+@@ -241,17 +245,22 @@ static void h4_rx_thread(void *p1, void *p2, void *p3)
+ 		ssize_t len;
+ 		const uint8_t *frame_start = h4->frame;
+ 
+-#if 1
+-		if (!h4_ready(h4)) {
+-			usleep(1000);
++		LOG_DBG("calling read()");
++
++		/* /dev/ttyHCI0 is a blocking NuttX character device.  Its upper
++		 * half wakes readers through recvsem when the board driver pushes
++		 * an HCI event.  Polling it with a zero timeout can miss that
++		 * wake-up and leave a synchronous command waiting forever. */
++		len = file_read(&h4->file, h4->frame + frame_size,
++		                sizeof(h4->frame) - frame_size);
++		if (len == 0) {
++			usleep(500);
+ 			continue;
+ 		}
+-#endif
+-
+-		LOG_DBG("calling read()");
+ 
+-		len = read(h4->fd, h4->frame + frame_size, sizeof(h4->frame) - frame_size);
+ 		if (len < 0) {
++			printf("VELARIDE_HCI: read failed ret=%d errno=%d\n",
++			       (int)len, errno);
+ 			if (errno == EINTR) {
+ 				continue;
+ 			}
+@@ -262,8 +271,6 @@ static void h4_rx_thread(void *p1, void *p2, void *p3)
+ 			}
+ 
+ 			LOG_ERR("Reading hci failed, errno %d", errno);
+-			close(h4->fd);
+-			h4->fd = -1;
+ 			return;
+ 		}
+ 
+@@ -298,9 +305,18 @@ static void h4_rx_thread(void *p1, void *p2, void *p3)
+ 			buf_add = frame_start + sizeof(packet_type);
+ 			buf_add_len = decoded_len - sizeof(packet_type);
+ 
++			if (h4->trace_count < 16) {
++				printf("VELARIDE_HCI_RX:");
++				for (int i = 0; i < decoded_len; i++) {
++					printf(" %02x", frame_start[i]);
++				}
++				printf("\n");
++				h4->trace_count++;
++			}
++
+ 			buf = get_rx(frame_start);
+ 
+-			btsnoop_log_capture(1, (uint8_t *)frame_start, decoded_len);
++			h4_btsnoop_capture(1, (uint8_t *)frame_start, decoded_len);
+ 
+ 			frame_size -= decoded_len;
+ 			frame_start += decoded_len;
+@@ -356,10 +372,21 @@ static int h4_send(const struct device *dev, struct net_buf *buf)
+ 
+ 	h4_data_dump("BT TX", buf->data[0], buf->data + 1, buf->len - 1);
+ 
++	if (h4->trace_count < 16) {
++		printf("VELARIDE_HCI_TX:");
++		for (int i = 0; i < buf->len; i++) {
++			printf(" %02x", buf->data[i]);
++		}
++		printf("\n");
++		h4->trace_count++;
++	}
++
+ 	pthread_mutex_lock(&h4->mutex);
+ 	len = buf->len;
+-	btsnoop_log_capture(0, buf->data, buf->len);
++	h4_btsnoop_capture(0, buf->data, buf->len);
+ 	ret = h4_send_data(h4, buf->data, buf->len);
++	printf("VELARIDE_HCI: write ret=%d expected=%d errno=%d\n",
++	       ret, len, errno);
+ 	if (ret != len) {
+ 		ret = -EINVAL;
+ 	}
+@@ -387,26 +414,39 @@ static int h4_open(const struct device *dev, bt_hci_recv_t recv, void *hci_data)
+ 		return -EINVAL;
+ 	}
+ 
+-	ret = open(dev_name, O_RDWR | O_BINARY | O_CLOEXEC);
++	ret = file_open(&h4->file, dev_name,
++	                O_RDWR | O_BINARY | O_CLOEXEC | O_NONBLOCK);
+ 	if (ret < 0) {
+ 		goto bail;
+ 	}
+ 
+-	h4->fd = ret;
+-	LOG_DBG("H4: %s opened as fd %d", dev_name, h4->fd);
++	h4->file_opened = true;
++	printf("VELARIDE_HCI: kernel file opened\n");
++	LOG_DBG("H4: %s opened with kernel file handle", dev_name);
++
++	/* The controller can return a synthetic Command Complete while the
++	 * first write is still in progress.  Publish the callback before the
++	 * RX thread can observe that response. */
++	h4->recv = recv;
++	h4->hci_data = hci_data;
++	h4->trace_count = 0;
+ 
+ 	ret = (int)k_thread_create(&h4->rx_thread_data, h4->rx_thread_stack,
+ 				   K_THREAD_STACK_SIZEOF(h4->rx_thread_stack), h4_rx_thread, (void *)dev, NULL,
+ 				   NULL, K_PRIO_COOP(CONFIG_BT_RX_PRIO), 0, K_NO_WAIT);
+ 
+ 	if (ret < 0) {
++		printf("VELARIDE_HCI: RX thread create failed ret=%d stack=%u prio=%d\n",
++		       ret, (unsigned int)K_THREAD_STACK_SIZEOF(h4->rx_thread_stack),
++		       K_PRIO_COOP(CONFIG_BT_RX_PRIO));
+ 		goto bail;
+ 	} else {
+ 		ret = 0;
+ 	}
+ 
+-	h4->recv = recv;
+-	h4->hci_data = hci_data;
++	printf("VELARIDE_HCI: RX thread started stack=%u prio=%d\n",
++	       (unsigned int)K_THREAD_STACK_SIZEOF(h4->rx_thread_stack),
++	       K_PRIO_COOP(CONFIG_BT_RX_PRIO));
+ 
+ 	ret = snprintf(dev_name, sizeof(dev_name), "BT Driver %s", dev->name);
+ 	if (ret < 0 || ret >= sizeof(dev_name)) {
+@@ -420,8 +460,10 @@ static int h4_open(const struct device *dev, bt_hci_recv_t recv, void *hci_data)
+ 	return 0;
+ 
+ bail:
+-	close(h4->fd);
+-	h4->fd = -1;
++	if (h4->file_opened) {
++		file_close(&h4->file);
++		h4->file_opened = false;
++	}
+ 
+ 	return ret;
+ }
+@@ -434,8 +476,10 @@ static int h4_close(const struct device *dev)
+ 
+ 	k_thread_abort(&h4->rx_thread_data);
+ 
+-	close(h4->fd);
+-	h4->fd = -1;
++	if (h4->file_opened) {
++		file_close(&h4->file);
++		h4->file_opened = false;
++	}
+ 
+ 	return 0;
+ }
+@@ -457,11 +501,12 @@ static int h4_init(const struct device *dev)
+ 
+ #define H4_DEVICE_INIT(inst)                                                                       \
+ 	static struct h4_data h4_data_##inst = {                                                   \
+-		.fd = -1,                                                                             \
+ 		.mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,                                   \
+ 	};                                                                                         \
+ 	DEVICE_DT_DEFINE(DT_HCI_INST(DT_DRV_INST(inst), inst), h4_init, NULL, &h4_data_##inst, NULL, POST_KERNEL,             \
+ 			      CONFIG_KERNEL_INIT_PRIORITY_DEVICE, &h4_drv_api)
+ 
+ H4_DEVICE_INIT(0);
++#if defined(CONFIG_BT_MC_DEVICE_INST) && CONFIG_BT_MC_DEVICE_INST
+ H4_DEVICE_INIT(1);
++#endif
+diff --git a/port/include/zephyr/devicetree_generated.h b/port/include/zephyr/devicetree_generated.h
+index d724cac2718..67a4b42444a 100644
+--- a/port/include/zephyr/devicetree_generated.h
++++ b/port/include/zephyr/devicetree_generated.h
+@@ -23,10 +23,10 @@ extern struct device __device_dts_ord_DT_N_INST_0_zephyr_bt_hci_ttyHCI0_ORD;
+ 
+ #define DT_N_INST_0_zephyr_bt_hci_ttyHCI0_FULL_NAME CONFIG_BT_UART_ON_DEV_NAME
+ 
+-#if defined(CONFIG_BT_MC_DEVICE_INST)
++#if defined(CONFIG_BT_MC_DEVICE_INST) && CONFIG_BT_MC_DEVICE_INST
+ extern struct device __device_dts_ord_DT_N_INST_1_zephyr_bt_hci_ttyHCI1_ORD;
+ 
+ #define DT_CHOSEN_zephyr_bt_hci1   DT_N_INST_1_zephyr_bt_hci_ttyHCI1
+ 
+ #define DT_N_INST_1_zephyr_bt_hci_ttyHCI1_FULL_NAME "/dev/ttyHCI1"
+-#endif /* CONFIG_BT_MC_DEVICE_INST */
+\ No newline at end of file
++#endif /* CONFIG_BT_MC_DEVICE_INST */
+diff --git a/port/kernel/init.c b/port/kernel/init.c
+index f17a4edb88f..b6ef8cc2703 100644
+--- a/port/kernel/init.c
++++ b/port/kernel/init.c
+@@ -14,6 +14,18 @@
+ #include <zephyr/kernel.h>
+ #include <zephyr/init.h>
+ #include <zephyr/device.h>
++#include <zephyr/sys/atomic.h>
++
++/*
++ * Board HCI bring-up may initialize the Zephyr compatibility layer before
++ * the Bluetooth Framework starts.  The Framework then calls z_sys_init()
++ * again while creating its local service.  Re-running SYS_INIT entries would
++ * start a second sysworkq on the same static stack, corrupting both threads.
++ *
++ * SYS_INIT is process-wide initialization, so make that contract explicit at
++ * the shared entry point instead of relying on every caller to coordinate.
++ */
++static atomic_t g_z_sys_initialized;
+ 
+ static int do_device_init(const struct init_entry *entry)
+ {
+@@ -45,6 +57,10 @@ static int do_device_init(const struct init_entry *entry)
+ 
+ void z_sys_init(void)
+ {
++	if (!atomic_cas(&g_z_sys_initialized, 0, 1)) {
++		return;
++	}
++
+ 	STRUCT_SECTION_FOREACH(init_entry, entry) {
+ 		const struct device *dev = entry->dev;
+ 		int result;
+diff --git a/port/kernel/thread.c b/port/kernel/thread.c
+index f565122c9a0..8f276512a12 100644
+--- a/port/kernel/thread.c
++++ b/port/kernel/thread.c
+@@ -101,15 +101,31 @@ k_tid_t k_thread_create(struct k_thread *new_thread,
+ 	_main->argv[2] = p2;
+ 	_main->argv[3] = p3;
+ 
+-	pthread_attr_init(&pattr);
+-	pthread_attr_setstack(&pattr, stack, stack_size);
+-	pthread_attr_setschedparam(&pattr, &param);
++	ret = pthread_attr_init(&pattr);
++	if (ret != 0) {
++		free(_main);
++		return (k_tid_t)(intptr_t)-ret;
++	}
++
++	ret = pthread_attr_setstack(&pattr, stack, stack_size);
++	if (ret != 0) {
++		pthread_attr_destroy(&pattr);
++		free(_main);
++		return (k_tid_t)(intptr_t)-ret;
++	}
++
++	ret = pthread_attr_setschedparam(&pattr, &param);
++	if (ret != 0) {
++		pthread_attr_destroy(&pattr);
++		free(_main);
++		return (k_tid_t)(intptr_t)-ret;
++	}
+ 
+ 	ret = pthread_create(&pid, &pattr, k_thread_main, _main);
+ 	pthread_attr_destroy(&pattr);
+-	if (ret < 0) {
++	if (ret != 0) {
+ 		free(_main);
+-		return (k_tid_t)-1;
++		return (k_tid_t)(intptr_t)-ret;
+ 	}
+ 
+ #ifdef CONFIG_SMP
+@@ -152,4 +168,4 @@ void k_thread_abort(k_tid_t thread)
+ 
+ 	pthread_cancel(pid);
+ 	pthread_detach(pid);
+-}
+\ No newline at end of file
++}
+diff --git a/port/sections/defines.c b/port/sections/defines.c
+index 8ef0025b011..ca5c4a2048a 100644
+--- a/port/sections/defines.c
++++ b/port/sections/defines.c
+@@ -541,7 +541,7 @@ extern const struct init_entry __init_bt_nus_auto_start;
+ extern const struct init_entry __init_bt_gatt_ots_l2cap_init;
+ extern const struct init_entry __init_bt_gatt_ots_instances_prepare;
+ extern const struct init_entry __init___device_dts_ord_DT_N_INST_0_zephyr_bt_hci_ttyHCI0_ORD;
+-#if defined(CONFIG_BT_MC_DEVICE_INST)
++#if defined(CONFIG_BT_MC_DEVICE_INST) && CONFIG_BT_MC_DEVICE_INST
+ extern const struct init_entry __init___device_dts_ord_DT_N_INST_1_zephyr_bt_hci_ttyHCI1_ORD;
+ #endif /* CONFIG_BT_MC_DEVICE_INST */
+ 
+@@ -577,7 +577,7 @@ const struct init_entry *_init_entry_list[] = {
+ #endif /* CONFIG_BT_MONITOR */
+ #if defined(CONFIG_BT_H4)
+ 	&__init___device_dts_ord_DT_N_INST_0_zephyr_bt_hci_ttyHCI0_ORD,
+-#if defined(CONFIG_BT_MC_DEVICE_INST)
++#if defined(CONFIG_BT_MC_DEVICE_INST) && CONFIG_BT_MC_DEVICE_INST
+ 	&__init___device_dts_ord_DT_N_INST_1_zephyr_bt_hci_ttyHCI1_ORD,
+ #endif /* CONFIG_BT_MC_DEVICE_INST */
+ #endif /* CONFIG_BT_H4 */
+@@ -699,4 +699,4 @@ const struct settings_handler_static *_settings_handler_static_list[] = {
+ 	NULL,
+ };
+ #endif /* CONFIG_SETTINGS */
+-/* settings_handler_static END */
+\ No newline at end of file
++/* settings_handler_static END */
+diff --git a/subsys/bluetooth/host/hci_core.c b/subsys/bluetooth/host/hci_core.c
+index 34afd9c3b83..1cdfa6df914 100644
+--- a/subsys/bluetooth/host/hci_core.c
++++ b/subsys/bluetooth/host/hci_core.c
+@@ -190,7 +190,9 @@ void bt_dev_free(struct bt_dev *hdev)
+ #if DT_HAS_CHOSEN(zephyr_bt_hci)
+ static bool drv_quirk_no_reset(struct bt_dev *hdev)
+ {
+-	return  ((BT_DT_HCI_QUIRKS_GET(DT_CHOSEN(zephyr_bt_hci)) & BT_HCI_QUIRK_NO_RESET) != 0);
++	return IS_ENABLED(CONFIG_BT_H4_NO_RESET) ||
++	       ((BT_DT_HCI_QUIRKS_GET(DT_CHOSEN(zephyr_bt_hci)) &
++	         BT_HCI_QUIRK_NO_RESET) != 0);
+ }
+ 
+ bool bt_drv_quirk_no_auto_dle(struct bt_dev *hdev)
+diff --git a/subsys/bluetooth/host/id.c b/subsys/bluetooth/host/id.c
+index b1cc2d303bb..51f54296c15 100644
+--- a/subsys/bluetooth/host/id.c
++++ b/subsys/bluetooth/host/id.c
+@@ -1670,12 +1670,12 @@ int bt_setup_public_id_addr(struct bt_dev *hdev)
+ 		return 0;
+ 	}
+ 
++#if defined(CONFIG_BT_PRIVACY)
+ 	if (!irk_is_empty(hdev->irk[BT_ID_DEFAULT])) {
+ 		irk = hdev->irk[BT_ID_DEFAULT];
+ 		goto out;
+ 	}
+ 
+-#if defined(CONFIG_BT_PRIVACY)
+ 	uint8_t ir_irk[16];
+ 	uint8_t ir[16] = { 0 };
+ 

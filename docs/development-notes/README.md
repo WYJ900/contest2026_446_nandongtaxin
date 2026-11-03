@@ -7,7 +7,7 @@
 
 被推翻的例子：
 
-- 「LVGL 没有 EPIC 后端，要自己写渲染后端」 → 官方 `middleware/lvgl/lv_drivers_v9/sifli/` 已有完整 v9 后端
+- 「LVGL 没有 EPIC 后端，要自己写渲染后端」 → 思澈已给 openvela 提交官方 EPIC 后端（vendor_sifli#31 / apps_graphics_lvgl#41），见 [EPIC 实测交接](../HANDOFF_EPIC_20261017.md)
 - 「EPIC 依赖 RT-Thread，openvela 上用不了」 → HAL 层零依赖，已在真机跑通；驱动层依赖也很浅
 - 「帧率优化已做，30→60fps」 → 改错了配置项，且真实瓶颈在内存带宽，不在刷新周期
 
@@ -15,8 +15,8 @@
 
 | 文件 | 内容 |
 |---|---|
-| [PERF_FINDINGS.md](PERF_FINDINGS.md) | 帧率与内存带宽实测数据、EPIC 跑通的必要条件、排障工具 |
-| [EPIC_UPSTREAM.md](EPIC_UPSTREAM.md) | 官方 SiFli-SDK 里的 EPIC / GPU 方案，含源码路径与限制 |
+| [PERF_FINDINGS.md](PERF_FINDINGS.md) | 帧率与内存带宽实测数据、EPIC HAL 初始化要点、排障工具 |
+| [EPIC 实测交接](../HANDOFF_EPIC_20261017.md) | 官方 openvela EPIC 方案在本板的 benchmark 与接入建议（2026-10-17） |
 | [BUILD_FLASH.md](BUILD_FLASH.md) | 编译烧录流程、踩过的坑（这份是天天在用的，已验证） |
 | [SPORT_UI_20260829.md](SPORT_UI_20260829.md) | 五表盘、蜂窝菜单、按键规则、运动流程与真机验收状态 |
 | [RTC_BOOT_TIME_20260830.md](RTC_BOOT_TIME_20260830.md) | 上电时间恢复、RTC 限制和校时方案 |
@@ -31,7 +31,7 @@
 | 快应用四卡片上屏 | 通过（swiper 竖滑） |
 | 滑动显示吞吐 | LCD `putarea()` 调用率显著提升；局部刷新下不能直接等同显示 FPS |
 | 触摸跟手性 | 独立 16ms 帧泵已上屏实测；输入 70–90Hz，但有效刷新仅 6.5–9.5Hz、端到端约 110–155ms，主瓶颈已收敛到 CPU 整屏软件重绘 |
-| EPIC 硬件加速 | HAL 层已跑通，但纯填充/拷贝比 CPU 慢；LVGL 后端移植暂缓，待真实刷新/触摸测量后决定 |
+| EPIC 硬件加速 | 官方方案已在本板实测，见 [EPIC 实测交接](../HANDOFF_EPIC_20261017.md) |
 | velaclaw AI 链路 | 请求可达 ai_agent 守护进程 |
 | AI 真正回话 | 缺网络 + LLM Key |
 
@@ -41,7 +41,7 @@
 始终报告可写。第一版仅保留 `TIMER | INPUT` 时默认 timer 没有可靠地产生首帧，真机
 黑屏；第三版在 UI 建成后同步提交首帧，再用独立 16ms libuv 定时器驱动刷新，画面
 恢复。30 秒真机采样证明触摸和刷新唤醒足够快，主要延迟位于同步 CPU 整屏重绘；
-下一阶段应移植思澈完整 EPIC draw unit、双 50 行 SRAM 缓冲和异步 LCD flush。详见
+（2026-10-17：显示链路与 EPIC 的下一步以 EPIC 实测交接为准。）详见
 [PERF_FINDINGS.md](PERF_FINDINGS.md)。
 
 当前二维手表导航已包含五个表盘、自由二维蜂窝菜单和单目标 PSRAM 转场快照；

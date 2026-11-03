@@ -1,0 +1,52 @@
+{
+  "firmware_file": "velaride-hardware-s01-20261009.bin",
+  "firmware_bytes": 9261644,
+  "firmware_sha256": "E25EEADC9C6B62C2E5AF919F7ABEFDCEC6C7B05654B29A3D9486C00271B4EAE5",
+  "partition_margin_bytes": 765364,
+  "prior_rejected_s01_sha256": "CBA0B0EAF9C67A6DBC776282DE93D75CA66618F5304CD9CB81EDC1443AC809FA",
+  "prior_failure": "ADC range errors; extra conversion slots remained enabled",
+  "battery_installed_user_report": false,
+  "battery_percentage_enabled": false,
+  "adc_calibrated": false,
+  "usb_connected": true,
+  "reference_mv_last": 4292,
+  "adc_samples_last": 47,
+  "adc_failures_last": 0,
+  "lcd_sent": 1460,
+  "lcd_completed": 1460,
+  "lcd_recoveries": 0,
+  "light_identity": {
+    "address": "0x29",
+    "part": "0xa0",
+    "manufacturer": "0x05"
+  },
+  "magnetometer_identity": {
+    "address": "0x30",
+    "product": "0x10"
+  },
+  "imu_identity": "0x6a",
+  "touch_identity": [
+    "0x64",
+    "0x11"
+  ],
+  "ble_regression": "scan/connect/time_sync/ping/status/latest/disconnect passed",
+  "latest_ride_sequence": 7,
+  "original_ai_review_preserved": true,
+  "new_ride_end_to_end_test": "pending",
+  "motor_speaker_installation": "awaiting user confirmation",
+  "manual_page_touch_validation": "passed: user confirmed page and touch OK",
+  "host_tests": {
+    "i2c": true,
+    "adc": true,
+    "device_service": true,
+    "ride_scenarios": 8,
+    "lvgl_ui": true,
+    "menu_pointer_routes": 7,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ]
+  },
+  "static_full_file_style_check": "not clean; vendor historical style and app section warnings",
+  "screenshot_origin": "host LVGL rendering, not watch photo"
+}

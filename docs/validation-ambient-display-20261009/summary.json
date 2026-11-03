@@ -1,0 +1,74 @@
+{
+  "firmware_file": "velaride-hardware-s3-20261009.bin",
+  "firmware_bytes": 9274664,
+  "firmware_sha256": "B6B56C603C2707078D9C8F3BCE62CFB840D2C09AEB1C96C2C74D971BAD5CF08F",
+  "partition_margin_bytes": 752344,
+  "device_final": {
+    "usb_valid": true,
+    "usb_connected": true,
+    "adc_valid": true,
+    "reference_mv": 4382,
+    "adc_error": 0,
+    "calibrated": false,
+    "battery_present": null,
+    "light_detected": true,
+    "magnetometer_detected": true,
+    "adc_samples": 11,
+    "adc_failures": 0,
+    "light_valid": true,
+    "light_lux": 15.74,
+    "light_error": 0,
+    "light_samples": 109,
+    "light_failures": 0,
+    "brightness": 50,
+    "brightness_target": 50,
+    "auto": false,
+    "brightness_error": 0,
+    "settings_error": 0,
+    "settings_pending": false
+  },
+  "lcd_final": {
+    "sent": 353,
+    "completed": 353,
+    "recoveries": 0
+  },
+  "manual_brightness_registers": {
+    "20": "0x33",
+    "50": "0x7f",
+    "80": "0xcc"
+  },
+  "explicit_panel_recovery_test": "passed; one intentional recovery restored 80 percent",
+  "reboot_settings": "passed: manual 80 percent restored",
+  "automatic_ramp_observed": [
+    80,
+    65,
+    50
+  ],
+  "ble_regression": "scan/connect/time_sync/ping/ride_status/ride_latest/disconnect passed",
+  "latest_ride_sequence": 7,
+  "original_ai_review_preserved": true,
+  "manual_visual_touch_shading_validation": "pending user feedback",
+  "new_ride_end_to_end": "pending",
+  "screen_origin": "host LVGL rendering with firmware font, not watch photo",
+  "initial_candidate_failure": "late open immediately timed out before first light sample; fixed and regression tested",
+  "host_tests": {
+    "i2c": true,
+    "adc": true,
+    "ltr303_actual_driver": true,
+    "device_service_and_display_policy": true,
+    "ride_scenarios": 8,
+    "lvgl_screen_settings": true,
+    "native_faces": 5,
+    "menu_pointer_routes": 7,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ]
+  },
+  "integration": {
+    "patches": 7,
+    "overlays": 6,
+    "web_mirror_files": 18,
+    "web_mirror_differences": 0
+  }
+}

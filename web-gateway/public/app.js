@@ -1,3 +1,6 @@
+import { validateRide } from './ride-data.js';
+import { RideBleTransport } from './ble-transport.js';
+
 const UUID = {
   service: '0000fff0-0000-1000-8000-00805f9b34fb',
   tx: '0000fff1-0000-1000-8000-00805f9b34fb',
@@ -22,12 +25,28 @@ const state = {
   demo: false,
   receiveBuffer: '',
   watchReview: '',
+  recordSequence: null,
+  reviewSequence: null,
+  reviewRequest: 0,
+  reviewController: null,
   ride: { elapsed_s: 0, moving_s: 0, still_s: 0, impacts: 0, active: false },
 };
 
-const controls = ['syncTimeButton', 'sendDataButton', 'statusButton'];
+const controls = ['syncTimeButton', 'statusButton', 'latestButton'];
+const bleClient = new RideBleTransport({
+  onMessage: handleMessage,
+  onDisconnect: () => {
+    state.rx = null;
+    state.tx = null;
+    state.transport = null;
+    $('connectButton').textContent = '连接手表（BLE）';
+    $('sendReviewButton').disabled = true;
+    setConnected(false, '手表连接已断开');
+    log('BLE 已断开');
+  },
+});
 
-// 手表结束页“本次骑行记录”的真实读数。演示时按此填入，不做任何放大或编造。
+// 2026-09-18 验证记录中的历史读数，仅供显式加载样例。
 const DEMO_RIDE = {
   elapsed_s: 8,
   moving_s: 5,
@@ -49,12 +68,11 @@ function setConnected(connected, label = connected ? '已连接' : '未连接') 
   controls.forEach((id) => { $(id).disabled = !connected; });
 }
 
-// 徽标在没有手表连接时反映的是网关 AI 通道，而不是手表连接状态。
-// 稳定演示不连手表，若沿用“未连接”会被误读成 AI 不可用。
-function setGatewayStatus(ai) {
-  const badge = $('connectionBadge');
+// AI 配置与设备连接分开显示；配置存在不代表云端请求一定成功。
+function setGatewayStatus(ai, provider = 'AI', model = '') {
+  const badge = $('aiBadge');
   if (ai && ai !== 'fallback') {
-    badge.textContent = 'MiMo 已就绪';
+    badge.textContent = `${provider} 已配置${model ? ` · ${model}` : ''}`;
     badge.className = 'badge online';
   } else {
     badge.textContent = '本地降级';
@@ -77,7 +95,29 @@ function renderRide(ride) {
   $('impactValue').textContent = `${ride.impacts || 0} 次`;
 }
 
-// 将手表结束页真实读数填入表单与预览，等价于用户逐项手填。
+const rideInputs = {
+  elapsed_s: 'elapsedInput', moving_s: 'movingInput', still_s: 'stillInput',
+  distance_km: 'distanceInput', pause_count: 'pauseInput', impacts: 'impactInput',
+};
+
+function readRideInputs() {
+  return Object.fromEntries(Object.entries(rideInputs).map(([field, id]) =>
+    [field, $(id).validity.badInput ? NaN : Number($(id).value || 0)]));
+}
+
+function invalidateReview(message = '') {
+  state.reviewRequest++;
+  state.reviewController?.abort();
+  state.reviewController = null;
+  state.watchReview = '';
+  state.reviewSequence = null;
+  $('reviewText').value = '';
+  $('aiSource').textContent = message;
+  $('generateButton').disabled = false;
+  $('sendReviewButton').disabled = true;
+}
+
+// 历史样例与本次手工录入分别标记。
 function prefillRide(ride = DEMO_RIDE) {
   $('elapsedInput').value = ride.elapsed_s;
   $('movingInput').value = ride.moving_s;
@@ -86,12 +126,25 @@ function prefillRide(ride = DEMO_RIDE) {
   $('pauseInput').value = ride.pause_count;
   $('impactInput').value = ride.impacts;
   renderRide({ ...ride, active: false, paused: false });
-  log('已按手表结束页填入真实读数', ride);
+  $('rideState').textContent = '历史样例';
+  log('已加载 2026-09-18 历史样例，请勿当作本次骑行记录', ride);
 }
 
 function handleMessage(message) {
   log('手表返回', message);
   if (message.event === 'ride_status') renderRide(message);
+  if (message.event === 'ride_latest') {
+    invalidateReview('已读取手表保存的骑行记录，可以生成复盘。');
+    state.recordSequence = message.sequence;
+    for (const [field, id] of Object.entries(rideInputs)) {
+      $(id).value = message[field] ?? 0;
+    }
+    renderRide(message);
+    $('rideState').textContent = `手表记录 #${message.sequence}`;
+  }
+  if (message.event === 'ride_review' && message.ok) {
+    $('aiSource').textContent += ' · 手表已确认保存';
+  }
   if (message.event === 'time_sync') {
     $('timeText').textContent = new Date(message.epoch * 1000).toLocaleString('zh-CN');
   }
@@ -294,18 +347,6 @@ async function writeSerialFrame(payload) {
   log('USB 已发送', { cmd: payload.cmd });
 }
 
-function onNotification(event) {
-  state.receiveBuffer += decoder.decode(event.target.value);
-  let newline;
-  while ((newline = state.receiveBuffer.indexOf('\n')) >= 0) {
-    const frame = state.receiveBuffer.slice(0, newline).trim();
-    state.receiveBuffer = state.receiveBuffer.slice(newline + 1);
-    if (!frame) continue;
-    try { handleMessage(JSON.parse(frame)); }
-    catch { log('无法解析手表消息', frame); }
-  }
-}
-
 async function writeFrame(payload) {
   if (state.demo) {
     log('演示发送', payload);
@@ -346,45 +387,41 @@ async function writeFrame(payload) {
     return;
   }
 
-  if (!state.rx) throw new Error('手表未连接');
-  const bytes = encoder.encode(`${JSON.stringify(payload)}\n`);
-  for (let offset = 0; offset < bytes.length; offset += 18) {
-    const chunk = bytes.slice(offset, offset + 18);
-    if (typeof state.rx.writeValueWithoutResponse === 'function') {
-      await state.rx.writeValueWithoutResponse(chunk);
-    } else {
-      await state.rx.writeValue(chunk);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 8));
-  }
-  log('已发送', payload);
+  const response = await bleClient.request(payload);
+  log('手表已确认', { command: payload.cmd });
+  return response;
 }
 
 async function connect() {
+  if (bleClient.connected) {
+    bleClient.disconnect();
+    return;
+  }
   if (!navigator.bluetooth) throw new Error('当前浏览器不支持 Web Bluetooth，请使用电脑 Chrome/Edge');
+  $('connectButton').disabled = true;
+  try {
   const device = await navigator.bluetooth.requestDevice({
     filters: [{ namePrefix: 'VelaRide' }],
     optionalServices: [UUID.service],
   });
-  device.addEventListener('gattserverdisconnected', () => {
-    state.tx = null;
-    state.rx = null;
-    setConnected(false, '连接断开');
-    log('BLE 已断开');
-  });
-  const server = await device.gatt.connect();
-  const service = await server.getPrimaryService(UUID.service);
-  state.tx = await service.getCharacteristic(UUID.tx);
-  state.rx = await service.getCharacteristic(UUID.rx);
-  await state.tx.startNotifications();
-  state.tx.addEventListener('characteristicvaluechanged', onNotification);
+  await bleClient.connect(device);
+  state.tx = bleClient.tx;
+  state.rx = bleClient.rx;
   state.device = device;
   state.transport = 'ble';
   state.demo = false;
   setConnected(true, device.name || 'VelaRide');
+  $('connectButton').textContent = '断开手表';
+  $('sendReviewButton').disabled = !state.watchReview;
   log('BLE 连接成功');
   await writeFrame({ cmd: 'ping' });
   await syncTime();
+  } catch (error) {
+    bleClient.disconnect();
+    throw error;
+  } finally {
+    $('connectButton').disabled = false;
+  }
 }
 
 async function syncTime() {
@@ -405,55 +442,90 @@ async function syncTime() {
 }
 
 async function generateReview() {
+  if (state.reviewController) return;
+  invalidateReview();
+  const requestId = state.reviewRequest;
+  const recordSequence = state.recordSequence;
+  const controller = new AbortController();
+  state.reviewController = controller;
+  const timeout = setTimeout(() => controller.abort(), 65_000);
   $('generateButton').disabled = true;
   $('aiSource').textContent = 'AI 正在分析骑行记录，请稍候…';
   try {
-    const payload = {
-      ...state.ride,
-      elapsed_s: Number($('elapsedInput').value || 0),
-      moving_s: Number($('movingInput').value || 0),
-      still_s: Number($('stillInput').value || 0),
-      pause_count: Number($('pauseInput').value || 0),
-      impacts: Number($('impactInput').value || 0),
-      distance_km: Number($('distanceInput').value || 0),
-    };
-    if (!Number.isFinite(payload.elapsed_s) || payload.elapsed_s <= 0) {
-      throw new Error('请先填写手表显示的真实总时长');
-    }
-    if (payload.moving_s + payload.still_s > payload.elapsed_s + 2) {
-      throw new Error('运动时长与静止时长之和不能大于总时长');
-    }
+    const payload = validateRide(readRideInputs());
 
     const response = await fetch('/api/ride/review', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.error || '生成失败');
+    if (requestId !== state.reviewRequest) return;
     $('reviewText').value = data.review;
     state.watchReview = data.watch_review || data.review;
-    $('aiSource').textContent = data.source.startsWith('mimo') ? '由 Xiaomi MiMo 生成' : '当前无 MiMo Key，使用端侧规则降级';
-    $('sendReviewButton').disabled = true;
+    state.reviewSequence = recordSequence;
+    const reasons = {
+      not_configured: '未配置 AI 凭据',
+      configuration_error: 'AI 接口配置不完整或有误',
+      timeout: 'AI 请求超时',
+      empty_response: 'AI 服务未返回复盘正文',
+      output_limit: 'AI 输出达到限制，未返回复盘正文',
+      upstream_error: `AI 服务暂不可用${data.upstream_status ? `（HTTP ${data.upstream_status}）` : ''}`,
+    };
+    $('aiSource').textContent = data.source !== 'fallback'
+      ? `由 ${data.provider || 'AI'} 生成${data.model ? ` · ${data.model}` : ''}`
+      : `${reasons[data.fallback_reason] || 'AI 暂不可用'}，使用网关本地规则降级`;
+    if (data.watch_source === 'font-safe') {
+      $('aiSource').textContent += ' · 手表将使用字库兼容的规则短版';
+    }
+    $('sendReviewButton').disabled = !bleClient.connected;
     log('复盘已生成', { source: data.source });
+  } catch (error) {
+    if (requestId !== state.reviewRequest) return;
+    const message = error.name === 'AbortError' ? '请求超时，请稍后重试' : error.message;
+    $('aiSource').textContent = `生成失败：${message}`;
+    log('复盘失败', { error: message });
   } finally {
-    $('generateButton').disabled = false;
+    clearTimeout(timeout);
+    if (requestId === state.reviewRequest) {
+      state.reviewController = null;
+      $('generateButton').disabled = false;
+    }
   }
 }
 
 $('connectButton').addEventListener('click', () => connect().catch((error) => log('连接失败', { error: error.message })));
 $('serialButton').addEventListener('click', () => connectBridge().catch((error) => log('USB 网关失败', { error: error.message })));
 $('demoButton').addEventListener('click', () => {
+  bleClient.disconnect();
+  state.recordSequence = null;
   state.demo = true;
   state.transport = 'demo';
-  setConnected(true, '真实结果录入');
+  setConnected(false, '手表未连接 · 手工录入');
   $('syncTimeButton').disabled = true;
   $('sendDataButton').disabled = true;
   $('statusButton').disabled = true;
+  renderRide({ ...readRideInputs(), active: false, paused: false });
+  $('rideState').textContent = '手工录入';
+  invalidateReview();
+  $('elapsedInput').focus();
+  log('请照本次手表结束页填写；已有输入已保留');
+});
+$('sampleButton').addEventListener('click', () => {
+  bleClient.disconnect();
+  state.recordSequence = null;
+  invalidateReview('已加载历史样例，生成的复盘仅对应这条样例。');
   prefillRide();
-  $('sendReviewButton').disabled = true;
-  $('reviewText').value = '';
-  $('aiSource').textContent = '';
+});
+Object.values(rideInputs).forEach((id) => {
+  $(id).addEventListener('input', () => {
+    state.recordSequence = null;
+    invalidateReview('记录已修改，请重新生成复盘。');
+    renderRide({ ...readRideInputs(), active: false, paused: false });
+    $('rideState').textContent = '手工录入';
+  });
 });
 $('syncTimeButton').addEventListener('click', () => syncTime().catch((error) => log('校时失败', { error: error.message })));
 $('speedInput').addEventListener('input', () => {
@@ -466,18 +538,38 @@ $('sendDataButton').addEventListener('click', () => writeFrame({
   distance: Number($('distanceInput').value),
 }).catch((error) => log('数据发送失败', { error: error.message })));
 $('statusButton').addEventListener('click', () => writeFrame({ cmd: 'ride_status' }).catch((error) => log('读取失败', { error: error.message })));
+$('latestButton').addEventListener('click', () => writeFrame({ cmd: 'ride_latest' }).catch((error) => {
+  $('aiSource').textContent = `读取失败：${error.message}`;
+  log('读取失败', { error: error.message });
+}));
 $('generateButton').addEventListener('click', () => generateReview().catch((error) => log('复盘失败', { error: error.message })));
-$('sendReviewButton').addEventListener('click', () => writeFrame({ cmd: 'ride_review', text: state.watchReview || $('reviewText').value.trim() }).catch((error) => log('复盘回传失败', { error: error.message })));
+$('sendReviewButton').addEventListener('click', async () => {
+  $('sendReviewButton').disabled = true;
+  try {
+    await writeFrame({ cmd: 'ride_review', text: state.watchReview,
+      ...(state.reviewSequence !== null ? { sequence: state.reviewSequence } : {}) });
+  } catch (error) {
+    $('aiSource').textContent = `回传失败：${error.message}`;
+    log('复盘回传失败', { error: error.message });
+  } finally {
+    $('sendReviewButton').disabled = !bleClient.connected || !state.watchReview;
+  }
+});
 
-$('supportHint').textContent = '手表独立完成骑行；网页只调用真实 MiMo。为防止黑屏，当前版本绝不打开 COM5。';
-setConnected(false);
+$('supportHint').textContent = '连接手表后读取最近骑行记录，生成复盘并回传。AI 不可用时会明确显示本地规则降级。';
+setConnected(false, '手表未连接');
 setGatewayStatus(null);
 updateClock();
 setInterval(updateClock, 1000);
-fetch('/api/health').then((res) => res.json()).then((health) => {
-  setGatewayStatus(health.ai);
+fetch('/api/health', { signal: AbortSignal.timeout(5000) }).then((res) => {
+  if (!res.ok) throw new Error('健康检查失败');
+  return res.json();
+}).then((health) => {
+  setGatewayStatus(health.ai, health.provider, health.model);
+  if (health.config_error) log('AI 配置错误', { error: health.config_error });
   log('网关服务就绪', health);
 }).catch((error) => {
   setGatewayStatus(null);
+  $('aiBadge').textContent = '网关不可用';
   log('网关服务异常', { error: error.message });
 });

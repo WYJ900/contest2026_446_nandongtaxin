@@ -1,0 +1,26 @@
+{
+  "firmware_sha256": "980353fbf0b53d009882e1fe04770539aceba7f5639508d65ed94116c79ade54",
+  "firmware_bytes": 9600748,
+  "reset_cycles": 5,
+  "legacy_ble_passed": true,
+  "settings_persisted": true,
+  "real_alarm_passed": true,
+  "alarm_test_time": "2026-10-27T16:03:00",
+  "completion_once": true,
+  "countdown_unaffected": true,
+  "audio_played": false,
+  "alarm_final": {
+    "hour": 7,
+    "minute": 0,
+    "enabled": 0,
+    "confirm": 0,
+    "saving": 0,
+    "error": 0,
+    "ringing": 0,
+    "completions": 1,
+    "ret": 0
+  },
+  "latest_ride_sequence": 11,
+  "user_hands_on": "pending",
+  "source_rebuild_bit_identical": false
+}

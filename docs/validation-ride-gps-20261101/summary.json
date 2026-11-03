@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-01",
+  "parent_user_feedback": "123 are correct: basic GPS display, clearing and watch baseline operations accepted",
+  "firmware_sha256": "9041c538529b46f3419c06f46bf70cfdd2570c0d20a58f704b31f9b147f7c0ef",
+  "apk_version": "0.1.4",
+  "apk_sha256": "4bb52dcd5d3f71de566a0eb15854cc738a735d9e31274d42352552b1c87fef48",
+  "passed": {
+    "flash_verify": true,
+    "boot_cycles": 5,
+    "legacy_ble": true,
+    "v1_record_readback": true,
+    "same_apk_signer": true,
+    "host_ride_tests": 12,
+    "actual_build_tree_lvgl": true,
+    "android_wire_handshake_history_gps_tests": true
+  },
+  "preserved_latest_record": {
+    "ok": true,
+    "event": "ride_latest",
+    "sequence": 11,
+    "active": false,
+    "elapsed_s": 23,
+    "moving_s": 19,
+    "still_s": 1,
+    "impacts": 2,
+    "pause_count": 1,
+    "rest_count": 0,
+    "gps_time_ms": 0,
+    "gps_distance_m": 0,
+    "gps_avg_centi": 0,
+    "gps_max_centi": 0
+  },
+  "device_record_written_by_test": false,
+  "synthetic_device_gps_injected": false,
+  "audio_playback_performed": false,
+  "settings": {
+    "sound": "ON / 100",
+    "night": "OFF / 20",
+    "alarm": "OFF / 07:00"
+  },
+  "pending": [
+    "Real new ride GPS saving, reboot persistence and Android 0.1.4 sync",
+    "Pause/resume distance exclusion with real walking/riding",
+    "Physical UI and baseline regression on new candidate",
+    "Android export/share on phone"
+  ],
+  "limitations": [
+    "Foreground-only phone GPS; no route/map",
+    "GPS average uses valid receipt interval coverage, not total ride duration",
+    "Boundary intervals and missing segments are not estimated",
+    "Old watch firmware cannot read newly saved V2 records; export before rollback",
+    "Older APK cannot read upgraded VRH2 history; do not uninstall/downgrade"
+  ]
+}

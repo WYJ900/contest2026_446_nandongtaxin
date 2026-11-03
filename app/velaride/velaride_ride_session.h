@@ -39,6 +39,16 @@ struct velaride_ride_snapshot_s
   uint16_t pause_count;
   uint16_t impact_count;
   uint16_t rest_count;
+  uint32_t goal_s;
+  bool goal_reached;
+};
+
+struct velaride_ride_gps_s
+{
+  uint32_t distance_m;
+  uint32_t time_ms;
+  uint32_t avg_speed_centi;
+  uint32_t max_speed_centi;
 };
 
 struct velaride_ride_record_s
@@ -52,15 +62,25 @@ struct velaride_ride_record_s
   uint16_t pause_count;
   uint16_t impact_count;
   uint16_t rest_count;
+  struct velaride_ride_gps_s gps;
 };
 
 int velaride_ride_session_init(void);
 void velaride_ride_session_start(void);
+void velaride_ride_session_start_with_goal(uint32_t goal_s);
+int velaride_ride_session_probe_sensor(void);
+
+/* Raw accelerometer sample for the level tool; opens the sensor if needed. */
+
+int velaride_ride_session_read_accel(int16_t *x, int16_t *y, int16_t *z);
+void velaride_ride_session_set_connected(bool connected);
+bool velaride_ride_session_connected(void);
 void velaride_ride_session_set_paused(bool paused);
 void velaride_ride_session_sensor_tick(void);
 void velaride_ride_session_second_tick(void);
 int velaride_ride_session_finish(struct velaride_ride_record_s *record);
 void velaride_ride_session_get(struct velaride_ride_snapshot_s *snapshot);
+void velaride_ride_session_get_gps(struct velaride_ride_gps_s *gps);
 void velaride_ride_session_ack_alert(void);
 int velaride_ride_session_load_latest(struct velaride_ride_record_s *record);
 int velaride_ride_session_save_record(
@@ -79,5 +99,6 @@ bool velaride_ride_session_get_phone_data(double *speed_kmh,
 int velaride_ride_session_save_review(const char *review);
 int velaride_ride_session_load_review(char *review, size_t size);
 int velaride_ride_session_clear_review(void);
+bool velaride_ride_session_take_review_view_request(void);
 
 #endif

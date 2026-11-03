@@ -1,0 +1,42 @@
+{
+  "stage": "2b - board playback on frozen mic stage",
+  "date": "2026-10-27",
+  "firmware": {
+    "file": "firmware.bin",
+    "bytes": 9592552,
+    "sha256": "23ea7b74e6f6aa4bbe9c2e9e925b034eed1ef1cf5a37fa255f2f105222068941",
+    "note": "uname still prints Oct 27 13:09:03 because the incremental build did not regenerate the version stamp"
+  },
+  "config_sha256": "3b9a0a34bd4acd1d7c1e58ab23dca657609751dff7e755afc126a932e04995e3",
+  "config_identical_to_mic_stage": true,
+  "parent": "artifacts/mic-stage-20261027 (31610eb1...)",
+  "change": [
+    "speaker_test NSH command from v16 source (10-26 13:17), lock replaced by shared audio_test_lock",
+    "voice playback: whole-step boost up to x4 when raw peak < 500 (VOICE_TEST_TARGET_PEAK 1000)"
+  ],
+  "previous_candidate_without_boost": {
+    "path": "backup/stage1-20261027/mic-speaker-stage-v16dsp.bin",
+    "sha256": "25627d9eb043a19f3afa1c2b8859c28f121f57024944ae6c86909b2b1facedd4",
+    "evidence": "reset x5 passed; two playbacks result=0, user: audible but quiet"
+  },
+  "stage_source_sha256": {
+    "build_speaker_stage.sh": "cd69bb59c679a7eb98636a0335c3acb21b55d7cbfe3bd60f4b7591f8ff7289b6",
+    "host_test_voice.c": "b8bcecb49ccdd7acc207eb7e2531114870bc89a9c39117d33147068f8037c51d",
+    "run_host_test.sh": "201b0ebe0009a569c6560f32a5d36b3c383b2476f44685377bb67df9439823c5",
+    "speaker_test.c": "1bc2461dabe00d984b2979e99abfd24a3563f67e961a2df7ac54c085efc22aff",
+    "speaker_test.v16-original.c": "a8d5ead8b8cdaac705858014718dfd8dd15cdc47df9c2a3ddffca662af77e8c1",
+    "voice_test_dsp.h": "9ffea7c7c5566a847324bd0418d1a246e3112af3b965f7c8ee61dbc6363f97e4"
+  },
+  "evidence": {
+    "rts_reset_x5": "PASSED (26-boost-reset-x5.json)",
+    "host_dsp_test": "ASan/UBSan pass; accepted v16 recording boost=1 unchanged; quiet takes boost=4 rms 871-1017 vs accepted 1066",
+    "hardware_playback": "record peak 716 rms 74 -> boost=1, output peak 5821, 5004 ms, result=0, amplifier off; no reboot, input0 present, ride 11 intact",
+    "boost_on_hardware": "not exercised (input was loud enough)",
+    "user_listening": "pending"
+  },
+  "not_covered": [
+    "30 min idle",
+    "full cold power cycle",
+    "BLE advertising paused during playback (tested with advertising on)"
+  ]
+}

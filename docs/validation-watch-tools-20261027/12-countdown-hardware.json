@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "error": null,
+  "events": [
+    {
+      "command": "velaride countdown cancel",
+      "response": "velaride countdown cancel\nVELARIDE_COUNTDOWN: state=0 duration=300 remaining_ms=300000 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride wake-status",
+      "response": "velaride wake-status\nVELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=62,-83,-993 up=0.99 err=0 sleeps=2 raises=0 idle=92653ms\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown status",
+      "response": "velaride countdown status\nVELARIDE_COUNTDOWN: state=0 duration=300 remaining_ms=300000 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown start 4",
+      "response": "velaride countdown start 4\nVELARIDE_COUNTDOWN: state=1 duration=4 remaining_ms=4000 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown pause",
+      "response": "velaride countdown pause\nVELARIDE_COUNTDOWN: state=2 duration=4 remaining_ms=2943 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown status",
+      "response": "velaride countdown status\nVELARIDE_COUNTDOWN: state=2 duration=4 remaining_ms=2943 completions=0 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown resume",
+      "response": "velaride countdown resume\nVELARIDE_COUNTDOWN: state=1 duration=4 remaining_ms=2943 completions=0 ret=0\nnsh> \u001b[KVELARIDE_COUNTDOWN: completed notification=1\nVELARIDE_WAKE: display on ret=0\nVELARIDE_PREVIEW: index=4 scene=4 ready in=22ms\n"
+    },
+    {
+      "command": "velaride countdown status",
+      "response": "velaride countdown status\nVELARIDE_COUNTDOWN: state=3 duration=4 remaining_ms=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride wake-status",
+      "response": "velaride wake-status\nVELARIDE_WAKE: off=0 raise_pref=1 sleep=1 by_raise=0 accel=62,-83,-983 up=0.99 err=0 sleeps=2 raises=0 idle=2345ms\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown status",
+      "response": "velaride countdown status\nVELARIDE_COUNTDOWN: state=3 duration=4 remaining_ms=0 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown cancel",
+      "response": "velaride countdown cancel\nVELARIDE_COUNTDOWN: state=0 duration=4 remaining_ms=4000 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown start 300",
+      "response": "velaride countdown start 300\nVELARIDE_COUNTDOWN: state=1 duration=300 remaining_ms=300000 completions=1 ret=0\nnsh> \u001b[K"
+    },
+    {
+      "command": "velaride countdown cancel",
+      "response": "velaride countdown cancel\nVELARIDE_COUNTDOWN: state=0 duration=300 remaining_ms=300000 completions=1 ret=0\nnsh> \u001b[K"
+    }
+  ],
+  "pause_remaining_ms": 2943,
+  "completion_once": true,
+  "screen_wake_command_acknowledged": true
+}

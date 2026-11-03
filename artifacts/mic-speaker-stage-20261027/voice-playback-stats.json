@@ -1,0 +1,17 @@
+{
+  "seconds": 5.0,
+  "sample_rate": 16000,
+  "bits": 16,
+  "channels": 1,
+  "capture_elapsed_ms": 5203,
+  "warmup_ms": 200,
+  "observed_sample_rate": 15990.77,
+  "min": -716,
+  "max": 556,
+  "rms": 74.195,
+  "mean": -0.487,
+  "zero_samples": 2667,
+  "clipped_samples": 0,
+  "checksum": "a1c328aa",
+  "playback_result": 0
+}

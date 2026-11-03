@@ -1,0 +1,27 @@
+{
+  "firmware_sha256": "a9bd9f2580da13e0a80753c2531f46ee6f5e730b1ff792474999ed7334a8e90b",
+  "firmware_bytes": 9764740,
+  "brightness_sequence": [
+    50,
+    20,
+    35,
+    50
+  ],
+  "original_day_target": 50,
+  "original_day_auto": false,
+  "automatic_dark_input_lux": 0,
+  "automatic_dark_passed": true,
+  "automatic_bright_hardware": "pending user lighting",
+  "reset_cycles": 5,
+  "persisted_mode": 1,
+  "persisted_limit": 35,
+  "ble_passed": true,
+  "saved_ride_sequence": 11,
+  "sound_enabled": true,
+  "sound_volume": 100,
+  "audio_played": false,
+  "final_test_night_mode": 0,
+  "final_test_night_limit": 20,
+  "user_hands_on": "pending",
+  "long_runtime_adc_note": "ADC -34 observed before reset, also documented in prior baseline; not fixed by this feature"
+}

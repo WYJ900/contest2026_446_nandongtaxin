@@ -1,0 +1,23 @@
+{
+  "source": "Observed localhost gateway UI log after user reselected VelaRide",
+  "connected_local_time": "2026-10-09 18:28:56",
+  "ping": {"ok": true, "event": "pong"},
+  "time_sync": {"ok": true, "event": "time_sync", "epoch": 1791541758},
+  "ride_latest": {
+    "ok": true,
+    "event": "ride_latest",
+    "sequence": 7,
+    "active": false,
+    "elapsed_s": 25,
+    "moving_s": 22,
+    "still_s": 1,
+    "impacts": 1,
+    "pause_count": 1,
+    "rest_count": 0
+  },
+  "watch_serial_local_time": "2026-10-09 18:29:45",
+  "host_local_time_after_capture": "2026-10-09 18:29:50 +08:00",
+  "lcd_sent": 508,
+  "lcd_completed": 508,
+  "lcd_recoveries_since_reboot": 0
+}

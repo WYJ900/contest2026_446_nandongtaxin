@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-01",
+  "user_confirmed": "Android Bluetooth connection works; other functions described only as should work, not individually accepted",
+  "app_version": "0.1.3",
+  "apk_sha256": "fed12b4e43a7a10073a533e2b52402ea19248fa8dd5c802959f3c4b72b01d02f",
+  "firmware_sha256": "00e511f13ac1200a492f95fb50ebbed63f4a7c1cc5b65ce2e3edbc1858c20515",
+  "firmware_bytes": 9765460,
+  "flash_verify": "PASS",
+  "reset_cycles_passed": 5,
+  "legacy_ble": "PASS",
+  "phone_ble_synthetic": "PASS",
+  "gps_expiry_seconds": 15,
+  "original_record_preserved": {
+    "ok": true,
+    "event": "ride_latest",
+    "sequence": 11,
+    "active": false,
+    "elapsed_s": 23,
+    "moving_s": 19,
+    "still_s": 1,
+    "impacts": 2,
+    "pause_count": 1,
+    "rest_count": 0
+  },
+  "audio_playback_performed": false,
+  "settings_preserved": {
+    "sound_enabled": true,
+    "sound_volume": 100,
+    "night_mode": 0,
+    "night_limit": 20,
+    "alarm_enabled": false,
+    "alarm_time": "07:00"
+  },
+  "host_tests": [
+    "WireCodecTest",
+    "WatchHandshakeTest",
+    "RideHistoryTest",
+    "GpsTrackerTest",
+    "ride_session ASan/UBSan",
+    "sport_ui_test",
+    "shell_ui_test"
+  ],
+  "physical_phone_gps": "PENDING: no USB phone; user must verify real outdoor GPS",
+  "physical_watch_regression": "PENDING: serial and host tests do not replace touch/menu/wake observations",
+  "night_physical_acceptance": "PENDING as in prior stage",
+  "limitations": [
+    "Foreground-only GPS; stops on background or screen lock",
+    "Speed/distance displayed on watch Connection page, not yet stored in ride history",
+    "No map, route, background tracking or GPS accuracy acceptance"
+  ]
+}

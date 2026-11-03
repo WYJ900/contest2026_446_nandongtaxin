@@ -1,0 +1,185 @@
+--- a/velaride_ble.c
++++ b/velaride_ble.c
+@@ -63,6 +63,11 @@
+ {
+   (void)attr;
+   g_notify_enabled = value == BT_GATT_CCC_NOTIFY;
++  /* A host may close its GATT session while the OS retains the physical
++   * connection. Treat a subscription change as a fresh phone session.
++   */
++
++  velaride_ride_session_clear_phone_data();
+   printf("VELARIDE_BLE: notify=%d\n", g_notify_enabled);
+ }
+ 
+@@ -211,6 +216,9 @@
+   double speed;
+   double distance;
+   double sequence;
++  double phone_speed;
++  double phone_distance;
++  bool phone_valid;
+   int ret;
+ 
+   if (json_get_string(json, "cmd", cmd, sizeof(cmd)) < 0)
+@@ -250,8 +258,10 @@
+     }
+   else if (strcmp(cmd, "phone_data") == 0)
+     {
+-      if (json_get_number(json, "speed", &speed) < 0 || speed < 0 ||
+-          json_get_number(json, "distance", &distance) < 0 || distance < 0)
++      if (json_get_number(json, "speed", &speed) < 0 ||
++          speed < 0 || speed > 200 ||
++          json_get_number(json, "distance", &distance) < 0 ||
++          distance < 0 || distance > 100000)
+         {
+           velaride_notify_json(conn,
+             "{\"ok\":false,\"error\":\"bad_phone_data\"}");
+@@ -262,8 +272,18 @@
+       velaride_notify_json(conn,
+                            "{\"ok\":true,\"event\":\"phone_data\"}");
+     }
++  else if (strcmp(cmd, "phone_clear") == 0)
++    {
++      velaride_ride_session_clear_phone_data();
++      velaride_notify_json(conn,
++                           "{\"ok\":true,\"event\":\"phone_clear\"}");
++    }
+   else if (strcmp(cmd, "ride_status") == 0)
+     {
++      phone_speed = 0;
++      phone_distance = 0;
++      phone_valid = velaride_ride_session_get_phone_data(&phone_speed,
++                                                       &phone_distance);
+       velaride_ride_session_get(&ride);
+       ret = velaride_ride_session_load_latest(&record);
+       snprintf(response, sizeof(response),
+@@ -272,12 +292,14 @@
+                "\"elapsed_s\":%" PRIu32 ",\"moving_s\":%" PRIu32 ","
+                "\"still_s\":%" PRIu32 ",\"impacts\":%u,"
+                "\"pause_count\":%u,\"rest_count\":%u,"
+-               "\"latest_sequence\":%" PRIu32 "}",
++               "\"latest_sequence\":%" PRIu32 ",\"phone_valid\":%s,"
++               "\"speed_kmh\":%.2f,\"distance_km\":%.3f}",
+                ride.active ? "true" : "false",
+                ride.paused ? "true" : "false", ride.motion,
+                ride.elapsed_s, ride.moving_s, ride.still_s,
+                ride.impact_count, ride.pause_count, ride.rest_count,
+-               ret == 0 ? record.sequence : 0);
++               ret == 0 ? record.sequence : 0,
++               phone_valid ? "true" : "false", phone_speed, phone_distance);
+       velaride_notify_json(conn, response);
+     }
+   else if (strcmp(cmd, "ride_latest") == 0)
+--- a/velaride_ride_session.c
++++ b/velaride_ride_session.c
+@@ -10,6 +10,8 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ #include <inttypes.h>
++#include <math.h>
++#include <pthread.h>
+ #include <stddef.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -78,8 +80,11 @@
+ {
+   double speed_kmh;
+   double distance_km;
++  uint64_t updated_ms;
+   bool valid;
+ } g_phone_data;
++
++static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
+ 
+ struct ride_record_disk_s
+ {
+@@ -218,6 +223,10 @@
+ void velaride_ride_session_set_connected(bool connected)
+ {
+   g_gateway_connected = connected;
++  if (!connected)
++    {
++      velaride_ride_session_clear_phone_data();
++    }
+ }
+ 
+ bool velaride_ride_session_connected(void)
+@@ -536,21 +545,67 @@
+ void velaride_ride_session_set_phone_data(double speed_kmh,
+                                           double distance_km)
+ {
+-  g_phone_data.speed_kmh = speed_kmh >= 0.0 ? speed_kmh : 0.0;
+-  g_phone_data.distance_km = distance_km >= 0.0 ? distance_km : 0.0;
++  struct timespec now;
++
++  pthread_mutex_lock(&g_phone_lock);
++  if (!isfinite(speed_kmh) || speed_kmh < 0.0 || speed_kmh > 200.0 ||
++      !isfinite(distance_km) || distance_km < 0.0 || distance_km > 100000.0 ||
++      clock_gettime(CLOCK_MONOTONIC, &now) < 0)
++    {
++      memset(&g_phone_data, 0, sizeof(g_phone_data));
++      pthread_mutex_unlock(&g_phone_lock);
++      return;
++    }
++
++  g_phone_data.speed_kmh = speed_kmh;
++  g_phone_data.distance_km = distance_km;
++  g_phone_data.updated_ms = (uint64_t)now.tv_sec * 1000 +
++                            now.tv_nsec / 1000000;
+   g_phone_data.valid = true;
++  pthread_mutex_unlock(&g_phone_lock);
+ }
+ 
+ void velaride_ride_session_clear_phone_data(void)
+ {
++  pthread_mutex_lock(&g_phone_lock);
+   memset(&g_phone_data, 0, sizeof(g_phone_data));
++  pthread_mutex_unlock(&g_phone_lock);
+ }
+ 
+ bool velaride_ride_session_get_phone_data(double *speed_kmh,
+                                           double *distance_km)
+ {
++  struct timespec now;
++  uint64_t now_ms;
++
++  if (speed_kmh != NULL)
++    {
++      *speed_kmh = 0;
++    }
++
++  if (distance_km != NULL)
++    {
++      *distance_km = 0;
++    }
++
++  pthread_mutex_lock(&g_phone_lock);
++  if (clock_gettime(CLOCK_MONOTONIC, &now) < 0)
++    {
++      g_phone_data.valid = false;
++    }
++  else
++    {
++      now_ms = (uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
++      if (now_ms < g_phone_data.updated_ms ||
++          now_ms - g_phone_data.updated_ms >= 15000)
++        {
++          g_phone_data.valid = false;
++        }
++    }
++
+   if (!g_phone_data.valid)
+     {
++      pthread_mutex_unlock(&g_phone_lock);
+       return false;
+     }
+ 
+@@ -564,6 +619,7 @@
+       *distance_km = g_phone_data.distance_km;
+     }
+ 
++  pthread_mutex_unlock(&g_phone_lock);
+   return true;
+ }
+ 

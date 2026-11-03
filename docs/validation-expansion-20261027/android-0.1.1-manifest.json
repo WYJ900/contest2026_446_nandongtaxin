@@ -1,0 +1,27 @@
+{
+  "version": "0.1.1",
+  "version_code": 2,
+  "source_files": {
+    "app/src/main/AndroidManifest.xml": "3f2902276ab2320d78469173cd1e9c840388b2b2fd99023ca3ac102f42b7bafc",
+    "app/src/main/java/com/velaride/companion/BleLink.java": "eabe65df942142ddc975badc1c5de93f6554e42707189481c8097c3c8f672fc6",
+    "app/src/main/java/com/velaride/companion/MainActivity.java": "f19cdce3e9ebe10341b5b780a80fe10eaaca96014991730eebd9b963a17c5533",
+    "app/src/main/java/com/velaride/companion/WatchHandshake.java": "2c43f00ef9f935289d0e5f7d903845e5434def0428d193f9bf0e9d9cdac9540e",
+    "app/src/main/java/com/velaride/companion/WireCodec.java": "eb0f4d42efab4cd4ee0667a7b202f9c78e77a687a1f2c21baa53d341bf64a0bf",
+    "app/src/main/res/drawable/ic_launcher.xml": "d80fd222443fa25e189130ae2e478b0e637a7b6a4eb9fd8f87b69950c2842cfd",
+    "app/src/main/res/values/styles.xml": "bf594c1aa7f84733b46450c80a390f9f9d40a0e1e13c503a76b747159bf58e9e",
+    "tests/WatchHandshakeTest.java": "d39d7d60c0dac18f71efea25dbf0a290aed1ebab6e51efebabd546890e644cc6",
+    "tests/WireCodecTest.java": "346cf0335645e185ec8b92632d60edb17785c6f5afa6900973132e0ae80850e3",
+    "build.ps1": "d12842055704f6597566671f993bb4185ca008811bbecfeb863950781d0527bf",
+    "README.md": "f34143c988b7688403e04c05b5a665b6d0aa62f090a543362957232b12dea4de"
+  },
+  "source_archive_sha256": "ede0f37cec5835e8f391a0e4a1747f6d46a788c64f6922d0b41b819af2b4060c",
+  "apk_sha256": "ceb52dabb7246fbd45241211fa7e42f2b06a9debf1521446b1b029f5a3e7251b",
+  "old_apk_sha256": "18eb172248f19bb4a011d3c96c0dfd060510da5eb98fc35553b3dd861ee9a8ea",
+  "hardware_firmware_changed": false,
+  "phone_acceptance": "deferred: user has no Android phone and requested automatic checks first",
+  "user_feedback": {
+    "question": "??????????????????????????????????????",
+    "answer": "ok?",
+    "note": "General affirmative feedback; no separate cold-boot serial capture."
+  }
+}
