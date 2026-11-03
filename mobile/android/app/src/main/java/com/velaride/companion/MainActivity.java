@@ -64,6 +64,7 @@ public final class MainActivity extends Activity {
     private TextView historySummary;
     private Button browseHistory, exportHistory;
     private Button syncArchive;
+    private Button reviewEntry;
     private String historyWarning = "";
     private String historyFailure;
 
@@ -175,6 +176,9 @@ public final class MainActivity extends Activity {
         syncArchive = button(archive, "补传手表全部记录", false,
                 v -> runJob("正在补传手表历史…", epoch -> readHistory(epoch)));
         browseHistory = button(archive, "查看全部记录", false, v -> browseHistory());
+        reviewEntry = button(archive, "最近骑行复盘与建议", false, v -> {
+            if (history != null && !history.snapshot().isEmpty()) showReview(history.snapshot().get(0));
+        });
         exportHistory = button(archive, "导出全部记录 CSV", false, v -> chooseExport());
 
         LinearLayout position = card(root, "手机定位同步", "开启后将手机速度与本次累计距离发给手表。仅在 App 前台使用。");
@@ -187,7 +191,7 @@ public final class MainActivity extends Activity {
         note.setTextSize(15); note.setHint("例如：今天骑得很舒服，下次继续"); note.setMinLines(2); note.setMaxLines(4);
         memo.addView(note, new LinearLayout.LayoutParams(-1, -2));
         saveNote = button(memo, "保存备注到手表", false, v -> sendNote());
-        message = text("数据只在手机与手表之间传输。", 12, MUTED); root.addView(message);
+        message = text("记录保存在本机；主动请求在线复盘时，摘要会发送到你配置的服务。", 12, MUTED); root.addView(message);
     }
 
     private void connectionChanged(boolean ready, String reason) {
@@ -387,7 +391,7 @@ public final class MainActivity extends Activity {
         long seconds = 0; for (RideHistory.Entry entry : records) seconds += entry.elapsed;
         historySummary.setText(history == null ? historyFailure : records.isEmpty() ? "还没有保存的骑行"
                 : "已保存 " + records.size() + " 次骑行\n累计时长  " + time(seconds) + historyWarning);
-        for (Button action : new Button[]{browseHistory, exportHistory}) {
+        for (Button action : new Button[]{browseHistory, exportHistory, reviewEntry}) {
             action.setEnabled(!records.isEmpty()); action.setAlpha(records.isEmpty() ? .38f : 1f);
         }
     }
@@ -419,12 +423,111 @@ public final class MainActivity extends Activity {
         detail.setTextIsSelectable(true);
         ScrollView scroll = new ScrollView(this); scroll.addView(detail);
         new AlertDialog.Builder(this).setTitle("骑行详情").setView(scroll)
+                .setNeutralButton("骑行复盘", (dialog, which) -> showReview(entry))
                 .setPositiveButton("分享摘要", (dialog, which) -> {
                     Intent share = new Intent(Intent.ACTION_SEND).setType("text/plain")
                             .putExtra(Intent.EXTRA_TEXT, "VelaRide 骑行记录\n" + historyDetail(entry));
                     try { startActivity(Intent.createChooser(share, "分享骑行摘要")); }
                     catch (ActivityNotFoundException error) { message.setText("当前手机没有可接收分享的应用。"); }
                 }).setNegativeButton("关闭", null).show();
+    }
+    private JSONObject cachedReview(RideHistory.Entry entry) {
+        try {
+            String value = getSharedPreferences("ride-reviews", MODE_PRIVATE).getString(RideReview.identity(entry), "");
+            return value.isEmpty() ? null : new JSONObject(value);
+        } catch (Exception error) { return null; }
+    }
+    private void showReview(RideHistory.Entry entry) {
+        JSONObject saved = cachedReview(entry);
+        LinearLayout panel = new LinearLayout(this); panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(20), dp(8), dp(20), dp(8));
+        String online = saved == null ? "" : "\n\n已保存的" + ("fallback".equals(saved.optString("source"))
+                ? "服务端规则复盘" : "在线 AI 复盘") + "\n" + saved.optString("text");
+        TextView detail = text(RideReview.local(entry, history.snapshot()) + online, 15, INK);
+        detail.setTextIsSelectable(true); panel.addView(detail);
+        if (saved != null) {
+            Button send = button(panel, "回传到手表最近记录", false,
+                    v -> sendSavedReview(entry, saved.optString("watch")));
+            send.setEnabled(link.isReady());
+        }
+        ScrollView scroll = new ScrollView(this); scroll.addView(panel);
+        new AlertDialog.Builder(this).setTitle("记录 #" + entry.sequence + " · 骑行复盘").setView(scroll)
+                .setPositiveButton("在线 AI 复盘", (dialog, which) -> onlineReview(entry))
+                .setNeutralButton("服务地址", (dialog, which) -> configureReviewEndpoint(entry))
+                .setNegativeButton("关闭", null).show();
+    }
+    private void configureReviewEndpoint(RideHistory.Entry entry) {
+        EditText input = new EditText(this); input.setSingleLine(true);
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        input.setText(store.getString("review_endpoint", ""));
+        input.setHint("https://你的服务/api/ride/review");
+        new AlertDialog.Builder(this).setTitle("复盘服务 HTTPS 地址")
+                .setMessage("仅主动请求时发送这条骑行的统计摘要。AI 凭据在服务端配置，App 不保存模型 Key。")
+                .setView(input).setPositiveButton("保存", (dialog, which) -> {
+                    try {
+                        String value = input.getText().toString().trim();
+                        ReviewClient.endpoint(value);
+                        store.edit().putString("review_endpoint", value).apply();
+                        showReview(entry);
+                    } catch (Exception error) { message.setText(readable(error)); }
+                }).setNegativeButton("取消", null).show();
+    }
+    private JSONObject reviewPayload(RideHistory.Entry e) throws Exception {
+        JSONObject payload = new JSONObject().put("sequence", e.sequence).put("elapsed_s", e.elapsed)
+                .put("moving_s", e.moving).put("still_s", e.still).put("pause_count", e.pauses)
+                .put("rest_count", e.rests).put("impacts", e.impacts);
+        if (e.gps.available()) payload.put("distance_km", e.gps.distanceM / 1000.0)
+                .put("gps_time_ms", e.gps.timeMs).put("gps_distance_m", e.gps.distanceM)
+                .put("gps_avg_centi", e.gps.avgCenti).put("gps_max_centi", e.gps.maxCenti);
+        if (e.safety.available()) payload.put("safety_version", 1).put("safety_checks", e.safety.checks)
+                .put("safety_confirmed", e.safety.confirmed).put("safety_pauses", e.safety.pauses)
+                .put("safety_help", e.safety.help).put("safety_unanswered", e.safety.unanswered)
+                .put("safety_last_action", e.safety.lastAction).put("safety_last_elapsed_s", e.safety.lastElapsed);
+        return payload;
+    }
+    private void onlineReview(RideHistory.Entry entry) {
+        String endpoint = store.getString("review_endpoint", "");
+        if (endpoint.isEmpty()) { configureReviewEndpoint(entry); return; }
+        runJob("正在生成在线复盘…", epoch -> {
+            JSONObject result = new JSONObject(new ReviewClient().post(endpoint, reviewPayload(entry).toString()));
+            if (!result.optBoolean("ok") || result.optString("review").trim().isEmpty()
+                    || result.optString("source").isEmpty()) throw new IOException("复盘服务回复不完整");
+            String text = result.getString("review");
+            if (text.length() > 4096) throw new IOException("复盘回复过长");
+            String watchSource = result.optString("watch_source", result.getString("source"));
+            String watch = RideReview.watchText("font-safe".equals(watchSource) ? "fallback" : watchSource,
+                    result.optString("watch_review", text));
+            JSONObject saved = new JSONObject().put("text", text).put("watch", watch)
+                    .put("source", result.getString("source")).put("saved_at", System.currentTimeMillis());
+            SharedPreferences cache = getSharedPreferences("ride-reviews", MODE_PRIVATE);
+            SharedPreferences.Editor edit = cache.edit();
+            String key = RideReview.identity(entry);
+            if (!cache.contains(key) && cache.getAll().size() >= 128) {
+                String oldest = null; long time = Long.MAX_VALUE;
+                for (Map.Entry<String, ?> item : cache.getAll().entrySet()) {
+                    long savedAt;
+                    try { savedAt = new JSONObject(String.valueOf(item.getValue())).optLong("saved_at"); }
+                    catch (Exception error) { savedAt = 0; }
+                    if (savedAt < time) { oldest = item.getKey(); time = savedAt; }
+                }
+                if (oldest != null) edit.remove(oldest);
+            }
+            if (!edit.putString(key, saved.toString()).commit()) throw new IOException("复盘保存失败，请重试");
+            main.post(() -> { if (!isDestroyed()) showReview(entry); });
+        });
+    }
+    private void sendSavedReview(RideHistory.Entry entry, String watch) {
+        if (!entry.device.equals(store.getString("watch_address", ""))) {
+            message.setText("请连接这条记录所属的手表。"); return;
+        }
+        runJob("正在回传复盘…", epoch -> {
+            JSONObject current = ask(epoch, json("ride_latest"), "ride_latest");
+            validateRecord(current);
+            RideHistory.Entry now = historyEntry(current, entry.device, System.currentTimeMillis(), "");
+            if (!RideReview.identity(now).equals(RideReview.identity(entry)))
+                throw new IOException("手表最新记录已变化，这条历史复盘仅保留在手机。");
+            ask(epoch, json("ride_review").put("sequence", entry.sequence).put("text", watch), "ride_review");
+        });
     }
     private void chooseExport() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)

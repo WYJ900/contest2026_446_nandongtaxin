@@ -33,6 +33,20 @@ test('短骑行复盘保留秒数，不把八秒夸大成一分钟', () => {
   assert.match(fallbackReview({ elapsed_s: 61 }), /骑行 1 分钟 1 秒/);
 });
 
+test('复盘保留 GPS 与安全处理依据，拒绝缺字段和不一致的统计', () => {
+  const ride = {elapsed_s:100,moving_s:50,still_s:10,gps_time_ms:10000,gps_distance_m:50,
+    gps_avg_centi:1800,gps_max_centi:2000,safety_version:1,safety_checks:2,safety_confirmed:1,
+    safety_pauses:0,safety_help:1,safety_unanswered:1,safety_last_action:3,safety_last_elapsed_s:90};
+  const checked=validateRide(ride);
+  assert.equal(checked.distance_km,0.05);
+  assert.equal(checked.safety_help,1);
+  assert.match(fallbackReview(ride),/不表示已发送消息/);
+  assert.match(fallbackReview(ride),/未及时确认/);
+  for(const bad of [{...ride,distance_km:1},{...ride,gps_avg_centi:20001},
+      {...ride,safety_confirmed:2},{...ride,safety_version:0},{...ride,safety_last_elapsed_s:101},
+      {elapsed_s:10,safety_checks:1},{elapsed_s:10,gps_time_ms:10}]) assert.throws(()=>validateRide(bad));
+});
+
 test('校验拒绝错误类型、负数、小数计数和不一致的时间', () => {
   for (const value of [null, [], 'ride', {}, { elapsed_s: -1 },
     { elapsed_s: '8' }, { elapsed_s: 8, impacts: 0.5 },

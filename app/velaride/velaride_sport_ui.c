@@ -1374,6 +1374,24 @@ static void retry_save_cb(lv_event_t *event)
   show_review();
 }
 
+static void local_review_text(char *text, size_t size)
+{
+  const struct velaride_ride_record_s *rec = &g_sport.latest_record;
+  char safety[144];
+  if (rec->safety.version == 1)
+    snprintf(safety, sizeof(safety), "安全确认 %u 次，我没事 %u 次，暂停 %u 次。\n"
+             "求助意向 %u 次，未及时确认 %u 次。\n",
+             rec->safety.checks, rec->safety.confirmed, rec->safety.pauses,
+             rec->safety.help, rec->safety.unanswered);
+  else snprintf(safety, sizeof(safety), "此记录未保存安全确认处理结果。\n");
+  snprintf(text, size, "本地复盘（AI 尚未同步）\n"
+           "运动 %lu 秒，静止 %lu 秒。暂停 %u 次，休息提醒 %u 次。\n%s"
+           "冲击不等于摔车，求助意向不代表已发送。\n"
+           "下次建议：在安全地点处理提醒，结束后同步记录。",
+           (unsigned long)rec->moving_s, (unsigned long)rec->still_s,
+           rec->pause_count, rec->rest_count, safety);
+}
+
 static void update_review_body(void)
 {
   char text[512];
@@ -1398,13 +1416,11 @@ static void update_review_body(void)
            (velaride_ride_session_load_latest(&newest) < 0 ||
             newest.sequence != g_sport.latest_record.sequence))
     {
-      snprintf(text, sizeof(text), "历史骑行记录\n本页数据来自手表保存的记录。\n"
-               "此记录未保存 AI 建议，不能使用其他骑行的建议。");
+      local_review_text(text, sizeof(text));
     }
   else if (velaride_ride_session_load_review(text, sizeof(text)) < 0)
     {
-      snprintf(text, sizeof(text), "本次建议尚未同步\n"
-               "在电脑网关连接手表，读取记录后生成并回传。");
+      local_review_text(text, sizeof(text));
     }
 
   set_label(g_sport.body, text);
@@ -1550,7 +1566,7 @@ static void show_review(void)
   lv_obj_set_style_pad_row(card, 6, 0);
   lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
   lv_obj_remove_flag(card, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
-  left_label(card, "AI 建议", ACCENT_COLOR, &velaride_font_cn_20, 0, 0);
+  left_label(card, "骑行复盘", ACCENT_COLOR, &velaride_font_cn_20, 0, 0);
   g_sport.body = left_label(card, "", TEXT_COLOR, &velaride_font_cn_20, 0, 0);
   lv_obj_set_width(g_sport.body, SPORT_W - 76);
   lv_label_set_long_mode(g_sport.body, LV_LABEL_LONG_WRAP);

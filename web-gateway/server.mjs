@@ -92,8 +92,11 @@ export function fallbackReview(input) {
   const rest = ride.still_s > ride.moving_s
     ? '静止时间偏长，下次可在安全路段保持更连续的节奏。'
     : '运动节奏较连贯，继续注意补水和定时休息。';
-
-  return `骑行 ${duration}，运动占比 ${movingRatio}%。${safety}${rest}`;
+  const response = ride.safety_version === 1
+    ? `安全确认 ${ride.safety_checks} 次，确认无事 ${ride.safety_confirmed} 次，暂停 ${ride.safety_pauses} 次。`
+      + (ride.safety_help > 0 ? `求助意向 ${ride.safety_help} 次，不表示已发送消息。` : '')
+      + (ride.safety_unanswered > 0 ? `${ride.safety_unanswered} 次未及时确认，可能之后已处理。` : '') : '';
+  return `骑行 ${duration}，运动占比 ${movingRatio}%。${safety}${response}${rest}`;
 }
 
 function watchCanRender(text) {
@@ -139,7 +142,7 @@ async function handleApi(req, res, url) {
         source = config.source;
         try {
           const deadline = Date.now() + config.timeoutMs;
-          const system = '根据骑行记录，用常用中文写一段不超过70字的复盘：先概括，再给一条建议。只输出复盘正文。不编造速度、距离、心率、路线或安全结论；未记录的项目可以省略。';
+          const system = '根据骑行记录，用常用中文写一段不超过70字的复盘：先概括，再给一条可执行建议。只输出正文。只能引用实际字段；不编造心率、路线、天气、受伤或安全结论。没有 gps_time_ms 时零距离表示未记录；gps_avg_centi 是有效采样均速，单位0.01 km/h，不是全程均速。冲击不等于摔车。safety_help 只代表求助意向，不能说已通知联系人；safety_unanswered 是未及时确认次数，可与之后确认重叠。旧记录无处理字段不代表已确认安全。';
           const text = await requestReview(config, ride, system);
           if (text) aiResult = { review: [...text].slice(0, 380).join(''), watch_safe: watchCanRender(text) };
           else fallbackReason = 'not_configured';

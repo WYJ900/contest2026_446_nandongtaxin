@@ -965,7 +965,7 @@ int main(int argc, char **argv)
     snprintf(caption, sizeof(caption), "#%" PRIu32 "   %s", saved.sequence - 1, duration);
     click(caption);
     assert(g_sport.page == SPORT_PAGE_REVIEW && g_sport.latest_record.sequence == saved.sequence - 1);
-    assert(strstr(lv_label_get_text(g_sport.body), "其他骑行") != NULL);
+    assert(strstr(lv_label_get_text(g_sport.body), "本地复盘") != NULL);
     screenshot("09-history-detail");
     click("完成");
     assert(g_sport.page == SPORT_PAGE_HISTORY);

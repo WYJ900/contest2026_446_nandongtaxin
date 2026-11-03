@@ -26,6 +26,7 @@ const state = {
   receiveBuffer: '',
   watchReview: '',
   recordSequence: null,
+  recordExtras: {},
   reviewSequence: null,
   reviewRequest: 0,
   reviewController: null,
@@ -101,8 +102,8 @@ const rideInputs = {
 };
 
 function readRideInputs() {
-  return Object.fromEntries(Object.entries(rideInputs).map(([field, id]) =>
-    [field, $(id).validity.badInput ? NaN : Number($(id).value || 0)]));
+  return { ...state.recordExtras, ...Object.fromEntries(Object.entries(rideInputs).map(([field, id]) =>
+    [field, $(id).validity.badInput ? NaN : Number($(id).value || 0)])) };
 }
 
 function invalidateReview(message = '') {
@@ -136,9 +137,12 @@ function handleMessage(message) {
   if (message.event === 'ride_latest') {
     invalidateReview('已读取手表保存的骑行记录，可以生成复盘。');
     state.recordSequence = message.sequence;
+    state.recordExtras = Object.fromEntries(Object.entries(message).filter(([key]) =>
+      key.startsWith('gps_') || key.startsWith('safety_') || key === 'rest_count'));
     for (const [field, id] of Object.entries(rideInputs)) {
       $(id).value = message[field] ?? 0;
     }
+    if (message.gps_time_ms > 0) $('distanceInput').value = message.gps_distance_m / 1000;
     renderRide(message);
     $('rideState').textContent = `手表记录 #${message.sequence}`;
   }
@@ -501,6 +505,7 @@ $('serialButton').addEventListener('click', () => connectBridge().catch((error) 
 $('demoButton').addEventListener('click', () => {
   bleClient.disconnect();
   state.recordSequence = null;
+  state.recordExtras = {};
   state.demo = true;
   state.transport = 'demo';
   setConnected(false, '手表未连接 · 手工录入');
@@ -516,12 +521,14 @@ $('demoButton').addEventListener('click', () => {
 $('sampleButton').addEventListener('click', () => {
   bleClient.disconnect();
   state.recordSequence = null;
+  state.recordExtras = {};
   invalidateReview('已加载历史样例，生成的复盘仅对应这条样例。');
   prefillRide();
 });
 Object.values(rideInputs).forEach((id) => {
   $(id).addEventListener('input', () => {
     state.recordSequence = null;
+    state.recordExtras = {};
     invalidateReview('记录已修改，请重新生成复盘。');
     renderRide({ ...readRideInputs(), active: false, paused: false });
     $('rideState').textContent = '手工录入';

@@ -11,12 +11,14 @@ const ids = [...readFileSync(new URL('../public/index.html', import.meta.url), '
   .matchAll(/id="([^"]+)"/g)].map((match) => match[1]);
 
 function page(reviewFetch = async () => { throw new Error('offline'); }) {
+  const hooks = {};
   const elements = Object.fromEntries(ids.map((id) => [id, {
     value: '', textContent: '', disabled: false, validity: { badInput: false },
     listeners: {}, focus() { this.focused = true; },
     addEventListener(type, handler) { this.listeners[type] = handler; },
   }]));
-  runInNewContext(source, {
+  runInNewContext(source + '\n__testHooks.receive = handleMessage;', {
+    __testHooks: hooks,
     validateRide, document: { getElementById: (id) => {
       assert.ok(elements[id], `Missing HTML element: ${id}`);
       return elements[id];
@@ -28,6 +30,7 @@ function page(reviewFetch = async () => { throw new Error('offline'); }) {
       ? Promise.resolve({ ok: true, json: async () => ({ ai: 'fallback' }) })
       : reviewFetch(url, options),
   });
+  elements.receive = hooks.receive;
   return elements;
 }
 
@@ -35,6 +38,26 @@ const click = (elements, id) => elements[id].listeners.click();
 const response = (review) => ({ ok: true, json: async () => ({
   ok: true, review, source: 'fallback', fallback_reason: 'upstream_error',
 }) });
+
+test('读取真实 GPS 和安全结果用于复盘，手工编辑和样例清除旧扩展字段', async () => {
+  const sent = [];
+  const ui = page(async (url, options) => { sent.push(JSON.parse(options.body)); return response('复盘'); });
+  ui.receive({ ok:true, event:'ride_latest', sequence:12, elapsed_s:100, moving_s:50, still_s:10,
+    impacts:2, pause_count:1, gps_time_ms:10000, gps_distance_m:50, gps_avg_centi:1800, gps_max_centi:2000,
+    safety_version:1, safety_checks:2, safety_confirmed:1, safety_pauses:0, safety_help:1,
+    safety_unanswered:1, safety_last_action:3, safety_last_elapsed_s:90 });
+  await click(ui,'generateButton');
+  assert.equal(sent[0].distance_km,0.05);
+  assert.equal(sent[0].safety_help,1);
+  assert.equal(sent[0].gps_avg_centi,1800);
+  ui.elapsedInput.value='200'; ui.elapsedInput.listeners.input();
+  await click(ui,'generateButton');
+  assert.equal(sent[1].safety_help,undefined);
+  assert.equal(sent[1].gps_time_ms,undefined);
+  click(ui,'sampleButton');
+  await click(ui,'generateButton');
+  assert.equal(sent[2].safety_version,undefined);
+});
 
 test('真实录入保留用户数据，历史样例单独加载并标记', () => {
   const ui = page();
