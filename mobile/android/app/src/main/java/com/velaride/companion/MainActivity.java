@@ -16,6 +16,7 @@ import android.provider.Settings;
 import android.view.*;
 import android.widget.*;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -62,6 +63,8 @@ public final class MainActivity extends Activity {
     private RideHistory history;
     private TextView historySummary;
     private Button browseHistory, exportHistory;
+    private Button syncArchive;
+    private String historyWarning = "";
     private String historyFailure;
 
     @Override public void onCreate(Bundle stateBundle) {
@@ -167,8 +170,10 @@ public final class MainActivity extends Activity {
         recordDetail = text("暂停  —    休息提醒  —", 13, MUTED); gap(record, 10); record.addView(recordDetail);
         sync = button(record, "同步最新骑行", true, v -> runJob("正在同步骑行记录…", epoch -> readLatest(epoch)));
 
-        LinearLayout archive = card(root, "我的骑行历史", "每次同步自动留存，断开手表也能查看。请在下一次骑行结束前同步上一条记录。");
+        LinearLayout archive = card(root, "我的骑行历史", "自动补传手表最近 16 条，手机保存完整历史。旧固件仍只同步最近一条。");
         historySummary = text("还没有保存的骑行", 16, INK); archive.addView(historySummary);
+        syncArchive = button(archive, "补传手表全部记录", false,
+                v -> runJob("正在补传手表历史…", epoch -> readHistory(epoch)));
         browseHistory = button(archive, "查看全部记录", false, v -> browseHistory());
         exportHistory = button(archive, "导出全部记录 CSV", false, v -> chooseExport());
 
@@ -199,7 +204,7 @@ public final class MainActivity extends Activity {
                 updateButtons();
             });
             syncTime(epoch); readStatus(epoch);
-            try { readLatest(epoch); } catch (BleLink.DeviceError error) {
+            try { readHistory(epoch); } catch (BleLink.DeviceError error) {
                 if (!"no_saved_ride".equals(error.getMessage())) throw error;
             }
         });
@@ -209,8 +214,9 @@ public final class MainActivity extends Activity {
         connect.setText(ready ? "断开连接" : "连接手表");
         search.setEnabled(!busy); sync.setEnabled(ready && !busy); refresh.setEnabled(ready && !busy);
         clock.setEnabled(ready && !busy); saveNote.setEnabled(ready && !busy && latest != null);
+        syncArchive.setEnabled(ready && !busy);
         gps.setEnabled(ready && gpsSupported && (!busy || gpsRunning));
-        for (Button action : new Button[]{search, sync, refresh, clock, saveNote, gps})
+        for (Button action : new Button[]{search, sync, refresh, clock, saveNote, gps, syncArchive})
             action.setAlpha(action.isEnabled() ? 1f : .38f);
     }
     private interface Job { void run(long epoch) throws Exception; }
@@ -261,6 +267,42 @@ public final class MainActivity extends Activity {
         if (epoch != session) return;
         store.edit().putString("latest_record", response.toString()).putLong("synced_at", now).apply();
         main.post(() -> { if (epoch == session) showRecord(response, false); });
+    }
+    private void readHistory(long epoch) throws Exception {
+        final String device = store.getString("watch_address", "legacy-unknown");
+        final JSONObject index;
+        try { index = ask(epoch, json("ride_history"), "ride_history"); }
+        catch (BleLink.DeviceError error) {
+            if (!"unknown_cmd".equals(error.getMessage())) throw error;
+            readLatest(epoch);
+            return;
+        }
+        if (history == null) throw new IOException(historyFailure);
+        JSONArray array = index.getJSONArray("sequences");
+        final long[] sequences = new long[array.length()];
+        for (int i = 0; i < sequences.length; i++) {
+            Object value = array.get(i);
+            if (!(value instanceof Number)) throw new IOException("手表历史序号格式异常");
+            double number = ((Number)value).doubleValue();
+            if (!Double.isFinite(number) || number < 0 || number > 4294967295.0 || number != Math.rint(number))
+                throw new IOException("手表历史序号异常");
+            sequences[i] = ((Number)value).longValue();
+        }
+        HistorySync.sync(history, device, new HistorySync.Source() {
+            public long[] sequences() { return sequences; }
+            public RideHistory.Entry read(long sequence) throws Exception {
+                JSONObject response = ask(epoch, json("ride_get").put("sequence", sequence), "ride_record");
+                validateRecord(response);
+                if (epoch != session) throw new IOException("连接已经更换，请重新补传");
+                return historyEntry(response, device, System.currentTimeMillis(), "");
+            }
+        });
+        if (sequences.length > 0) readLatest(epoch);
+        main.post(() -> {
+            if (epoch != session) return;
+            historyWarning = index.optInt("corrupt_count") > 0 ? "\n手表有校验失败记录；原数据未删除。" : "";
+            showHistorySummary();
+        });
     }
     private void showRecord(JSONObject record, boolean cached) {
         latest = record;
@@ -344,7 +386,7 @@ public final class MainActivity extends Activity {
         List<RideHistory.Entry> records = history == null ? Collections.emptyList() : history.snapshot();
         long seconds = 0; for (RideHistory.Entry entry : records) seconds += entry.elapsed;
         historySummary.setText(history == null ? historyFailure : records.isEmpty() ? "还没有保存的骑行"
-                : "已保存 " + records.size() + " 次骑行\n累计时长  " + time(seconds));
+                : "已保存 " + records.size() + " 次骑行\n累计时长  " + time(seconds) + historyWarning);
         for (Button action : new Button[]{browseHistory, exportHistory}) {
             action.setEnabled(!records.isEmpty()); action.setAlpha(records.isEmpty() ? .38f : 1f);
         }

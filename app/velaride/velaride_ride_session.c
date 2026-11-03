@@ -28,6 +28,7 @@
 #define RIDE_RECORD_MAGIC 0x564c5244u
 #define RIDE_RECORD_VERSION 3
 #define RIDE_RECORD_KEY "persist.velaride.latest"
+#define RIDE_HISTORY_PREFIX "persist.velaride.h."
 #define RIDE_REVIEW_MAGIC 0x56525256u
 #define RIDE_REVIEW_VERSION 1
 #define RIDE_REVIEW_KEY_PREFIX "persist.velaride.review."
@@ -88,6 +89,7 @@ static struct
 } g_phone_data;
 
 static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_history_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* BLE only touches this accumulator while holding g_phone_lock. Lifecycle
  * changes invalidate the anchor so pre-start, paused and missing segments
@@ -700,14 +702,14 @@ int velaride_ride_session_finish(struct velaride_ride_record_s *record)
   return ret;
 }
 
-int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
+static int ride_load_key(const char *key, struct velaride_ride_record_s *record)
 {
   struct ride_record_disk_s disk;
   uint32_t expected;
   ssize_t ret;
 
   memset(&disk, 0, sizeof(disk));
-  ret = property_get_buffer(RIDE_RECORD_KEY, &disk, sizeof(disk));
+  ret = property_get_buffer(key, &disk, sizeof(disk));
   if (ret == sizeof(struct ride_record_disk_v2_s) &&
       disk.magic == RIDE_RECORD_MAGIC && disk.version == 2 &&
       disk.size == sizeof(struct ride_record_disk_v2_s))
@@ -791,8 +793,8 @@ int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
   return 0;
 }
 
-int velaride_ride_session_save_record(
-  const struct velaride_ride_record_s *record)
+static int ride_store_key(const char *key,
+                          const struct velaride_ride_record_s *record)
 {
   struct ride_record_disk_s disk;
   int ret;
@@ -809,12 +811,141 @@ int velaride_ride_session_save_record(
   disk.record = *record;
   disk.crc32 = ride_crc32(&disk,
                           offsetof(struct ride_record_disk_s, crc32));
-  ret = property_set_buffer(RIDE_RECORD_KEY, &disk, sizeof(disk));
+  ret = property_set_buffer(key, &disk, sizeof(disk));
   if (ret == 0)
     {
       ret = property_commit();
     }
 
+  return ret;
+}
+
+static void ride_history_key(char *key, size_t size, unsigned int slot)
+{
+  snprintf(key, size, RIDE_HISTORY_PREFIX "%02u", slot);
+}
+
+static bool ride_sequence_after(uint32_t a, uint32_t b)
+{
+  return (int32_t)(a - b) > 0;
+}
+
+/* Every slot has its own version/CRC. Scan rather than depending on a
+ * separately updated index: an interrupted slot/latest write is recoverable.
+ * The primary legacy key remains a read-only fallback until an actual save. */
+
+static int ride_history_scan(uint32_t *sequences, unsigned int *corrupt,
+                             struct velaride_ride_record_s *latest)
+{
+  struct velaride_ride_record_s record;
+  char key[40];
+  int count = 0;
+  unsigned int bad = 0;
+  unsigned int slot;
+  int ret;
+  int i;
+  int j;
+
+  for (slot = 0; slot <= VELARIDE_HISTORY_CAPACITY; slot++)
+    {
+      if (slot == VELARIDE_HISTORY_CAPACITY)
+        {
+          snprintf(key, sizeof(key), RIDE_RECORD_KEY);
+        }
+      else
+        {
+          ride_history_key(key, sizeof(key), slot);
+        }
+      ret = ride_load_key(key, &record);
+      if (ret < 0)
+        {
+          if (ret != -ENOENT && ret != -ENODATA) bad++;
+          continue;
+        }
+      for (i = 0; i < count && sequences[i] != record.sequence; i++);
+      if (i != count) continue;
+      for (i = 0; i < count &&
+           !ride_sequence_after(record.sequence, sequences[i]); i++);
+      if (i >= VELARIDE_HISTORY_CAPACITY) continue;
+      if (i == 0 && latest != NULL) *latest = record;
+      if (count < VELARIDE_HISTORY_CAPACITY) count++;
+      for (j = count - 1; j > i; j--) sequences[j] = sequences[j - 1];
+      sequences[i] = record.sequence;
+    }
+  if (corrupt != NULL) *corrupt = bad;
+  return count;
+}
+
+int velaride_ride_history_list(uint32_t *sequences, size_t capacity,
+                               unsigned int *corrupt)
+{
+  int ret;
+  if (sequences == NULL || capacity < VELARIDE_HISTORY_CAPACITY) return -EINVAL;
+  pthread_mutex_lock(&g_history_lock);
+  ret = ride_history_scan(sequences, corrupt, NULL);
+  pthread_mutex_unlock(&g_history_lock);
+  return ret;
+}
+
+int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
+{
+  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
+  unsigned int corrupt;
+  int count;
+  pthread_mutex_lock(&g_history_lock);
+  count = ride_history_scan(sequences, &corrupt, record);
+  pthread_mutex_unlock(&g_history_lock);
+  return count > 0 ? 0 : corrupt > 0 ? -EBADMSG : -ENOENT;
+}
+
+int velaride_ride_history_get(uint32_t sequence,
+                              struct velaride_ride_record_s *record)
+{
+  struct velaride_ride_record_s found;
+  char key[40];
+  int ret;
+  if (record == NULL) return -EINVAL;
+  pthread_mutex_lock(&g_history_lock);
+  ride_history_key(key, sizeof(key), sequence % VELARIDE_HISTORY_CAPACITY);
+  ret = ride_load_key(key, &found);
+  if (ret < 0 || found.sequence != sequence)
+    {
+      ret = ride_load_key(RIDE_RECORD_KEY, &found);
+    }
+  if (ret == 0 && found.sequence == sequence) *record = found;
+  else ret = -ENOENT;
+  pthread_mutex_unlock(&g_history_lock);
+  return ret;
+}
+
+int velaride_ride_session_save_record(
+  const struct velaride_ride_record_s *record)
+{
+  struct velaride_ride_record_s previous;
+  char key[40];
+  int ret;
+  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s))
+    return -EINVAL;
+  pthread_mutex_lock(&g_history_lock);
+  /* Preserve the legacy latest record before the first real new save. */
+  if (ride_load_key(RIDE_RECORD_KEY, &previous) == 0 &&
+      previous.sequence != record->sequence &&
+      previous.sequence % VELARIDE_HISTORY_CAPACITY !=
+        record->sequence % VELARIDE_HISTORY_CAPACITY)
+    {
+      struct velaride_ride_record_s existing;
+      ride_history_key(key, sizeof(key), previous.sequence % VELARIDE_HISTORY_CAPACITY);
+      if (ride_load_key(key, &existing) < 0)
+        {
+          ret = ride_store_key(key, &previous);
+          if (ret < 0) goto out;
+        }
+    }
+  ride_history_key(key, sizeof(key), record->sequence % VELARIDE_HISTORY_CAPACITY);
+  ret = ride_store_key(key, record);
+  if (ret == 0) ret = ride_store_key(RIDE_RECORD_KEY, record);
+out:
+  pthread_mutex_unlock(&g_history_lock);
   return ret;
 }
 

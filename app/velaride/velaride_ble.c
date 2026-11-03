@@ -314,18 +314,60 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
                ride.safety_remaining_s, ride.safety.help, ride.safety.last_action);
       velaride_notify_json(conn, response);
     }
-  else if (strcmp(cmd, "ride_latest") == 0)
+  else if (strcmp(cmd, "ride_history") == 0)
     {
-      ret = velaride_ride_session_load_latest(&record);
+      uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
+      unsigned int corrupt = 0;
+      int count = velaride_ride_history_list(sequences,
+                    VELARIDE_HISTORY_CAPACITY, &corrupt);
+      int used;
+      int i;
+
+      if (count < 0)
+        {
+          velaride_notify_json(conn, "{\"ok\":false,\"error\":\"history_unavailable\"}");
+          return;
+        }
+      used = snprintf(response, sizeof(response),
+              "{\"ok\":true,\"event\":\"ride_history\",\"capacity\":%u,"
+              "\"corrupt_count\":%u,\"sequences\":[",
+              VELARIDE_HISTORY_CAPACITY, corrupt);
+      for (i = 0; i < count; i++)
+        {
+          used += snprintf(response + used, sizeof(response) - used,
+                           "%s%" PRIu32, i == 0 ? "" : ",", sequences[i]);
+        }
+      snprintf(response + used, sizeof(response) - used, "]}");
+      velaride_notify_json(conn, response);
+    }
+  else if (strcmp(cmd, "ride_latest") == 0 || strcmp(cmd, "ride_get") == 0)
+    {
+      if (strcmp(cmd, "ride_get") == 0)
+        {
+          if (json_get_number(json, "sequence", &sequence) < 0 ||
+              sequence < 0 || sequence > UINT32_MAX ||
+              sequence != (uint32_t)sequence)
+            {
+              velaride_notify_json(conn, "{\"ok\":false,\"error\":\"bad_sequence\"}");
+              return;
+            }
+          ret = velaride_ride_history_get((uint32_t)sequence, &record);
+        }
+      else
+        {
+          ret = velaride_ride_session_load_latest(&record);
+        }
       if (ret < 0)
         {
           velaride_notify_json(conn,
+            strcmp(cmd, "ride_get") == 0 ?
+            "{\"ok\":false,\"error\":\"history_changed\"}" :
             "{\"ok\":false,\"error\":\"no_saved_ride\"}");
           return;
         }
 
       snprintf(response, sizeof(response),
-               "{\"ok\":true,\"event\":\"ride_latest\","
+               "{\"ok\":true,\"event\":\"%s\","
                "\"sequence\":%" PRIu32 ",\"active\":false,"
                "\"elapsed_s\":%" PRIu32 ",\"moving_s\":%" PRIu32 ","
                "\"still_s\":%" PRIu32 ",\"impacts\":%u,"
@@ -336,6 +378,7 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
                "\"safety_confirmed\":%u,\"safety_pauses\":%u,"
                "\"safety_help\":%u,\"safety_unanswered\":%u,"
                "\"safety_last_action\":%u,\"safety_last_elapsed_s\":%" PRIu32 "}",
+               strcmp(cmd, "ride_get") == 0 ? "ride_record" : "ride_latest",
                record.sequence, record.elapsed_s, record.moving_s,
                record.still_s, record.impact_count, record.pause_count,
                record.rest_count, record.gps.time_ms, record.gps.distance_m,

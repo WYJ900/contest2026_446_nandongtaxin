@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define VELARIDE_HISTORY_CAPACITY 16
+
 enum velaride_motion_e
 {
   VELARIDE_MOTION_UNKNOWN = 0,
@@ -111,6 +113,10 @@ void velaride_ride_session_get_gps(struct velaride_ride_gps_s *gps);
 void velaride_ride_session_ack_alert(void);
 int velaride_ride_session_respond_safety(enum velaride_safety_action_e action);
 int velaride_ride_session_load_latest(struct velaride_ride_record_s *record);
+int velaride_ride_history_list(uint32_t *sequences, size_t capacity,
+                               unsigned int *corrupt);
+int velaride_ride_history_get(uint32_t sequence,
+                              struct velaride_ride_record_s *record);
 int velaride_ride_session_save_record(
   const struct velaride_ride_record_s *record);
 

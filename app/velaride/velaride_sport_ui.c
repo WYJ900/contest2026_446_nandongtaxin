@@ -72,6 +72,7 @@ enum sport_page_e
   SPORT_PAGE_HELP_RESULT,
   SPORT_PAGE_GOAL_DONE,
   SPORT_PAGE_REVIEW,
+  SPORT_PAGE_HISTORY,
   SPORT_PAGE_INFO,
 };
 
@@ -160,6 +161,7 @@ struct sport_ui_s
   bool goal_announced;
   bool has_record;
   bool review_ai;
+  bool history_browsing;
   struct velaride_ride_record_s latest_record;
   int persist_result;
 };
@@ -173,6 +175,7 @@ static void update_info(void);
 static void show_active(void);
 static void show_confirm(void);
 static void show_review(void);
+static void show_history(void);
 static void show_alert(enum velaride_alert_e alert);
 static void show_goal_done(void);
 
@@ -484,6 +487,7 @@ static lv_obj_t *icon_row(lv_obj_t *parent, int y, enum velaride_icon_e icon,
 
 static void finish_ride(void)
 {
+  g_sport.history_browsing = false;
   lv_timer_pause(g_sport.hold_timer);
   g_sport.persist_result =
     velaride_ride_session_finish(&g_sport.latest_record);
@@ -1358,7 +1362,8 @@ static void show_goal(void)
 static void review_done_cb(lv_event_t *event)
 {
   LV_UNUSED(event);
-  leave();
+  if (g_sport.history_browsing) show_history();
+  else leave();
 }
 
 static void retry_save_cb(lv_event_t *event)
@@ -1372,6 +1377,7 @@ static void retry_save_cb(lv_event_t *event)
 static void update_review_body(void)
 {
   char text[512];
+  struct velaride_ride_record_s newest;
 
   if (g_sport.body == NULL)
     {
@@ -1387,6 +1393,13 @@ static void update_review_body(void)
     {
       snprintf(text, sizeof(text),
                "请先保存本次记录，再通过网页生成建议。");
+    }
+  else if (g_sport.history_browsing &&
+           (velaride_ride_session_load_latest(&newest) < 0 ||
+            newest.sequence != g_sport.latest_record.sequence))
+    {
+      snprintf(text, sizeof(text), "历史骑行记录\n本页数据来自手表保存的记录。\n"
+               "此记录未保存 AI 建议，不能使用其他骑行的建议。");
     }
   else if (velaride_ride_session_load_review(text, sizeof(text)) < 0)
     {
@@ -2850,6 +2863,10 @@ void velaride_sport_ui_back(void)
       case SPORT_PAGE_HELP_RESULT:
         show_active();
         break;
+      case SPORT_PAGE_REVIEW:
+        if (g_sport.history_browsing) show_history();
+        else leave();
+        break;
       case SPORT_PAGE_INFO:
         if (g_sport.info_from_settings)
           {
@@ -2980,6 +2997,7 @@ static void show_saved(bool ai)
       g_sport.persist_result = 0;
     }
   g_sport.review_ai = ai;
+  g_sport.history_browsing = false;
   show_review();
   reveal();
 }
@@ -2991,7 +3009,80 @@ void velaride_sport_ui_show_latest(void)
 
 void velaride_sport_ui_show_records(void)
 {
-  show_saved(false);
+  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
+  if (g_sport.root == NULL || g_sport.session_started) return;
+  if (g_sport.has_record && g_sport.persist_result < 0)
+    {
+      show_saved(false);
+      return;
+    }
+  if (velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, NULL) <= 1)
+    show_saved(false);
+  else
+    {
+      show_history();
+      reveal();
+    }
+}
+
+static void history_open_cb(lv_event_t *event)
+{
+  uint32_t sequence = (uint32_t)(uintptr_t)lv_event_get_user_data(event);
+  struct velaride_ride_record_s record;
+  if (velaride_ride_history_get(sequence, &record) < 0)
+    {
+      show_history();
+      set_label(g_sport.body, "记录已更新，请重新选择");
+      return;
+    }
+  g_sport.latest_record = record;
+  g_sport.has_record = true;
+  g_sport.persist_result = 0;
+  g_sport.review_ai = false;
+  g_sport.history_browsing = true;
+  show_review();
+}
+
+static void show_history(void)
+{
+  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
+  unsigned int corrupt = 0;
+  struct velaride_ride_record_s record;
+  lv_obj_t *scroll;
+  char text[112];
+  char duration[16];
+  int count = velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, &corrupt);
+  int i;
+
+  clear_page(SPORT_PAGE_HISTORY, "骑行历史");
+  g_sport.history_browsing = true;
+  snprintf(text, sizeof(text), "%d / %u 条 · 手表本地保存", count < 0 ? 0 : count,
+           VELARIDE_HISTORY_CAPACITY);
+  g_sport.body = label(g_sport.root, text, MUTED_COLOR, &velaride_font_cn_20, 18, 104, SPORT_W - 36);
+  scroll = lv_obj_create(g_sport.root);
+  lv_obj_remove_style_all(scroll);
+  lv_obj_set_pos(scroll, 0, 140);
+  lv_obj_set_size(scroll, SPORT_W, SPORT_H - 140);
+  lv_obj_set_style_pad_bottom(scroll, 22, 0);
+  lv_obj_set_scroll_dir(scroll, LV_DIR_VER);
+  if (corrupt > 0) set_label(g_sport.body, "部分记录校验失败，已保留原数据");
+  for (i = 0; i < count; i++)
+    {
+      lv_obj_t *row;
+      if (velaride_ride_history_get(sequences[i], &record) < 0) continue;
+      ride_time_text(duration, sizeof(duration), record.elapsed_s);
+      snprintf(text, sizeof(text), "#%" PRIu32 "   %s", record.sequence, duration);
+      row = button(text, BTN_TILE, 18, i * 86, SPORT_W - 36, 74,
+                   history_open_cb, (intptr_t)(uintptr_t)record.sequence);
+      lv_obj_set_parent(row, scroll);
+      lv_obj_align(lv_obj_get_child(row, 0), LV_ALIGN_TOP_MID, 0, 7);
+      if (record.gps.time_ms > 0)
+        snprintf(text, sizeof(text), "%.2f km · 冲击 %u", record.gps.distance_m / 1000.0,
+                 record.impact_count);
+      else snprintf(text, sizeof(text), "GPS -- · 冲击 %u", record.impact_count);
+      label(row, text, MUTED_COLOR, &velaride_font_cn_20, 0, 43, SPORT_W - 36);
+    }
+  if (count <= 0) label(scroll, "还没有骑行记录", MUTED_COLOR, &velaride_font_cn_20, 20, 50, SPORT_W - 40);
 }
 
 static void settings_open_cb(lv_event_t *event)

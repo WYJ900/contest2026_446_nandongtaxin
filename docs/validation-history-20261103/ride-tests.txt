@@ -1,0 +1,45 @@
+VELARIDE_RIDE: start epoch=1791541758
+VELARIDE_RIDE: pause pauses=1
+VELARIDE_RIDE: resume pauses=1
+VELARIDE_RIDE: start epoch=1791541770
+VELARIDE_RIDE: start epoch=1791541774
+VELARIDE_RIDE: start epoch=1791541801
+VELARIDE_RIDE: impact delta=1000 gyro=0 count=1
+VELARIDE_RIDE: start epoch=1791541824
+VELARIDE_RIDE: impact delta=1000 gyro=0 count=1
+VELARIDE_RIDE: start epoch=1791541838
+VELARIDE_RIDE: start epoch=1791541846
+VELARIDE_RIDE: finish seq=1 duration=4 moving=4 still=0 persist=0
+VELARIDE_RIDE: start epoch=1791541850
+VELARIDE_RIDE: start epoch=1791541850
+VELARIDE_RIDE: finish seq=1 duration=0 moving=0 still=0 persist=0
+VELARIDE_RIDE: start epoch=1791541850
+VELARIDE_RIDE: start epoch=1791541850
+VELARIDE_RIDE: pause pauses=1
+VELARIDE_RIDE: resume pauses=1
+VELARIDE_RIDE: finish seq=1 duration=25 moving=23 still=1 persist=0
+VELARIDE_RIDE: start epoch=1791541875
+VELARIDE_RIDE: start epoch=1791541875
+VELARIDE_RIDE: start epoch=1791541875
+VELARIDE_RIDE: impact delta=1000 gyro=0 count=1
+VELARIDE_RIDE: impact delta=1000 gyro=0 count=2
+VELARIDE_RIDE: pause pauses=1
+VELARIDE_RIDE: resume pauses=1
+VELARIDE_RIDE: impact delta=1000 gyro=6000 count=3
+VELARIDE_RIDE: pause pauses=2
+VELARIDE_RIDE: finish seq=1 duration=72 moving=1 still=70 persist=0
+VELARIDE_RIDE: start epoch=1791541947
+VELARIDE_RIDE: impact delta=1000 gyro=0 count=1
+VELARIDE_RIDE: finish seq=1 duration=3 moving=0 still=3 persist=0
+VELARIDE_RIDE: start epoch=1791541950
+VELARIDE_RIDE: start epoch=1791541950
+VELARIDE_RIDE: impact delta=1000 gyro=0 count=1
+VELARIDE_RIDE: pause pauses=1
+VELARIDE_RIDE: start epoch=1791541953
+VELARIDE_RIDE: impact delta=1000 gyro=0 count=1
+VELARIDE_RIDE: pause pauses=1
+VELARIDE_RIDE: finish seq=1 duration=3 moving=0 still=3 persist=0
+VELARIDE_RIDE: start epoch=1791541986
+VELARIDE_RIDE: start epoch=1791541986
+VELARIDE_RIDE: latest seq=20 duration=30 moving=20 impacts=0
+PASS: 15 ride-session scenarios, including 16-record offline ring, interruption recovery, CRC isolation, legacy migration, safety and GPS

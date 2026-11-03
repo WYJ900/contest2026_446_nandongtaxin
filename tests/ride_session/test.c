@@ -17,6 +17,7 @@
 static struct lsm6dsl_sensor_data_s sample;
 static bool sensor_fails;
 static bool commit_fails;
+static const char *write_fails_key;
 static time_t wallclock = 1791541758;
 static uint64_t monotonic_ms = 1000;
 static bool clock_fails;
@@ -38,7 +39,7 @@ static struct
   char key[64];
   unsigned char data[128];
   size_t size;
-} store[12];
+} store[64];
 
 int test_open(const char *path, int flags, ...)
 {
@@ -87,7 +88,7 @@ time_t test_time(time_t *out)
 ssize_t property_get_buffer(const char *key, void *data, size_t size)
 {
   size_t i;
-  for (i = 0; i < 12; i++)
+  for (i = 0; i < 64; i++)
     {
       if (strcmp(store[i].key, key) == 0)
         {
@@ -102,8 +103,9 @@ ssize_t property_get_buffer(const char *key, void *data, size_t size)
 int property_set_buffer(const char *key, const void *data, size_t size)
 {
   size_t i;
+  if (write_fails_key != NULL && strcmp(key, write_fails_key) == 0) return -EIO;
   assert(size <= sizeof(store[0].data));
-  for (i = 0; i < 12; i++)
+  for (i = 0; i < 64; i++)
     {
       if (store[i].key[0] == '\0' || strcmp(store[i].key, key) == 0)
         {
@@ -130,6 +132,7 @@ static void begin(uint32_t goal)
   memset(&sample, 0, sizeof(sample));
   sensor_fails = false;
   commit_fails = false;
+  write_fails_key = NULL;
   g_review_view_pending = false;
   assert(velaride_ride_session_init() == 0);
   assert(velaride_ride_session_probe_sensor() == 0);
@@ -248,13 +251,17 @@ static void test_record_and_commit_failure(void)
   commit_fails = true;
   assert(velaride_ride_session_save_record(&record) == -EIO);
   commit_fails = false;
-  for (i = 0; i < 12; i++)
+  for (i = 0; i < 64; i++)
     {
       if (strcmp(store[i].key, RIDE_RECORD_KEY) == 0)
         {
           store[i].data[0] ^= 1;
         }
     }
+  assert(velaride_ride_session_load_latest(&loaded) == 0); /* Slot recovers bad primary. */
+  for (i = 0; i < 64; i++)
+    if (strncmp(store[i].key, RIDE_HISTORY_PREFIX, strlen(RIDE_HISTORY_PREFIX)) == 0)
+      store[i].data[0] ^= 1;
   assert(velaride_ride_session_load_latest(&loaded) < 0);
 }
 
@@ -544,6 +551,56 @@ static void test_v2_record_migration(void)
   assert(velaride_ride_session_load_latest(&loaded) == -EBADMSG);
 }
 
+static void test_history_ring_recovery(void)
+{
+  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
+  struct velaride_ride_record_s record = {0};
+  struct velaride_ride_record_s loaded;
+  unsigned int corrupt;
+  int count;
+  begin(0);
+  assert(velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, &corrupt) == 0);
+  assert(corrupt == 0);
+  record.elapsed_s = 30; record.moving_s = 20; record.safety.version = 1;
+  for (unsigned int seq = 1; seq <= VELARIDE_HISTORY_CAPACITY + 3; seq++)
+    {
+      record.sequence = seq;
+      assert(velaride_ride_session_save_record(&record) == 0);
+    }
+  count = velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, &corrupt);
+  assert(count == VELARIDE_HISTORY_CAPACITY && corrupt == 0);
+  for (int i = 0; i < count; i++)
+    {
+      assert(sequences[i] == (uint32_t)(VELARIDE_HISTORY_CAPACITY + 3 - i));
+      assert(velaride_ride_history_get(sequences[i], &loaded) == 0);
+      assert(loaded.sequence == sequences[i] && loaded.elapsed_s == 30);
+    }
+  assert(velaride_ride_history_get(1, &loaded) == -ENOENT);
+  assert(velaride_ride_session_save_record(&record) == 0);
+  assert(velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, NULL) == count);
+  write_fails_key = RIDE_RECORD_KEY;
+  record.sequence++;
+  assert(velaride_ride_session_save_record(&record) == -EIO);
+  write_fails_key = NULL;
+  assert(velaride_ride_session_load_latest(&loaded) == 0);
+  assert(loaded.sequence == record.sequence); /* Slot committed before primary update. */
+  assert(velaride_ride_session_save_record(&record) == 0);
+  memset(&g_ride, 0, sizeof(g_ride)); g_ride.sensor_fd = -1;
+  assert(velaride_ride_session_init() == 0 && g_ride.sequence == record.sequence);
+  for (size_t i = 0; i < 64; i++)
+    {
+      char key[40];
+      ride_history_key(key, sizeof(key), record.sequence % VELARIDE_HISTORY_CAPACITY);
+      if (strcmp(store[i].key, key) == 0 || strcmp(store[i].key, RIDE_RECORD_KEY) == 0)
+        store[i].data[0] ^= 1;
+    }
+  assert(velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, &corrupt) == count - 1);
+  assert(corrupt == 2);
+  assert(velaride_ride_session_load_latest(&loaded) == 0 && loaded.sequence == record.sequence - 1);
+  assert(velaride_ride_history_get(record.sequence, &loaded) == -ENOENT);
+  assert(velaride_ride_history_list(sequences, 1, NULL) == -EINVAL);
+}
+
 int main(void)
 {
   test_goal_and_pause();
@@ -560,6 +617,7 @@ int main(void)
   test_v1_record_migration();
   test_safety_choices_and_timeout();
   test_v2_record_migration();
-  puts("PASS: 14 ride-session scenarios including safety choices, timeout, V1/V2 migration, V3 roundtrip, GPS and concurrency");
+  test_history_ring_recovery();
+  puts("PASS: 15 ride-session scenarios, including 16-record offline ring, interruption recovery, CRC isolation, legacy migration, safety and GPS");
   return 0;
 }

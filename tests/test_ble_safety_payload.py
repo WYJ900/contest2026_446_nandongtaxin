@@ -26,6 +26,7 @@ int main(void) {
   bool phone_valid = true;
   double phone_speed = 200, phone_distance = 100000;
   int ret = 0;
+  const char *cmd = "ride_latest";
   ride.active = true; ride.alert = VELARIDE_ALERT_IMPACT;
   ride.elapsed_s = ride.moving_s = ride.still_s = UINT32_MAX;
   ride.pause_count = ride.impact_count = ride.rest_count = UINT16_MAX;

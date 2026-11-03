@@ -1,0 +1,453 @@
+--- a/velaride_ble.c
++++ b/velaride_ble.c
+@@ -314,18 +314,60 @@
+                ride.safety_remaining_s, ride.safety.help, ride.safety.last_action);
+       velaride_notify_json(conn, response);
+     }
+-  else if (strcmp(cmd, "ride_latest") == 0)
+-    {
+-      ret = velaride_ride_session_load_latest(&record);
++  else if (strcmp(cmd, "ride_history") == 0)
++    {
++      uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
++      unsigned int corrupt = 0;
++      int count = velaride_ride_history_list(sequences,
++                    VELARIDE_HISTORY_CAPACITY, &corrupt);
++      int used;
++      int i;
++
++      if (count < 0)
++        {
++          velaride_notify_json(conn, "{\"ok\":false,\"error\":\"history_unavailable\"}");
++          return;
++        }
++      used = snprintf(response, sizeof(response),
++              "{\"ok\":true,\"event\":\"ride_history\",\"capacity\":%u,"
++              "\"corrupt_count\":%u,\"sequences\":[",
++              VELARIDE_HISTORY_CAPACITY, corrupt);
++      for (i = 0; i < count; i++)
++        {
++          used += snprintf(response + used, sizeof(response) - used,
++                           "%s%" PRIu32, i == 0 ? "" : ",", sequences[i]);
++        }
++      snprintf(response + used, sizeof(response) - used, "]}");
++      velaride_notify_json(conn, response);
++    }
++  else if (strcmp(cmd, "ride_latest") == 0 || strcmp(cmd, "ride_get") == 0)
++    {
++      if (strcmp(cmd, "ride_get") == 0)
++        {
++          if (json_get_number(json, "sequence", &sequence) < 0 ||
++              sequence < 0 || sequence > UINT32_MAX ||
++              sequence != (uint32_t)sequence)
++            {
++              velaride_notify_json(conn, "{\"ok\":false,\"error\":\"bad_sequence\"}");
++              return;
++            }
++          ret = velaride_ride_history_get((uint32_t)sequence, &record);
++        }
++      else
++        {
++          ret = velaride_ride_session_load_latest(&record);
++        }
+       if (ret < 0)
+         {
+           velaride_notify_json(conn,
++            strcmp(cmd, "ride_get") == 0 ?
++            "{\"ok\":false,\"error\":\"history_changed\"}" :
+             "{\"ok\":false,\"error\":\"no_saved_ride\"}");
+           return;
+         }
+ 
+       snprintf(response, sizeof(response),
+-               "{\"ok\":true,\"event\":\"ride_latest\","
++               "{\"ok\":true,\"event\":\"%s\","
+                "\"sequence\":%" PRIu32 ",\"active\":false,"
+                "\"elapsed_s\":%" PRIu32 ",\"moving_s\":%" PRIu32 ","
+                "\"still_s\":%" PRIu32 ",\"impacts\":%u,"
+@@ -336,6 +378,7 @@
+                "\"safety_confirmed\":%u,\"safety_pauses\":%u,"
+                "\"safety_help\":%u,\"safety_unanswered\":%u,"
+                "\"safety_last_action\":%u,\"safety_last_elapsed_s\":%" PRIu32 "}",
++               strcmp(cmd, "ride_get") == 0 ? "ride_record" : "ride_latest",
+                record.sequence, record.elapsed_s, record.moving_s,
+                record.still_s, record.impact_count, record.pause_count,
+                record.rest_count, record.gps.time_ms, record.gps.distance_m,
+--- a/velaride_ride_session.c
++++ b/velaride_ride_session.c
+@@ -28,6 +28,7 @@
+ #define RIDE_RECORD_MAGIC 0x564c5244u
+ #define RIDE_RECORD_VERSION 3
+ #define RIDE_RECORD_KEY "persist.velaride.latest"
++#define RIDE_HISTORY_PREFIX "persist.velaride.h."
+ #define RIDE_REVIEW_MAGIC 0x56525256u
+ #define RIDE_REVIEW_VERSION 1
+ #define RIDE_REVIEW_KEY_PREFIX "persist.velaride.review."
+@@ -88,6 +89,7 @@
+ } g_phone_data;
+ 
+ static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
++static pthread_mutex_t g_history_lock = PTHREAD_MUTEX_INITIALIZER;
+ 
+ /* BLE only touches this accumulator while holding g_phone_lock. Lifecycle
+  * changes invalidate the anchor so pre-start, paused and missing segments
+@@ -700,14 +702,14 @@
+   return ret;
+ }
+ 
+-int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
++static int ride_load_key(const char *key, struct velaride_ride_record_s *record)
+ {
+   struct ride_record_disk_s disk;
+   uint32_t expected;
+   ssize_t ret;
+ 
+   memset(&disk, 0, sizeof(disk));
+-  ret = property_get_buffer(RIDE_RECORD_KEY, &disk, sizeof(disk));
++  ret = property_get_buffer(key, &disk, sizeof(disk));
+   if (ret == sizeof(struct ride_record_disk_v2_s) &&
+       disk.magic == RIDE_RECORD_MAGIC && disk.version == 2 &&
+       disk.size == sizeof(struct ride_record_disk_v2_s))
+@@ -791,8 +793,8 @@
+   return 0;
+ }
+ 
+-int velaride_ride_session_save_record(
+-  const struct velaride_ride_record_s *record)
++static int ride_store_key(const char *key,
++                          const struct velaride_ride_record_s *record)
+ {
+   struct ride_record_disk_s disk;
+   int ret;
+@@ -809,12 +811,141 @@
+   disk.record = *record;
+   disk.crc32 = ride_crc32(&disk,
+                           offsetof(struct ride_record_disk_s, crc32));
+-  ret = property_set_buffer(RIDE_RECORD_KEY, &disk, sizeof(disk));
++  ret = property_set_buffer(key, &disk, sizeof(disk));
+   if (ret == 0)
+     {
+       ret = property_commit();
+     }
+ 
++  return ret;
++}
++
++static void ride_history_key(char *key, size_t size, unsigned int slot)
++{
++  snprintf(key, size, RIDE_HISTORY_PREFIX "%02u", slot);
++}
++
++static bool ride_sequence_after(uint32_t a, uint32_t b)
++{
++  return (int32_t)(a - b) > 0;
++}
++
++/* Every slot has its own version/CRC. Scan rather than depending on a
++ * separately updated index: an interrupted slot/latest write is recoverable.
++ * The primary legacy key remains a read-only fallback until an actual save. */
++
++static int ride_history_scan(uint32_t *sequences, unsigned int *corrupt,
++                             struct velaride_ride_record_s *latest)
++{
++  struct velaride_ride_record_s record;
++  char key[40];
++  int count = 0;
++  unsigned int bad = 0;
++  unsigned int slot;
++  int ret;
++  int i;
++  int j;
++
++  for (slot = 0; slot <= VELARIDE_HISTORY_CAPACITY; slot++)
++    {
++      if (slot == VELARIDE_HISTORY_CAPACITY)
++        {
++          snprintf(key, sizeof(key), RIDE_RECORD_KEY);
++        }
++      else
++        {
++          ride_history_key(key, sizeof(key), slot);
++        }
++      ret = ride_load_key(key, &record);
++      if (ret < 0)
++        {
++          if (ret != -ENOENT && ret != -ENODATA) bad++;
++          continue;
++        }
++      for (i = 0; i < count && sequences[i] != record.sequence; i++);
++      if (i != count) continue;
++      for (i = 0; i < count &&
++           !ride_sequence_after(record.sequence, sequences[i]); i++);
++      if (i >= VELARIDE_HISTORY_CAPACITY) continue;
++      if (i == 0 && latest != NULL) *latest = record;
++      if (count < VELARIDE_HISTORY_CAPACITY) count++;
++      for (j = count - 1; j > i; j--) sequences[j] = sequences[j - 1];
++      sequences[i] = record.sequence;
++    }
++  if (corrupt != NULL) *corrupt = bad;
++  return count;
++}
++
++int velaride_ride_history_list(uint32_t *sequences, size_t capacity,
++                               unsigned int *corrupt)
++{
++  int ret;
++  if (sequences == NULL || capacity < VELARIDE_HISTORY_CAPACITY) return -EINVAL;
++  pthread_mutex_lock(&g_history_lock);
++  ret = ride_history_scan(sequences, corrupt, NULL);
++  pthread_mutex_unlock(&g_history_lock);
++  return ret;
++}
++
++int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
++{
++  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
++  unsigned int corrupt;
++  int count;
++  pthread_mutex_lock(&g_history_lock);
++  count = ride_history_scan(sequences, &corrupt, record);
++  pthread_mutex_unlock(&g_history_lock);
++  return count > 0 ? 0 : corrupt > 0 ? -EBADMSG : -ENOENT;
++}
++
++int velaride_ride_history_get(uint32_t sequence,
++                              struct velaride_ride_record_s *record)
++{
++  struct velaride_ride_record_s found;
++  char key[40];
++  int ret;
++  if (record == NULL) return -EINVAL;
++  pthread_mutex_lock(&g_history_lock);
++  ride_history_key(key, sizeof(key), sequence % VELARIDE_HISTORY_CAPACITY);
++  ret = ride_load_key(key, &found);
++  if (ret < 0 || found.sequence != sequence)
++    {
++      ret = ride_load_key(RIDE_RECORD_KEY, &found);
++    }
++  if (ret == 0 && found.sequence == sequence) *record = found;
++  else ret = -ENOENT;
++  pthread_mutex_unlock(&g_history_lock);
++  return ret;
++}
++
++int velaride_ride_session_save_record(
++  const struct velaride_ride_record_s *record)
++{
++  struct velaride_ride_record_s previous;
++  char key[40];
++  int ret;
++  if (record == NULL || !ride_safety_valid(&record->safety, record->elapsed_s))
++    return -EINVAL;
++  pthread_mutex_lock(&g_history_lock);
++  /* Preserve the legacy latest record before the first real new save. */
++  if (ride_load_key(RIDE_RECORD_KEY, &previous) == 0 &&
++      previous.sequence != record->sequence &&
++      previous.sequence % VELARIDE_HISTORY_CAPACITY !=
++        record->sequence % VELARIDE_HISTORY_CAPACITY)
++    {
++      struct velaride_ride_record_s existing;
++      ride_history_key(key, sizeof(key), previous.sequence % VELARIDE_HISTORY_CAPACITY);
++      if (ride_load_key(key, &existing) < 0)
++        {
++          ret = ride_store_key(key, &previous);
++          if (ret < 0) goto out;
++        }
++    }
++  ride_history_key(key, sizeof(key), record->sequence % VELARIDE_HISTORY_CAPACITY);
++  ret = ride_store_key(key, record);
++  if (ret == 0) ret = ride_store_key(RIDE_RECORD_KEY, record);
++out:
++  pthread_mutex_unlock(&g_history_lock);
+   return ret;
+ }
+ 
+--- a/velaride_ride_session.h
++++ b/velaride_ride_session.h
+@@ -10,6 +10,8 @@
+ #include <stdbool.h>
+ #include <stddef.h>
+ #include <stdint.h>
++
++#define VELARIDE_HISTORY_CAPACITY 16
+ 
+ enum velaride_motion_e
+ {
+@@ -111,6 +113,10 @@
+ void velaride_ride_session_ack_alert(void);
+ int velaride_ride_session_respond_safety(enum velaride_safety_action_e action);
+ int velaride_ride_session_load_latest(struct velaride_ride_record_s *record);
++int velaride_ride_history_list(uint32_t *sequences, size_t capacity,
++                               unsigned int *corrupt);
++int velaride_ride_history_get(uint32_t sequence,
++                              struct velaride_ride_record_s *record);
+ int velaride_ride_session_save_record(
+   const struct velaride_ride_record_s *record);
+ 
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -72,6 +72,7 @@
+   SPORT_PAGE_HELP_RESULT,
+   SPORT_PAGE_GOAL_DONE,
+   SPORT_PAGE_REVIEW,
++  SPORT_PAGE_HISTORY,
+   SPORT_PAGE_INFO,
+ };
+ 
+@@ -160,6 +161,7 @@
+   bool goal_announced;
+   bool has_record;
+   bool review_ai;
++  bool history_browsing;
+   struct velaride_ride_record_s latest_record;
+   int persist_result;
+ };
+@@ -173,6 +175,7 @@
+ static void show_active(void);
+ static void show_confirm(void);
+ static void show_review(void);
++static void show_history(void);
+ static void show_alert(enum velaride_alert_e alert);
+ static void show_goal_done(void);
+ 
+@@ -484,6 +487,7 @@
+ 
+ static void finish_ride(void)
+ {
++  g_sport.history_browsing = false;
+   lv_timer_pause(g_sport.hold_timer);
+   g_sport.persist_result =
+     velaride_ride_session_finish(&g_sport.latest_record);
+@@ -1358,7 +1362,8 @@
+ static void review_done_cb(lv_event_t *event)
+ {
+   LV_UNUSED(event);
+-  leave();
++  if (g_sport.history_browsing) show_history();
++  else leave();
+ }
+ 
+ static void retry_save_cb(lv_event_t *event)
+@@ -1372,6 +1377,7 @@
+ static void update_review_body(void)
+ {
+   char text[512];
++  struct velaride_ride_record_s newest;
+ 
+   if (g_sport.body == NULL)
+     {
+@@ -1387,6 +1393,13 @@
+     {
+       snprintf(text, sizeof(text),
+                "请先保存本次记录，再通过网页生成建议。");
++    }
++  else if (g_sport.history_browsing &&
++           (velaride_ride_session_load_latest(&newest) < 0 ||
++            newest.sequence != g_sport.latest_record.sequence))
++    {
++      snprintf(text, sizeof(text), "历史骑行记录\n本页数据来自手表保存的记录。\n"
++               "此记录未保存 AI 建议，不能使用其他骑行的建议。");
+     }
+   else if (velaride_ride_session_load_review(text, sizeof(text)) < 0)
+     {
+@@ -2850,6 +2863,10 @@
+       case SPORT_PAGE_HELP_RESULT:
+         show_active();
+         break;
++      case SPORT_PAGE_REVIEW:
++        if (g_sport.history_browsing) show_history();
++        else leave();
++        break;
+       case SPORT_PAGE_INFO:
+         if (g_sport.info_from_settings)
+           {
+@@ -2980,6 +2997,7 @@
+       g_sport.persist_result = 0;
+     }
+   g_sport.review_ai = ai;
++  g_sport.history_browsing = false;
+   show_review();
+   reveal();
+ }
+@@ -2991,7 +3009,80 @@
+ 
+ void velaride_sport_ui_show_records(void)
+ {
+-  show_saved(false);
++  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
++  if (g_sport.root == NULL || g_sport.session_started) return;
++  if (g_sport.has_record && g_sport.persist_result < 0)
++    {
++      show_saved(false);
++      return;
++    }
++  if (velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, NULL) <= 1)
++    show_saved(false);
++  else
++    {
++      show_history();
++      reveal();
++    }
++}
++
++static void history_open_cb(lv_event_t *event)
++{
++  uint32_t sequence = (uint32_t)(uintptr_t)lv_event_get_user_data(event);
++  struct velaride_ride_record_s record;
++  if (velaride_ride_history_get(sequence, &record) < 0)
++    {
++      show_history();
++      set_label(g_sport.body, "记录已更新，请重新选择");
++      return;
++    }
++  g_sport.latest_record = record;
++  g_sport.has_record = true;
++  g_sport.persist_result = 0;
++  g_sport.review_ai = false;
++  g_sport.history_browsing = true;
++  show_review();
++}
++
++static void show_history(void)
++{
++  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
++  unsigned int corrupt = 0;
++  struct velaride_ride_record_s record;
++  lv_obj_t *scroll;
++  char text[112];
++  char duration[16];
++  int count = velaride_ride_history_list(sequences, VELARIDE_HISTORY_CAPACITY, &corrupt);
++  int i;
++
++  clear_page(SPORT_PAGE_HISTORY, "骑行历史");
++  g_sport.history_browsing = true;
++  snprintf(text, sizeof(text), "%d / %u 条 · 手表本地保存", count < 0 ? 0 : count,
++           VELARIDE_HISTORY_CAPACITY);
++  g_sport.body = label(g_sport.root, text, MUTED_COLOR, &velaride_font_cn_20, 18, 104, SPORT_W - 36);
++  scroll = lv_obj_create(g_sport.root);
++  lv_obj_remove_style_all(scroll);
++  lv_obj_set_pos(scroll, 0, 140);
++  lv_obj_set_size(scroll, SPORT_W, SPORT_H - 140);
++  lv_obj_set_style_pad_bottom(scroll, 22, 0);
++  lv_obj_set_scroll_dir(scroll, LV_DIR_VER);
++  if (corrupt > 0) set_label(g_sport.body, "部分记录校验失败，已保留原数据");
++  for (i = 0; i < count; i++)
++    {
++      lv_obj_t *row;
++      if (velaride_ride_history_get(sequences[i], &record) < 0) continue;
++      ride_time_text(duration, sizeof(duration), record.elapsed_s);
++      snprintf(text, sizeof(text), "#%" PRIu32 "   %s", record.sequence, duration);
++      row = button(text, BTN_TILE, 18, i * 86, SPORT_W - 36, 74,
++                   history_open_cb, (intptr_t)(uintptr_t)record.sequence);
++      lv_obj_set_parent(row, scroll);
++      lv_obj_align(lv_obj_get_child(row, 0), LV_ALIGN_TOP_MID, 0, 7);
++      if (record.gps.time_ms > 0)
++        snprintf(text, sizeof(text), "%.2f km · 冲击 %u", record.gps.distance_m / 1000.0,
++                 record.impact_count);
++      else snprintf(text, sizeof(text), "GPS -- · 冲击 %u", record.impact_count);
++      label(row, text, MUTED_COLOR, &velaride_font_cn_20, 0, 43, SPORT_W - 36);
++    }
++  if (count <= 0) label(scroll, "还没有骑行记录", MUTED_COLOR, &velaride_font_cn_20, 20, 50, SPORT_W - 40);
+ }
+ 
+ static void settings_open_cb(lv_event_t *event)

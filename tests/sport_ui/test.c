@@ -26,6 +26,7 @@ void sound_test_reset(void);
 static struct velaride_ride_snapshot_s state;
 static struct velaride_ride_record_s saved;
 static bool has_saved = true;
+static int fake_history_count = 1;
 static bool ai_available;
 static bool phone_valid;
 bool velaride_ride_session_get_phone_data(double *speed, double *distance)
@@ -207,6 +208,22 @@ int velaride_ride_session_load_latest(struct velaride_ride_record_s *out)
 {
   *out = saved;
   return has_saved ? 0 : -1;
+}
+
+int velaride_ride_history_list(uint32_t *sequences, size_t capacity, unsigned int *corrupt)
+{
+  assert(capacity >= VELARIDE_HISTORY_CAPACITY);
+  if (corrupt != NULL) *corrupt = 0;
+  for (int i = 0; has_saved && i < fake_history_count; i++) sequences[i] = saved.sequence - i;
+  return has_saved ? fake_history_count : 0;
+}
+
+int velaride_ride_history_get(uint32_t sequence, struct velaride_ride_record_s *out)
+{
+  if (!has_saved || sequence > saved.sequence || sequence + fake_history_count <= saved.sequence) return -ENOENT;
+  *out = saved;
+  out->sequence = sequence;
+  return 0;
 }
 
 int velaride_ride_session_load_review(char *out, size_t size)
@@ -924,6 +941,39 @@ int main(int argc, char **argv)
   assert(sound_test_events[2] == VR_SOUND_ONE);
   assert(sound_test_events[3] == VR_SOUND_GO);
 #endif
+  state.active = false;
+  g_sport.session_started = false;
+  g_sport.persist_result = 0;
+  has_saved = true;
+  saved.sequence = 20;
+  fake_history_count = 3;
+  velaride_sport_ui_back();
+  velaride_sport_ui_show_records();
+  assert(g_sport.page == SPORT_PAGE_HISTORY);
+  {
+    lv_area_t title_area;
+    lv_area_t note_area;
+    lv_obj_get_coords(lv_obj_get_child(g_sport.root, 2), &title_area);
+    lv_obj_get_coords(g_sport.body, &note_area);
+    assert(title_area.y2 < note_area.y1);
+  }
+  screenshot("09-history-list");
+  {
+    char caption[64];
+    char duration[16];
+    ride_time_text(duration, sizeof(duration), saved.elapsed_s);
+    snprintf(caption, sizeof(caption), "#%" PRIu32 "   %s", saved.sequence - 1, duration);
+    click(caption);
+    assert(g_sport.page == SPORT_PAGE_REVIEW && g_sport.latest_record.sequence == saved.sequence - 1);
+    assert(strstr(lv_label_get_text(g_sport.body), "其他骑行") != NULL);
+    screenshot("09-history-detail");
+    click("完成");
+    assert(g_sport.page == SPORT_PAGE_HISTORY);
+    velaride_sport_ui_back();
+  }
+  fake_history_count = 1;
+  velaride_sport_ui_show_records();
+  velaride_sport_ui_back();
   puts("PASS: ride flow (goal presets, countdown cancel, real swipes between three views, lock, real hold to end), alerts, summary scroll, night light, stopwatch, level, empty state, save retry");
   lv_deinit();
   return 0;
