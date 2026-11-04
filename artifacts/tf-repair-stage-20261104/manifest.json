@@ -11,7 +11,7 @@
   "hardware_verified": false,
   "source_limit": "Accepted actual application archive plus actual before/after driver files; full clean dependency rebuild not verified",
   "files": {
-    "before-driver-sha256.json": "17a96a37ecd12a5d1cb58ec07e573b6064ba02103d68db66080dfc25015fabd2",
+    "before-driver-sha256.json": "b39d0eaa7e922bfbfa23eb24b9e396bb6ace7acb90f4a104080e44b9a58c1257",
     "build_tf_repair.sh": "4777672cfea0e1af489ab3e9f6cd94f74a96403d97297c2937f102b81171ef63",
     "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
     "driver-source.tar.gz": "2634ce7af55c0ce6acdb982146052e4210be75264501efc18a100cb576798319",
