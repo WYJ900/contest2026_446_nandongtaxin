@@ -17,8 +17,7 @@ import android.view.*;
 import android.widget.*;
 import org.json.JSONObject;
 import org.json.JSONArray;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.*;
@@ -66,6 +65,11 @@ public final class MainActivity extends Activity {
     private Button syncArchive;
     private Button reviewEntry;
     private String historyWarning = "";
+    private static final int IMPORT_ROUTE = 13;
+    private RoutePlan route;
+    private TextView routeStatus;
+    private volatile long routeGeneration;
+    private volatile boolean routeSupported = true;
     private String historyFailure;
 
     @Override public void onCreate(Bundle stateBundle) {
@@ -81,6 +85,15 @@ public final class MainActivity extends Activity {
         }
         catch (IOException error) { historyFailure = "历史暂时无法读取，原文件已保留：" + error.getMessage(); }
         makeScreen();
+        worker.execute(() -> {
+            File saved = new File(getFilesDir(), "route.gpx");
+            if (!saved.exists()) return;
+            try (InputStream input = new android.util.AtomicFile(saved).openRead()) {
+                RoutePlan loaded = RoutePlan.parse(readRouteBytes(input));
+                main.post(() -> { if (!isDestroyed()) { route=loaded; routeGeneration++;
+                    routeStatus.setText("已恢复 GPX · " + loaded.size() + " 个路线点，开启定位后指引。"); } });
+            } catch (Exception error) { main.post(() -> { if (!isDestroyed()) routeStatus.setText("保存的路线暂不可读，请重新导入。"); }); }
+        });
         if (stateBundle != null) note.setText(stateBundle.getString("draft", ""));
         try {
             String cached = store.getString("latest_record", "");
@@ -187,6 +200,23 @@ public final class MainActivity extends Activity {
         gpsStatus = text("尚未开启 · 需要手机位置权限", 13, MUTED); gap(position, 8); position.addView(gpsStatus);
         gps = button(position, "开始定位同步", false, v -> { if (gpsRunning) stopGps(true); else startGps(); });
 
+        LinearLayout navigation = card(root, "GPX 路线点指引", "按导入路线显示下一点的方向和直线距离；没有道路重规划。需保持前台定位。");
+        routeStatus = text("尚未导入路线", 14, MUTED); navigation.addView(routeStatus);
+        button(navigation, "导入 GPX 路线", false, v -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+            try { startActivityForResult(intent, IMPORT_ROUTE); }
+            catch (ActivityNotFoundException error) { message.setText("当前手机没有文件选择工具。"); }
+        });
+        button(navigation, "停止路线指引", false, v -> {
+            route=null; routeGeneration++;
+            new android.util.AtomicFile(new File(getFilesDir(),"route.gpx")).delete();
+            routeStatus.setText("路线指引已停止，定位同步可继续。");
+            if(link.isReady()) runJob("正在清除腕上路线…", epoch -> {
+                try { ask(epoch,json("nav_clear"),"nav_clear"); }
+                catch(BleLink.DeviceError error) { if(!"unknown_cmd".equals(error.getMessage())) throw error; }
+            });
+        });
+
         LinearLayout memo = card(root, "骑行备注", "把一句简短备注保存到手表的最近一次骑行中。");
         note = new EditText(this); note.setTextColor(INK); note.setHintTextColor(MUTED);
         note.setTextSize(15); note.setHint("例如：今天骑得很舒服，下次继续"); note.setMinLines(2); note.setMaxLines(4);
@@ -197,6 +227,7 @@ public final class MainActivity extends Activity {
 
     private void connectionChanged(boolean ready, String reason) {
         if (!ready) { session++; busy = false; gpsSupported = false; stopGps(false); }
+        else routeSupported = true;
         state.setText(reason); state.setTextColor(ready ? GREEN : MUTED);
         updateButtons();
         if (ready) runJob("正在同步设备…", epoch -> {
@@ -563,6 +594,23 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if(request==IMPORT_ROUTE && result==RESULT_OK && data!=null && data.getData()!=null) {
+            final android.net.Uri source=data.getData();
+            worker.execute(() -> {
+                try(InputStream input=getContentResolver().openInputStream(source)) {
+                    if(input==null) throw new IOException("无法打开路线文件");
+                    byte[] bytes=readRouteBytes(input);
+                    RoutePlan loaded=RoutePlan.parse(bytes);
+                    android.util.AtomicFile file=new android.util.AtomicFile(new File(getFilesDir(),"route.gpx"));
+                    FileOutputStream output=file.startWrite();
+                    try { output.write(bytes);output.getFD().sync();file.finishWrite(output); }
+                    catch(IOException error) { file.failWrite(output);throw error; }
+                    main.post(() -> { if(!isDestroyed()) {route=loaded;routeGeneration++;
+                        routeStatus.setText("已载入 "+loaded.size()+" 个路线点，请开启定位。");} });
+                } catch(Exception error) { main.post(() -> { if(!isDestroyed()) routeStatus.setText("路线导入失败："+error.getMessage()); }); }
+            });
+            return;
+        }
         if (request != EXPORT_HISTORY || result != RESULT_OK || data == null || data.getData() == null || history == null) return;
         android.net.Uri destination = data.getData();
         List<RideHistory.Entry> snapshot = history.snapshot();
@@ -578,6 +626,14 @@ public final class MainActivity extends Activity {
             final String display = status;
             main.post(() -> { if (!isDestroyed()) message.setText(display); });
         });
+    }
+    private static byte[] readRouteBytes(InputStream input) throws IOException {
+        ByteArrayOutputStream bytes=new ByteArrayOutputStream();byte[] buffer=new byte[4096];int n;
+        while((n=input.read(buffer))!=-1) {
+            if(bytes.size()+n>RoutePlan.MAX_BYTES) throw new IOException("路线文件超过 512 KB");
+            bytes.write(buffer,0,n);
+        }
+        return bytes.toByteArray();
     }
     private void sendNote() {
         if (latest == null) return;
@@ -729,17 +785,35 @@ public final class MainActivity extends Activity {
             final double speed = sample.speed;
             phoneDistance = sample.distance; lastGpsFix = location.getElapsedRealtimeNanos(); gpsStale = false;
             lastLocation = new Location(location);
+            RoutePlan.Hint hint=null;
+            if(route!=null) {
+                try {hint=route.update(location.getLatitude(),location.getLongitude(),location.getAccuracy());
+                    routeStatus.setText(hint.text());}
+                catch(IllegalArgumentException error) {routeStatus.setText(error.getMessage());}
+            }
             gpsValue.setText(String.format(Locale.ROOT, "%.1f km/h   ·   %.2f km", speed, phoneDistance));
             gpsStatus.setText("定位精度约 " + Math.round(location.getAccuracy()) + " 米 · 前台同步中");
             long now = SystemClock.elapsedRealtime();
             if (gpsSending || busy || now - lastGpsSent < 5000) return;
             gpsSending = true; lastGpsSent = now; final double distance = phoneDistance; final long epoch = session;
             final long run = gpsGeneration, fix = lastGpsFix;
+            final long routeRun=routeGeneration;
+            final RoutePlan.Hint routeHint=hint;
             worker.execute(() -> {
                 String failure = null;
                 try {
-                    if (gpsRunning && run == gpsGeneration && SystemClock.elapsedRealtimeNanos() - fix < GpsTracker.MAX_AGE_NS)
+                    if (gpsRunning && run == gpsGeneration && SystemClock.elapsedRealtimeNanos() - fix < GpsTracker.MAX_AGE_NS) {
                         ask(epoch, json("phone_data").put("speed", speed).put("distance", distance), "phone_data");
+                        if(routeHint!=null && routeSupported && routeRun==routeGeneration) {
+                            try {ask(epoch,json("nav_hint").put("direction",routeHint.direction)
+                                    .put("distance_m",routeHint.distanceM).put("offroute",routeHint.offRoute?1:0),"nav_hint");}
+                            catch(BleLink.DeviceError error) {
+                                if(!"unknown_cmd".equals(error.getMessage())) throw error;
+                                routeSupported=false;
+                                main.post(() -> routeStatus.setText("手机路线可用，手表需升级后显示路线提示。"));
+                            }
+                        }
+                    }
                 }
                 catch (Exception error) { failure = readable(error); }
                 final String warning = failure;

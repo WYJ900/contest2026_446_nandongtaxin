@@ -38,6 +38,9 @@ int velaride_ride_session_lap(void)
 }
 static bool ai_available;
 static bool phone_valid;
+static bool nav_valid;
+static struct velaride_nav_s nav_fixture;
+bool velaride_nav_get(struct velaride_nav_s *nav) { *nav=nav_fixture; return nav_valid; }
 bool velaride_ride_session_get_phone_data(double *speed, double *distance)
 {
   *speed = phone_valid ? 12.5 : 0;
@@ -490,6 +493,14 @@ int main(int argc, char **argv)
 
   swipe(-200);
   assert(g_sport.ride_view == RIDE_VIEW_HEADING && compass_state.enabled);
+  nav_valid=true;
+  nav_fixture=(struct velaride_nav_s){.direction=1,.distance_m=80};
+  advance(300);
+  assert(strstr(lv_label_get_text(g_sport.nav_label), "< 左转")!=NULL);
+  screenshot("05d-route-cue");
+  nav_valid=false;
+  advance(300);
+  assert(strstr(lv_label_get_text(g_sport.nav_label), "过期")!=NULL);
   screenshot("05c-heading");
   swipe(-200);
   assert(g_sport.ride_view == RIDE_VIEW_HEADING);

@@ -695,6 +695,26 @@ static void test_v3_record_migration(void)
   assert(sizeof(struct ride_record_disk_s) * 2 <= 255);
 }
 
+static void test_navigation_expiry(void)
+{
+  struct velaride_nav_s nav;
+  begin(0); monotonic_ms=1000; clock_fails=false;
+  velaride_nav_clear();assert(!velaride_nav_get(&nav));
+  assert(velaride_nav_set(1,80,false)==0);
+  assert(velaride_nav_get(&nav) && nav.direction==1 && nav.distance_m==80);
+  assert(velaride_nav_set(6,80,false)==-EINVAL);
+  assert(velaride_nav_set(1,1000001,false)==-EINVAL);
+  monotonic_ms+=14999;assert(velaride_nav_get(&nav));
+  monotonic_ms++;assert(!velaride_nav_get(&nav));
+  assert(velaride_nav_set(2,50,true)==0);
+  velaride_ride_session_clear_phone_data();assert(!velaride_nav_get(&nav));
+  assert(velaride_nav_set(0,30,false)==0);
+  velaride_ride_session_set_connected(false);assert(!velaride_nav_get(&nav));
+  assert(velaride_nav_set(0,30,false)==0);
+  clock_fails=true;assert(!velaride_nav_get(&nav));
+  assert(velaride_nav_set(0,30,false)==-EIO);clock_fails=false;
+}
+
 int main(void)
 {
   test_goal_and_pause();
@@ -715,6 +735,7 @@ int main(void)
   test_reminder_actions();
   test_pause_advice_and_distance_goal();
   test_v3_record_migration();
-  puts("PASS: 18 ride-session scenarios: reminders, snooze, opt-in stop/resume advice, distance goals/laps, V1/V2/V3 migration, V4 persistence, history and GPS");
+  test_navigation_expiry();
+  puts("PASS: 19 ride-session scenarios: navigation bounds/expiry/clearing, reminders, stop/resume advice, distance/laps, V1-V4 persistence, history and GPS");
   return 0;
 }

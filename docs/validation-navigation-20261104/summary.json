@@ -1,0 +1,25 @@
+{
+  "stage": "navigation",
+  "parent_commit": "fc21289",
+  "firmware_sha256": "e6e2e3f17936916d310554970cc5d63ac630e5161356e507b3431381309a02d1",
+  "firmware_bytes": 9776276,
+  "application_space_remaining": 250732,
+  "apk_version": "0.1.9",
+  "apk_sha256": "4c99622d29e80d86b1b71d33e3b57920855a79e1a878a88ed5903568530f76e1",
+  "passed": {
+    "firmware_build": true,
+    "unchanged_config": true,
+    "ride_scenarios": 19,
+    "actual_stage_lvgl_asan_ubsan": true,
+    "ble_payload": true,
+    "android_host_tests_and_build": true
+  },
+  "device_operations": false,
+  "candidate_installed": false,
+  "pending": [
+    "GPS parent real ride acceptance",
+    "Physical UI and original functions on candidate",
+    "Real Flash persistence and Android backfill on phone"
+  ],
+  "source_limit": "Application-stage snapshot and parent archives; clean full dependency rebuild not verified"
+}

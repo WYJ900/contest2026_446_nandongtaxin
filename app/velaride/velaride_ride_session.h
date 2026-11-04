@@ -116,6 +116,17 @@ struct velaride_ride_gps_s
   uint32_t max_speed_centi;
 };
 
+struct velaride_nav_s
+{
+  uint32_t distance_m;
+  uint8_t direction;
+  bool off_route;
+};
+
+int velaride_nav_set(uint8_t direction, uint32_t distance_m, bool off_route);
+void velaride_nav_clear(void);
+bool velaride_nav_get(struct velaride_nav_s *nav);
+
 struct velaride_ride_record_s
 {
   uint32_t sequence;

@@ -283,6 +283,27 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
       velaride_notify_json(conn,
                            "{\"ok\":true,\"event\":\"phone_clear\"}");
     }
+  else if (strcmp(cmd, "nav_hint") == 0)
+    {
+      double direction;
+      double metres;
+      double off;
+      if (json_get_number(json, "direction", &direction) < 0 || direction < 0 || direction > 5 || direction != (uint8_t)direction ||
+          json_get_number(json, "distance_m", &metres) < 0 || metres < 0 || metres > 1000000 || metres != (uint32_t)metres ||
+          json_get_number(json, "offroute", &off) < 0 || (off != 0 && off != 1))
+        {
+          velaride_notify_json(conn, "{\"ok\":false,\"error\":\"bad_nav_hint\"}");
+          return;
+        }
+      ret = velaride_nav_set(direction, metres, off == 1);
+      velaride_notify_json(conn, ret == 0 ? "{\"ok\":true,\"event\":\"nav_hint\"}" :
+                                               "{\"ok\":false,\"error\":\"nav_unavailable\"}");
+    }
+  else if (strcmp(cmd, "nav_clear") == 0)
+    {
+      velaride_nav_clear();
+      velaride_notify_json(conn, "{\"ok\":true,\"event\":\"nav_clear\"}");
+    }
   else if (strcmp(cmd, "ride_status") == 0)
     {
       phone_speed = 0;

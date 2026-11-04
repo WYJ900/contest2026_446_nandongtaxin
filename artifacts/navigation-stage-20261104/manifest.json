@@ -1,0 +1,37 @@
+{
+  "stage": "navigation",
+  "parent_commit": "fc21289",
+  "firmware_sha256": "e6e2e3f17936916d310554970cc5d63ac630e5161356e507b3431381309a02d1",
+  "firmware_bytes": 9776276,
+  "application_space_remaining": 250732,
+  "apk_version": "0.1.9",
+  "apk_sha256": "4c99622d29e80d86b1b71d33e3b57920855a79e1a878a88ed5903568530f76e1",
+  "passed": {
+    "firmware_build": true,
+    "unchanged_config": true,
+    "ride_scenarios": 19,
+    "actual_stage_lvgl_asan_ubsan": true,
+    "ble_payload": true,
+    "android_host_tests_and_build": true
+  },
+  "device_operations": false,
+  "candidate_installed": false,
+  "pending": [
+    "GPS parent real ride acceptance",
+    "Physical UI and original functions on candidate",
+    "Real Flash persistence and Android backfill on phone"
+  ],
+  "source_limit": "Application-stage snapshot and parent archives; clean full dependency rebuild not verified",
+  "files": {
+    "android-source.zip": "abafbc424d1926adc836abcd4deddf644620202f65ec52f5ab6f461da3ce8707",
+    "app-source.tar.gz": "3c6f6a60d063e71688de5aa10994ad16d6e9ccccc91ff31a6d2977b74c32e1da",
+    "build_product_features.sh": "dc5654544a385665e6dc7781f41432aefb7199ef6b6da493569c576a54949f3a",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "feature.patch": "3d471381d177208ae7932f3578fa1683fe571aa49460dd04fbf1d1c3acacda83",
+    "firmware.bin": "e6e2e3f17936916d310554970cc5d63ac630e5161356e507b3431381309a02d1",
+    "package_product_features.py": "f95678680ec9374204c4f586dca31c31774b91597c77429fd63bd587273b3364",
+    "tests-source.zip": "5c6be14a4a18ac87e53057d0efd83fe742567efec7369379bf8e17ea27c9781b",
+    "test_product_features.sh": "f440debc3c6199d02f2578a5697e271caa45023f7bb933ea26e86b62ed3e8ada",
+    "VelaRide-0.1.9-debug.apk": "4c99622d29e80d86b1b71d33e3b57920855a79e1a878a88ed5903568530f76e1"
+  }
+}

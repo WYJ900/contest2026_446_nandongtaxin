@@ -1,0 +1,158 @@
+--- a/velaride_ble.c
++++ b/velaride_ble.c
+@@ -282,6 +282,27 @@
+       velaride_ride_session_clear_phone_data();
+       velaride_notify_json(conn,
+                            "{\"ok\":true,\"event\":\"phone_clear\"}");
++    }
++  else if (strcmp(cmd, "nav_hint") == 0)
++    {
++      double direction;
++      double metres;
++      double off;
++      if (json_get_number(json, "direction", &direction) < 0 || direction < 0 || direction > 5 || direction != (uint8_t)direction ||
++          json_get_number(json, "distance_m", &metres) < 0 || metres < 0 || metres > 1000000 || metres != (uint32_t)metres ||
++          json_get_number(json, "offroute", &off) < 0 || (off != 0 && off != 1))
++        {
++          velaride_notify_json(conn, "{\"ok\":false,\"error\":\"bad_nav_hint\"}");
++          return;
++        }
++      ret = velaride_nav_set(direction, metres, off == 1);
++      velaride_notify_json(conn, ret == 0 ? "{\"ok\":true,\"event\":\"nav_hint\"}" :
++                                               "{\"ok\":false,\"error\":\"nav_unavailable\"}");
++    }
++  else if (strcmp(cmd, "nav_clear") == 0)
++    {
++      velaride_nav_clear();
++      velaride_notify_json(conn, "{\"ok\":true,\"event\":\"nav_clear\"}");
+     }
+   else if (strcmp(cmd, "ride_status") == 0)
+     {
+--- a/velaride_ride_session.c
++++ b/velaride_ride_session.c
+@@ -97,6 +97,9 @@
+ } g_phone_data;
+ 
+ static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
++static struct velaride_nav_s g_nav;
++static uint64_t g_nav_updated;
++static bool g_nav_valid;
+ static pthread_mutex_t g_history_lock = PTHREAD_MUTEX_INITIALIZER;
+ static struct velaride_ride_prefs_s g_ride_prefs = {.rest_min = 45};
+ 
+@@ -1204,7 +1207,50 @@
+   pthread_mutex_lock(&g_phone_lock);
+   memset(&g_phone_data, 0, sizeof(g_phone_data));
+   g_ride_gps.anchor = false;
++  g_nav_valid = false;
+   pthread_mutex_unlock(&g_phone_lock);
++}
++
++int velaride_nav_set(uint8_t direction, uint32_t distance_m, bool off_route)
++{
++  struct timespec now;
++  if (direction > 5 || distance_m > 1000000) return -EINVAL;
++  if (clock_gettime(CLOCK_MONOTONIC, &now) < 0) return -EIO;
++  pthread_mutex_lock(&g_phone_lock);
++  g_nav.direction = direction;
++  g_nav.distance_m = distance_m;
++  g_nav.off_route = off_route;
++  g_nav_updated = (uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
++  g_nav_valid = true;
++  pthread_mutex_unlock(&g_phone_lock);
++  return 0;
++}
++
++void velaride_nav_clear(void)
++{
++  pthread_mutex_lock(&g_phone_lock);
++  g_nav_valid = false;
++  pthread_mutex_unlock(&g_phone_lock);
++}
++
++bool velaride_nav_get(struct velaride_nav_s *nav)
++{
++  struct timespec now;
++  uint64_t ms;
++  bool valid;
++  if (nav == NULL) return false;
++  memset(nav, 0, sizeof(*nav));
++  pthread_mutex_lock(&g_phone_lock);
++  if (clock_gettime(CLOCK_MONOTONIC, &now) < 0) g_nav_valid = false;
++  else
++    {
++      ms = (uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
++      if (ms < g_nav_updated || ms - g_nav_updated >= 15000) g_nav_valid = false;
++    }
++  valid = g_nav_valid;
++  if (valid) *nav = g_nav;
++  pthread_mutex_unlock(&g_phone_lock);
++  return valid;
+ }
+ 
+ bool velaride_ride_session_get_phone_data(double *speed_kmh,
+--- a/velaride_ride_session.h
++++ b/velaride_ride_session.h
+@@ -116,6 +116,17 @@
+   uint32_t max_speed_centi;
+ };
+ 
++struct velaride_nav_s
++{
++  uint32_t distance_m;
++  uint8_t direction;
++  bool off_route;
++};
++
++int velaride_nav_set(uint8_t direction, uint32_t distance_m, bool off_route);
++void velaride_nav_clear(void);
++bool velaride_nav_get(struct velaride_nav_s *nav);
++
+ struct velaride_ride_record_s
+ {
+   uint32_t sequence;
+--- a/velaride_sport_ui.c
++++ b/velaride_sport_ui.c
+@@ -106,6 +106,7 @@
+   lv_obj_t *hold_arc;
+   lv_obj_t *heading_label;
+   lv_obj_t *heading_name;
++  lv_obj_t *nav_label;
+   lv_obj_t *tape;
+   lv_obj_t *scroll;
+   lv_obj_t *review_card;
+@@ -328,6 +329,7 @@
+   g_sport.hold_arc = NULL;
+   g_sport.heading_label = NULL;
+   g_sport.heading_name = NULL;
++  g_sport.nav_label = NULL;
+   g_sport.tape = NULL;
+   g_sport.scroll = NULL;
+   g_sport.review_card = NULL;
+@@ -846,12 +848,26 @@
+   lv_obj_add_event_cb(g_sport.tape, tape_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
+   lv_obj_add_flag(g_sport.tape, LV_OBJ_FLAG_HIDDEN);
+   g_sport.heading = -1000;
++  g_sport.nav_label = label(g_sport.root, "手机 GPX 路线点指引\n尚未同步路线", MUTED_COLOR,
++                            &velaride_font_cn_20, 20, 360, SPORT_W - 40);
+ }
+ 
+ static void update_heading(void)
+ {
+   struct velaride_compass_s compass;
+   char text[16];
++
++  if (g_sport.nav_label != NULL)
++    {
++      struct velaride_nav_s nav;
++      char hint[128];
++      static const char *names[] = {"^ 直行", "< 左转", "> 右转", "折返", "已到终点", "前往起点"};
++      if (velaride_nav_get(&nav))
++        snprintf(hint, sizeof(hint), "%s · 距路线点 %lu m\n%s", names[nav.direction],
++                 (unsigned long)nav.distance_m, nav.off_route ? "偏离路线，请停车核对" : "手机 GPX 路线点指引");
++      else snprintf(hint, sizeof(hint), "手机 GPX 路线点指引\n尚未同步或数据已过期");
++      set_label(g_sport.nav_label, hint);
++    }
+ 
+   velaride_compass_get(&compass);
+   if (!compass.calibrated || !compass.heading_valid)

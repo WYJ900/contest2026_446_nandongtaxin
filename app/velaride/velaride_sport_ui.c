@@ -106,6 +106,7 @@ struct sport_ui_s
   lv_obj_t *hold_arc;
   lv_obj_t *heading_label;
   lv_obj_t *heading_name;
+  lv_obj_t *nav_label;
   lv_obj_t *tape;
   lv_obj_t *scroll;
   lv_obj_t *review_card;
@@ -328,6 +329,7 @@ static void clear_page_state(enum sport_page_e page)
   g_sport.hold_arc = NULL;
   g_sport.heading_label = NULL;
   g_sport.heading_name = NULL;
+  g_sport.nav_label = NULL;
   g_sport.tape = NULL;
   g_sport.scroll = NULL;
   g_sport.review_card = NULL;
@@ -846,12 +848,26 @@ static void build_heading_view(void)
   lv_obj_add_event_cb(g_sport.tape, tape_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
   lv_obj_add_flag(g_sport.tape, LV_OBJ_FLAG_HIDDEN);
   g_sport.heading = -1000;
+  g_sport.nav_label = label(g_sport.root, "手机 GPX 路线点指引\n尚未同步路线", MUTED_COLOR,
+                            &velaride_font_cn_20, 20, 360, SPORT_W - 40);
 }
 
 static void update_heading(void)
 {
   struct velaride_compass_s compass;
   char text[16];
+
+  if (g_sport.nav_label != NULL)
+    {
+      struct velaride_nav_s nav;
+      char hint[128];
+      static const char *names[] = {"^ 直行", "< 左转", "> 右转", "折返", "已到终点", "前往起点"};
+      if (velaride_nav_get(&nav))
+        snprintf(hint, sizeof(hint), "%s · 距路线点 %lu m\n%s", names[nav.direction],
+                 (unsigned long)nav.distance_m, nav.off_route ? "偏离路线，请停车核对" : "手机 GPX 路线点指引");
+      else snprintf(hint, sizeof(hint), "手机 GPX 路线点指引\n尚未同步或数据已过期");
+      set_label(g_sport.nav_label, hint);
+    }
 
   velaride_compass_get(&compass);
   if (!compass.calibrated || !compass.heading_valid)

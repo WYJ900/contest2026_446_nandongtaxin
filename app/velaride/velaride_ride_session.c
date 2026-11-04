@@ -97,6 +97,9 @@ static struct
 } g_phone_data;
 
 static pthread_mutex_t g_phone_lock = PTHREAD_MUTEX_INITIALIZER;
+static struct velaride_nav_s g_nav;
+static uint64_t g_nav_updated;
+static bool g_nav_valid;
 static pthread_mutex_t g_history_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct velaride_ride_prefs_s g_ride_prefs = {.rest_min = 45};
 
@@ -1204,7 +1207,50 @@ void velaride_ride_session_clear_phone_data(void)
   pthread_mutex_lock(&g_phone_lock);
   memset(&g_phone_data, 0, sizeof(g_phone_data));
   g_ride_gps.anchor = false;
+  g_nav_valid = false;
   pthread_mutex_unlock(&g_phone_lock);
+}
+
+int velaride_nav_set(uint8_t direction, uint32_t distance_m, bool off_route)
+{
+  struct timespec now;
+  if (direction > 5 || distance_m > 1000000) return -EINVAL;
+  if (clock_gettime(CLOCK_MONOTONIC, &now) < 0) return -EIO;
+  pthread_mutex_lock(&g_phone_lock);
+  g_nav.direction = direction;
+  g_nav.distance_m = distance_m;
+  g_nav.off_route = off_route;
+  g_nav_updated = (uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
+  g_nav_valid = true;
+  pthread_mutex_unlock(&g_phone_lock);
+  return 0;
+}
+
+void velaride_nav_clear(void)
+{
+  pthread_mutex_lock(&g_phone_lock);
+  g_nav_valid = false;
+  pthread_mutex_unlock(&g_phone_lock);
+}
+
+bool velaride_nav_get(struct velaride_nav_s *nav)
+{
+  struct timespec now;
+  uint64_t ms;
+  bool valid;
+  if (nav == NULL) return false;
+  memset(nav, 0, sizeof(*nav));
+  pthread_mutex_lock(&g_phone_lock);
+  if (clock_gettime(CLOCK_MONOTONIC, &now) < 0) g_nav_valid = false;
+  else
+    {
+      ms = (uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
+      if (ms < g_nav_updated || ms - g_nav_updated >= 15000) g_nav_valid = false;
+    }
+  valid = g_nav_valid;
+  if (valid) *nav = g_nav;
+  pthread_mutex_unlock(&g_phone_lock);
+  return valid;
 }
 
 bool velaride_ride_session_get_phone_data(double *speed_kmh,
