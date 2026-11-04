@@ -1,0 +1,19 @@
+{
+  "prepared_at": "2026-11-04T13:33:30.047350+08:00",
+  "source_volume": "\\\\?\\Volume{7cd86ad8-c21d-11f1-a054-4438e8248c4e}\\",
+  "backup": "D:\\desktop\\AL\\TF_Backup_20261104_133203",
+  "original_files_verified": 28,
+  "original_bytes": 55393428,
+  "original_files_preserved_on_card": true,
+  "format_performed": false,
+  "partition_changes": false,
+  "file_system": "FAT32",
+  "cluster_bytes": 32768,
+  "added": [
+    "MEMOS/",
+    "READY.TXT"
+  ],
+  "card_write_readback_bytes": 524288,
+  "card_write_readback_passed": true,
+  "hardware_watch_mount_and_recording": "pending insertion"
+}

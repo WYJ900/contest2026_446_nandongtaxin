@@ -1,0 +1,398 @@
+{
+  "passed": true,
+  "events": [
+    {
+      "command": "ping",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "pong"
+      }
+    },
+    {
+      "command": "ride_status",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": false,
+        "speed_kmh": 0.0,
+        "distance_km": 0.0,
+        "ride_gps_time_ms": 0,
+        "ride_distance_m": 0,
+        "safety_pending": false,
+        "safety_remaining_s": 0,
+        "safety_help": 0,
+        "safety_last_action": 0
+      }
+    },
+    {
+      "command": "ride_latest",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "ride_latest",
+        "sequence": 11,
+        "active": false,
+        "elapsed_s": 23,
+        "moving_s": 19,
+        "still_s": 1,
+        "impacts": 2,
+        "pause_count": 1,
+        "rest_count": 0,
+        "gps_time_ms": 0,
+        "gps_distance_m": 0,
+        "gps_avg_centi": 0,
+        "gps_max_centi": 0,
+        "safety_version": 0,
+        "safety_checks": 0,
+        "safety_confirmed": 0,
+        "safety_pauses": 0,
+        "safety_help": 0,
+        "safety_unanswered": 0,
+        "safety_last_action": 0,
+        "safety_last_elapsed_s": 0,
+        "extras_version": 0,
+        "goal_distance_m": 0,
+        "lap_count": 0,
+        "rest_taken": 0,
+        "rest_snoozed": 0,
+        "rest_ignored": 0,
+        "drink_count": 0,
+        "drink_done": 0,
+        "drink_snoozed": 0,
+        "drink_ignored": 0
+      }
+    },
+    {
+      "command": "ride_history",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "ride_history",
+        "capacity": 16,
+        "corrupt_count": 0,
+        "sequences": [
+          11
+        ]
+      }
+    },
+    {
+      "command": "ride_get",
+      "fields": {
+        "sequence": 11
+      },
+      "reply": {
+        "ok": true,
+        "event": "ride_record",
+        "sequence": 11,
+        "active": false,
+        "elapsed_s": 23,
+        "moving_s": 19,
+        "still_s": 1,
+        "impacts": 2,
+        "pause_count": 1,
+        "rest_count": 0,
+        "gps_time_ms": 0,
+        "gps_distance_m": 0,
+        "gps_avg_centi": 0,
+        "gps_max_centi": 0,
+        "safety_version": 0,
+        "safety_checks": 0,
+        "safety_confirmed": 0,
+        "safety_pauses": 0,
+        "safety_help": 0,
+        "safety_unanswered": 0,
+        "safety_last_action": 0,
+        "safety_last_elapsed_s": 0,
+        "extras_version": 0,
+        "goal_distance_m": 0,
+        "lap_count": 0,
+        "rest_taken": 0,
+        "rest_snoozed": 0,
+        "rest_ignored": 0,
+        "drink_count": 0,
+        "drink_done": 0,
+        "drink_snoozed": 0,
+        "drink_ignored": 0
+      }
+    },
+    {
+      "command": "ride_get",
+      "fields": {
+        "sequence": -1
+      },
+      "reply": {
+        "ok": false,
+        "error": "bad_sequence"
+      }
+    },
+    {
+      "command": "ride_get",
+      "fields": {
+        "sequence": 1011
+      },
+      "reply": {
+        "ok": false,
+        "error": "history_changed"
+      }
+    },
+    {
+      "command": "nav_hint",
+      "fields": {
+        "direction": 1,
+        "distance_m": 80,
+        "offroute": 0
+      },
+      "reply": {
+        "ok": true,
+        "event": "nav_hint"
+      }
+    },
+    {
+      "command": "nav_hint",
+      "fields": {
+        "direction": 6,
+        "distance_m": 80,
+        "offroute": 0
+      },
+      "reply": {
+        "ok": false,
+        "error": "bad_nav_hint"
+      }
+    },
+    {
+      "command": "nav_clear",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "nav_clear"
+      }
+    },
+    {
+      "command": "phone_data",
+      "fields": {
+        "speed": 12.5,
+        "distance": 1.25
+      },
+      "reply": {
+        "ok": true,
+        "event": "phone_data"
+      }
+    },
+    {
+      "command": "ride_status",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": true,
+        "speed_kmh": 12.5,
+        "distance_km": 1.25,
+        "ride_gps_time_ms": 0,
+        "ride_distance_m": 0,
+        "safety_pending": false,
+        "safety_remaining_s": 0,
+        "safety_help": 0,
+        "safety_last_action": 0
+      }
+    },
+    {
+      "command": "phone_clear",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "phone_clear"
+      }
+    },
+    {
+      "command": "ride_status",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "ride_status",
+        "active": false,
+        "paused": false,
+        "motion": 0,
+        "elapsed_s": 0,
+        "moving_s": 0,
+        "still_s": 0,
+        "impacts": 0,
+        "pause_count": 0,
+        "rest_count": 0,
+        "latest_sequence": 11,
+        "phone_valid": false,
+        "speed_kmh": 0.0,
+        "distance_km": 0.0,
+        "ride_gps_time_ms": 0,
+        "ride_distance_m": 0,
+        "safety_pending": false,
+        "safety_remaining_s": 0,
+        "safety_help": 0,
+        "safety_last_action": 0
+      }
+    },
+    {
+      "command": "memo_list",
+      "fields": {},
+      "reply": {
+        "ok": false,
+        "error": "memo_storage_unavailable"
+      }
+    },
+    {
+      "command": "memo_info",
+      "fields": {
+        "id": 0
+      },
+      "reply": {
+        "ok": false,
+        "error": "bad_memo_id"
+      }
+    },
+    {
+      "command": "memo_read",
+      "fields": {
+        "id": 1,
+        "offset": 0,
+        "length": 161
+      },
+      "reply": {
+        "ok": false,
+        "error": "bad_memo_range"
+      }
+    },
+    {
+      "command": "time_sync",
+      "fields": {
+        "epoch": 1793769539,
+        "timezone_min": 480
+      },
+      "reply": {
+        "ok": true,
+        "event": "time_sync",
+        "epoch": 1793769539
+      }
+    },
+    {
+      "command": "ride_latest",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "ride_latest",
+        "sequence": 11,
+        "active": false,
+        "elapsed_s": 23,
+        "moving_s": 19,
+        "still_s": 1,
+        "impacts": 2,
+        "pause_count": 1,
+        "rest_count": 0,
+        "gps_time_ms": 0,
+        "gps_distance_m": 0,
+        "gps_avg_centi": 0,
+        "gps_max_centi": 0,
+        "safety_version": 0,
+        "safety_checks": 0,
+        "safety_confirmed": 0,
+        "safety_pauses": 0,
+        "safety_help": 0,
+        "safety_unanswered": 0,
+        "safety_last_action": 0,
+        "safety_last_elapsed_s": 0,
+        "extras_version": 0,
+        "goal_distance_m": 0,
+        "lap_count": 0,
+        "rest_taken": 0,
+        "rest_snoozed": 0,
+        "rest_ignored": 0,
+        "drink_count": 0,
+        "drink_done": 0,
+        "drink_snoozed": 0,
+        "drink_ignored": 0
+      }
+    },
+    {
+      "command": "nav_clear",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "nav_clear"
+      }
+    },
+    {
+      "command": "phone_clear",
+      "fields": {},
+      "reply": {
+        "ok": true,
+        "event": "phone_clear"
+      }
+    }
+  ],
+  "error": null,
+  "scope": "Real BLE protocol only; temporary synthetic navigation/GPS are cleared; no saved ride/audio writes.",
+  "tf_mounted": false,
+  "preserved_record": {
+    "ok": true,
+    "event": "ride_latest",
+    "sequence": 11,
+    "active": false,
+    "elapsed_s": 23,
+    "moving_s": 19,
+    "still_s": 1,
+    "impacts": 2,
+    "pause_count": 1,
+    "rest_count": 0,
+    "gps_time_ms": 0,
+    "gps_distance_m": 0,
+    "gps_avg_centi": 0,
+    "gps_max_centi": 0,
+    "safety_version": 0,
+    "safety_checks": 0,
+    "safety_confirmed": 0,
+    "safety_pauses": 0,
+    "safety_help": 0,
+    "safety_unanswered": 0,
+    "safety_last_action": 0,
+    "safety_last_elapsed_s": 0,
+    "extras_version": 0,
+    "goal_distance_m": 0,
+    "lap_count": 0,
+    "rest_taken": 0,
+    "rest_snoozed": 0,
+    "rest_ignored": 0,
+    "drink_count": 0,
+    "drink_done": 0,
+    "drink_snoozed": 0,
+    "drink_ignored": 0
+  },
+  "history_index": {
+    "ok": true,
+    "event": "ride_history",
+    "capacity": 16,
+    "corrupt_count": 0,
+    "sequences": [
+      11
+    ]
+  }
+}

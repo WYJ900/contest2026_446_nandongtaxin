@@ -1,0 +1,97 @@
+{
+  "installed_firmware_sha256": "8027be114e60db5bbdc53b12577668cd45f5717abfa8e634701184b9a857a0c2",
+  "source_commit": "f056517",
+  "flash_write_verify_exit": 0,
+  "config_partition_erased": false,
+  "five_resets_passed": true,
+  "legacy_ble_after_resets_passed": true,
+  "new_features_protocol_passed": true,
+  "user_physical_confirmation": {
+    "watchface": true,
+    "swiping": true,
+    "side_key_menu": true,
+    "raise_to_wake": true,
+    "new_ride_settings_visible": true
+  },
+  "preserved_old_record_sequence": 11,
+  "real_new_record": {
+    "ok": true,
+    "event": "ride_latest",
+    "sequence": 12,
+    "active": false,
+    "elapsed_s": 13,
+    "moving_s": 11,
+    "still_s": 1,
+    "impacts": 0,
+    "pause_count": 0,
+    "rest_count": 0,
+    "gps_time_ms": 0,
+    "gps_distance_m": 0,
+    "gps_avg_centi": 0,
+    "gps_max_centi": 0,
+    "safety_version": 1,
+    "safety_checks": 0,
+    "safety_confirmed": 0,
+    "safety_pauses": 0,
+    "safety_help": 0,
+    "safety_unanswered": 0,
+    "safety_last_action": 0,
+    "safety_last_elapsed_s": 0,
+    "extras_version": 1,
+    "goal_distance_m": 0,
+    "lap_count": 0,
+    "rest_taken": 0,
+    "rest_snoozed": 0,
+    "rest_ignored": 0,
+    "drink_count": 0,
+    "drink_done": 0,
+    "drink_snoozed": 0,
+    "drink_ignored": 0
+  },
+  "history_index": {
+    "ok": true,
+    "event": "ride_history",
+    "capacity": 16,
+    "corrupt_count": 0,
+    "sequences": [
+      12,
+      11
+    ]
+  },
+  "new_record_created_by_test_script": false,
+  "audio_recording_started_by_agent": false,
+  "old_backup": "backup/install-features-20261104; full application region and 4 MiB NVS, hashes in hardware-before-manifest.json",
+  "tf_before_insertion": {
+    "mmcsd0_node": true,
+    "mounted": false,
+    "mount_returned_errno": 20,
+    "user_confirmed_card_not_inserted": true
+  },
+  "tf_card_on_pc": {
+    "prepared_at": "2026-11-04T13:33:30.047350+08:00",
+    "source_volume": "\\\\?\\Volume{7cd86ad8-c21d-11f1-a054-4438e8248c4e}\\",
+    "backup": "D:\\desktop\\AL\\TF_Backup_20261104_133203",
+    "original_files_verified": 28,
+    "original_bytes": 55393428,
+    "original_files_preserved_on_card": true,
+    "format_performed": false,
+    "partition_changes": false,
+    "file_system": "FAT32",
+    "cluster_bytes": 32768,
+    "added": [
+      "MEMOS/",
+      "READY.TXT"
+    ],
+    "card_write_readback_bytes": 524288,
+    "card_write_readback_passed": true,
+    "hardware_watch_mount_and_recording": "pending insertion"
+  },
+  "phone_usb_connected": false,
+  "apk_version": "0.2.0",
+  "pending": [
+    "Insert prepared TF and mount it on watch",
+    "Real onboard recording, phone transfer/listening and power coexistence",
+    "Real phone GPS, GPX, online AI and Android backfill",
+    "New record 12 persistence after another reset has not been deliberately tested"
+  ]
+}

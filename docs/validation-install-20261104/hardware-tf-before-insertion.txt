@@ -1,0 +1,11 @@
+
+COMMAND: mount -t vfat /dev/mmcsd0 /data/tf
+mount -t vfat /dev/mmcsd0 /data/tf
+nsh: mount: mount failed: 20
+nsh> [K
+COMMAND: mount
+mount
+  /data type tmpfs
+  /etc type romfs
+  /proc type procfs
+nsh> [K

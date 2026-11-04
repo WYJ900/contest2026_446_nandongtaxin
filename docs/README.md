@@ -1,5 +1,7 @@
 # VelaRide AI 文档索引
 
+- **[2026-11-04 当前综合版已安装、基础实物确认及TF准备](INSTALL_FEATURES_20261104.md)**
+
 - **[2026-11-04 八项新增功能与上手路径（综合候选，先读）](FEATURES_20261104.md)**
 - [综合候选与停车语音交接](HANDOFF_VOICE_20261104.md)
 - [GPX 路线点指引](HANDOFF_NAVIGATION_20261104.md)

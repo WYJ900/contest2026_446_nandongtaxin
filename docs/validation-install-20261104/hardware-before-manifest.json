@@ -1,0 +1,22 @@
+{
+  "old_firmware_sha256": "9041c538529b46f3419c06f46bf70cfdd2570c0d20a58f704b31f9b147f7c0ef",
+  "old_config_region_sha256": "983a182532baabf0e8a5b1797c1c00759e503a5f0c076a1ca387762d976029f8",
+  "old_config_region_bytes": 4194304,
+  "old_app_region_bytes": 10027008,
+  "old_user_record": {
+    "sequence": 11,
+    "elapsed_s": 23,
+    "moving_s": 19,
+    "still_s": 1,
+    "pause_count": 1,
+    "impact_count": 2,
+    "rest_count": 0
+  },
+  "old_source_and_build_config": "matched artifacts/ride-gps-stage-20261101; full dependency reproducibility not claimed",
+  "black_screen_during_backup": {
+    "cause": "read_flash default_reset entered download mode; first read used after=no_reset",
+    "firmware_write_before_black_screen": false,
+    "recovery": "RTS reset to original GPS firmware",
+    "user_confirmed": "watchface, swiping and raise-to-wake normal after recovery"
+  }
+}
