@@ -1,0 +1,146 @@
+--- a/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c
++++ b/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c
+@@ -1708,6 +1708,54 @@
+     }
+ }
+ 
++/* A completed frame may still have an undelivered EOF interrupt. Recheck
++ * the real hardware event before declaring a timeout. Only the normal HAL
++ * callback can post draw_sem; an idle controller alone is never completion.
++ */
++static int lcd_wait_draw_complete(LCD_DrvTypeDef *drv)
++{
++    clock_t start = clock_systime_ticks();
++    clock_t elapsed = 0;
++    int ret;
++
++    while (elapsed < MAX_LCD_DRAW_TIME)
++    {
++        clock_t slice = MSEC2TICK(10);
++        if (slice < 1) slice = 1;
++        if (slice > MAX_LCD_DRAW_TIME - elapsed)
++            slice = MAX_LCD_DRAW_TIME - elapsed;
++        ret = nxsem_tickwait_uninterruptible(&drv->draw_sem.sem, slice);
++        if (ret == 0 || ret != -ETIMEDOUT) return ret;
++
++        irqstate_t flags = enter_critical_section();
++        uint32_t irq = drv->hlcdc.Instance->IRQ;
++        uint32_t errors = LCD_IF_IRQ_ICB_OF_RAW_STAT |
++                          LCD_IF_IRQ_DPI_UDR_RAW_STAT |
++                          LCD_IF_IRQ_JDI_PAR_UDR_RAW_STAT;
++        bool eof = (irq & LCD_IF_IRQ_EOF_STAT) != 0 &&
++                   (irq & errors) == 0 &&
++                   (drv->hlcdc.Instance->STATUS & LCD_IF_STATUS_LCD_BUSY) == 0 &&
++                   drv->hlcdc.XferCpltCallback != NULL;
++        if (eof)
++        {
++#ifdef DRV_LCD_USE_LCDC1
++            NVIC_ClearPendingIRQ(LCDC1_IRQn);
++#else
++            NVIC_ClearPendingIRQ(LCDC2_IRQn);
++#endif
++            HAL_LCDC_IRQHandler(&drv->hlcdc);
++        }
++        leave_critical_section(flags);
++        if (eof && nxsem_trywait(&drv->draw_sem.sem) == 0)
++        {
++            LOG_W("LCDC_EOF_RECOVERED: real completion callback received");
++            return 0;
++        }
++        elapsed = clock_systime_ticks() - start;
++    }
++    return -ETIMEDOUT;
++}
++
+ static rt_err_t draw_core(LCD_DrvTypeDef *p_drvlcd, const uint8_t *pixels, int x0, int y0, int x1, int y1)
+ {
+     rt_err_t err = RT_ERROR;
+@@ -1851,8 +1899,7 @@
+             //leave_critical_section();
+ 
+             /* --------- Wait send compelete -----------------*/
+-            err = nxsem_tickwait_uninterruptible(&p_drvlcd->draw_sem.sem,
+-                                                 MAX_LCD_DRAW_TIME);
++            err = lcd_wait_draw_complete(p_drvlcd);
+             if (err == 0) p_drvlcd->draw_sem.value = 0;
+ 
+ #ifdef QAD_SPI_USE_GPIO_CS
+@@ -1899,8 +1946,7 @@
+             /*Reset 'draw_sem' in case of 'XferCpltCallback' invoked after timeout*/
+             while (nxsem_trywait(&p_drvlcd->draw_sem.sem) == 0) {}
+             p_drvlcd->draw_sem.value = 0;
+-            rt_err_t err2 = nxsem_post(&p_drvlcd->draw_sem.sem);
+-            RT_ASSERT(RT_EOK == err2);
++            /* Do not manufacture a completion after a real timeout. */
+ 
+             p_drvlcd->draw_error = 1;
+             p_drvlcd->statistics.draw_core_err_cnt++;
+--- a/apps/examples/velaride/velaride_shell.c
++++ b/apps/examples/velaride/velaride_shell.c
+@@ -138,6 +138,7 @@
+ static volatile bool g_lcd_test_requested;
+ static volatile int g_lcd_control_requested;
+ static volatile int g_list_bench_requested;
++static volatile bool g_honey_bench_requested;
+ static volatile bool g_ui_bench_requested;
+ 
+ /* Screen wake asks the frame timer to switch the panel: -1 nothing,
+@@ -3214,6 +3215,37 @@
+  * a finger.  Each scroll prints VELARIDE_MENU_PERF style=1.
+  */
+ 
++/* Bounded, UI-thread-only reproduction of the native honeycomb redraw. */
++static void honey_bench_step(void)
++{
++  static const int points[][2]={{0,0},{-160,120},{180,-140},{-180,-120},{160,140},{0,0}};
++  static int step=-1;
++  static uint32_t since;
++  if(g_honey_bench_requested)
++    {
++      g_honey_bench_requested=false;
++      struct velaride_ride_snapshot_s ride;
++      velaride_ride_session_get(&ride);
++      if(ride.active||velaride_sport_ui_active()) return;
++      screen_wake(false);menu_show();g_menu.list_mode=false;
++      lv_obj_add_flag(g_menu.list,LV_OBJ_FLAG_HIDDEN);
++      lv_obj_remove_flag(g_menu.root,LV_OBJ_FLAG_HIDDEN);
++      g_menu.dragging=true;step=0;since=lv_tick_get();
++      printf("VELARIDE_HONEY_BENCH: start\n");
++    }
++  if(step<0||lv_tick_elaps(since)<16) return;
++  since=lv_tick_get();lv_display_trigger_activity(NULL);
++  if(step>=150)
++    {
++      g_menu.dragging=false;menu_hide();step=-1;
++      printf("VELARIDE_HONEY_BENCH: done samples=150\n");return;
++    }
++  int segment=step/30;float t=(step%30)/30.0f;
++  honey_move(points[segment][0]*(1-t)+points[segment+1][0]*t,
++             points[segment][1]*(1-t)+points[segment+1][1]*t);
++  step++;
++}
++
+ static void list_bench_step(void)
+ {
+   static int left;
+@@ -4409,6 +4441,7 @@
+         }
+     }
+ 
++  honey_bench_step();
+   list_bench_step();
+   ui_bench_step();
+ 
+@@ -4920,6 +4953,12 @@
+             }
+         }
+ 
++      return EXIT_SUCCESS;
++    }
++
++  if (argc == 2 && strcmp(argv[1], "honey-bench") == 0)
++    {
++      g_honey_bench_requested=true;
+       return EXIT_SUCCESS;
+     }
+ 

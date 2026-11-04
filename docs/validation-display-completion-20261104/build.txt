@@ -1,0 +1,895 @@
+[1/102] generate quickapp feature registry info: system_file
+[2/102] cd /home/wyj/velaride_product_features/cmake_out/lckfb_huangshan_pi/libs/libc/misc && /usr/bin/cmake -E touch /home/wyj/velaride_product_features/nuttx/libs/libc/misc/lib_utsname.c
+[3/102] Refreshing AI Agent build timestamp
+[4/102] generate quickapp feature registry info: system_request
+[5/102] generate quickapp feature registry info: system_zip
+[6/102] generate quickapp feature registry info: system_zlib
+[7/102] JIDL: generating glue files for request.jidl
+[8/102] generate quickapp feature registry info: system_mqttmessage
+[9/102] JIDL: generating glue files for file.jidl
+[10/102] JIDL: generating glue files for zip.jidl
+[11/102] JIDL: generating glue files for system_zlib.jidl
+[12/102] generate quickapp feature registry info: system_cipher
+[13/102] generate quickapp feature registry info: system_internal_power
+[14/102] Generating bin output directories
+[15/102] JIDL: generating glue files for mqttmessage.jidl
+[16/102] generate quickapp feature registry info: system_fetch
+[17/102] generate quickapp feature registry info: system_prompt
+[18/102] JIDL: generating glue files for cipher.jidl
+[19/102] JIDL: generating glue files for power.jidl
+[20/102] generate quickapp feature registry info: system_exchange
+[21/102] generate quickapp feature registry info: system_configuration
+[22/102] JIDL: generating glue files for fetch.jidl
+[23/102] JIDL: generating glue files for prompt.jidl
+[24/102] JIDL: generating glue files for exchange.jidl
+[25/102] generate quickapp feature registry info: system_device
+[26/102] generate quickapp feature registry info: locale
+[27/102] generate quickapp feature registry info: Error
+[28/102] JIDL: generating glue files for configuration.jidl
+[29/102] generate quickapp feature registry info: system_velaclaw
+[30/102] JIDL: generating glue files for feature_locale.jidl
+[31/102] JIDL: generating glue files for device.jidl
+[32/102] JIDL: generating glue files for error.jidl
+[33/102] JIDL: generating glue files for velaclaw.jidl
+[34/102] cd /home/wyj/velaride_product_features/nuttx && /usr/bin/cmake -DKCONFIG_CONFIG=/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig -DNUTTX_DIR=/home/wyj/velaride_product_features/nuttx -DCMAKE_BINARY_DIR=/home/wyj/velaride_product_features/cmake_out/lckfb_huangshan_pi -P /home/wyj/velaride_product_features/nuttx/cmake/nuttx_generate_dts.cmake
+[35/102] Building C object CMakeFiles/nuttx.dir/empty.c.o
+[36/102] Building C object boards/CMakeFiles/board.dir/__/dummy.c.o
+[37/102] Building C object apps/CMakeFiles/apps.dir/dummy.c.o
+[38/102] Building CXX object CMakeFiles/nuttx.dir/empty.cxx.o
+[39/102] Linking C static library boards/libboard.a
+[40/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_memo.c.o
+[41/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_timekeeper.c.o
+[42/102] Linking C static library apps/libapps.a
+[43/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_24.c.o
+[44/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_compass.c.o
+[45/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_ride_session.c.o
+[46/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_device.c.o
+[47/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_92.c.o
+[48/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_60.c.o
+[49/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_136.c.o
+[50/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_font_night_28.c.o
+[51/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_countdown.c.o
+[52/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_44.c.o
+[53/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_30.c.o
+[54/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sound_assets.c.o
+[55/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sound_render.c.o
+[56/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_alarm.c.o
+[57/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sound.c.o
+[58/102] Building C object drivers/CMakeFiles/drivers.dir/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c.o
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_rcc.h:15,
+                 from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:214,
+                 from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal.h:22,
+                 from /home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd_nuttx.h:43,
+                 from /home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:7:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_def.h:57: warning: "UNUSED" redefined
+   57 | #define UNUSED(X) (void)X      /* To avoid gcc/g++ warnings */
+      |
+In file included from /home/wyj/velaride_product_features/nuttx/include/stdint.h:35,
+                 from /home/wyj/velaride_product_features/nuttx/include/nuttx/arch.h:81,
+                 from /home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd_nuttx.h:14:
+/home/wyj/velaride_product_features/nuttx/include/nuttx/compiler.h:624: note: this is the location of the previous definition
+  624 | #    define UNUSED(a) ((void)(1 || &(a)))
+      |
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:271:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_mpi_ex.h:524:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  524 | int HAL_QSPI_ENABLE_WDT();
+      | ^~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:275:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_i2c.h:152:6: warning: "USE_HAL_I2C_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  152 | #if (USE_HAL_I2C_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_i2c.h:208:6: warning: "USE_HAL_I2C_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  208 | #if (USE_HAL_I2C_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_i2c.h:227:6: warning: "USE_HAL_I2C_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  227 | #if (USE_HAL_I2C_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_i2c.h:444:6: warning: "USE_HAL_I2C_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  444 | #if (USE_HAL_I2C_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_i2c.h:598:6: warning: "USE_HAL_I2C_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  598 | #if (USE_HAL_I2C_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:319:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_uart.h:245:6: warning: "USE_HAL_UART_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  245 | #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_uart.h:266:6: warning: "USE_HAL_UART_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  266 | #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_uart.h:316:6: warning: "USE_HAL_UART_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  316 | #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_uart.h:808:6: warning: "USE_HAL_UART_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  808 | #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_uart.h:1681:6: warning: "USE_HAL_UART_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+ 1681 | #if (USE_HAL_UART_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:371:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_sys_cfg.h:167:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  167 | char *BSP_Get_UserOTP_Cache();
+      | ^~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_sys_cfg.h:168:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  168 | char *BSP_Get_CustOTP_Cache();
+      | ^~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_sys_cfg.h:170:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  170 | char *BSP_Get_SysCfg_Cache();
+      | ^~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_sys_cfg.h:175:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  175 | uint32_t BSP_Get_Sip1_Mode();
+      | ^~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_sys_cfg.h:176:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  176 | uint32_t BSP_Get_Sip2_Mode();
+      | ^~~~~~~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:375:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_pmu.h:510:35: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  510 | __STATIC_INLINE HAL_StatusTypeDef HAL_PMU_EnableChgWakeup()
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_pmu.h:518:35: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  518 | __STATIC_INLINE HAL_StatusTypeDef HAL_PMU_DisableChgWakeup()
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:387:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_rng.h:74:6: warning: "USE_HAL_RNG_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+   74 | #if (USE_HAL_RNG_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_rng.h:84:6: warning: "USE_HAL_RNG_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+   84 | #if (USE_HAL_RNG_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_rng.h:154:6: warning: "USE_HAL_RNG_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  154 | #if (USE_HAL_RNG_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_rng.h:174:6: warning: "USE_HAL_RNG_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  174 | #if (USE_HAL_RNG_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_rng.h:320:6: warning: "USE_HAL_RNG_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  320 | #if (USE_HAL_RNG_REGISTER_CALLBACKS == 1)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:423:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_lrc_cal.h:64:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+   64 | float HAL_LPTIM_GetFreq();
+      | ^~~~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:444:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_hcd.h:227:6: warning: "USE_HAL_HCD_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  227 | #if (USE_HAL_HCD_REGISTER_CALLBACKS == 1U)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_hcd.h:242:6: warning: "USE_HAL_HCD_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  242 | #if (USE_HAL_HCD_REGISTER_CALLBACKS == 1U)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_hcd.h:296:6: warning: "USE_HAL_HCD_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  296 | #if (USE_HAL_HCD_REGISTER_CALLBACKS == 1U)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_hcd.h:344:6: warning: "USE_HAL_HCD_REGISTER_CALLBACKS" is not defined, evaluates to 0 [-Wundef]
+  344 | #if (USE_HAL_HCD_REGISTER_CALLBACKS == 1U)
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_conf_hcpu.h:448:
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_audcodec.h:367:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  367 | void HAL_TURN_OFF_PLL();
+      | ^~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_audcodec.h:538:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  538 | uint8_t get_pll_state();
+      | ^~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_audcodec.h:540:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  540 | uint8_t get_pll_freq_type();
+      | ^~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_audcodec.h:543:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  543 | void bf0_disable_pll();
+      | ^~~~
+/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/../drivers/Include/bf0_hal_audcodec.h:544:1: warning: function declaration isn't a prototype [-Wstrict-prototypes]
+  544 | void HAL_TURN_ON_PLL();
+      | ^~~~
+In file included from /home/wyj/velaride_product_features/nuttx/include/debug.h:44,
+                 from /home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/include/debug.h:53,
+                 from /home/wyj/velaride_product_features/nuttx/include/nuttx/video/fb.h:35,
+                 from /home/wyj/velaride_product_features/nuttx/include/nuttx/lcd/lcd.h:32,
+                 from /home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd_nuttx.h:20:
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c: In function 'find_right_driver':
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:583:31: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  583 |                         LOG_I("Found lcd %s id:%xh", p_drv_desc->name, id);
+      |                               ^~~~~~~~~~~~~~~~~~~~~                    ~~
+      |                                                                        |
+      |                                                                        uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:583:25: note: in expansion of macro 'LOG_I'
+  583 |                         LOG_I("Found lcd %s id:%xh", p_drv_desc->name, id);
+      |                         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:583:49: note: format string is defined here
+  583 |                         LOG_I("Found lcd %s id:%xh", p_drv_desc->name, id);
+      |                                                ~^
+      |                                                 |
+      |                                                 unsigned int
+      |                                                %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:588:31: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  588 |                         LOG_I("Try lcd %s, read id:%xh, expect:%xh", p_drv_desc->name, id, p_drv_desc->id);
+      |                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                    ~~
+      |                                                                                        |
+      |                                                                                        uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:588:25: note: in expansion of macro 'LOG_I'
+  588 |                         LOG_I("Try lcd %s, read id:%xh, expect:%xh", p_drv_desc->name, id, p_drv_desc->id);
+      |                         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:588:53: note: format string is defined here
+  588 |                         LOG_I("Try lcd %s, read id:%xh, expect:%xh", p_drv_desc->name, id, p_drv_desc->id);
+      |                                                    ~^
+      |                                                     |
+      |                                                     unsigned int
+      |                                                    %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:588:31: warning: format '%x' expects argument of type 'unsigned int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  588 |                         LOG_I("Try lcd %s, read id:%xh, expect:%xh", p_drv_desc->name, id, p_drv_desc->id);
+      |                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                        ~~~~~~~~~~~~~~
+      |                                                                                                      |
+      |                                                                                                      uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:588:25: note: in expansion of macro 'LOG_I'
+  588 |                         LOG_I("Try lcd %s, read id:%xh, expect:%xh", p_drv_desc->name, id, p_drv_desc->id);
+      |                         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:588:65: note: format string is defined here
+  588 |                         LOG_I("Try lcd %s, read id:%xh, expect:%xh", p_drv_desc->name, id, p_drv_desc->id);
+      |                                                                ~^
+      |                                                                 |
+      |                                                                 unsigned int
+      |                                                                %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c: In function 'print_u32_data':
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:911:23: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t *' {aka 'long unsigned int *'} [-Wformat=]
+  911 |     printf("\r\n%s(%08x):\r\n", name, p);
+      |                    ~~~^               ~
+      |                       |               |
+      |                       unsigned int    uint32_t * {aka long unsigned int *}
+      |                    %08ln
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:915:20: warning: format '%x' expects argument of type 'unsigned int', but argument 2 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  915 |         printf("%08x ", *p++);
+      |                 ~~~^    ~~~~
+      |                    |    |
+      |                    |    uint32_t {aka long unsigned int}
+      |                    unsigned int
+      |                 %08lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c: In function 'lcd_driver_print_error_info':
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:925:11: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'lcd_drv_desc_t *' [-Wformat=]
+  925 |     LOG_E("Error, Clear p_drv_ops %x, sem_v=%d", drv_lcd.p_drv_ops, drv_lcd.sem.value);
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~~
+      |                                                         |
+      |                                                         lcd_drv_desc_t *
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:925:5: note: in expansion of macro 'LOG_E'
+  925 |     LOG_E("Error, Clear p_drv_ops %x, sem_v=%d", drv_lcd.p_drv_ops, drv_lcd.sem.value);
+      |     ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:925:36: note: format string is defined here
+  925 |     LOG_E("Error, Clear p_drv_ops %x, sem_v=%d", drv_lcd.p_drv_ops, drv_lcd.sem.value);
+      |                                   ~^
+      |                                    |
+      |                                    unsigned int
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                         |
+      |                                                         uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:9: note: in expansion of macro 'LOG_E'
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:30: note: format string is defined here
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |                             ~^
+      |                              |
+      |                              unsigned int
+      |                             %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:15: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                            |
+      |                                                                                            uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:9: note: in expansion of macro 'LOG_E'
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:41: note: format string is defined here
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |                                        ~^
+      |                                         |
+      |                                         unsigned int
+      |                                        %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:15: warning: format '%x' expects argument of type 'unsigned int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:9: note: in expansion of macro 'LOG_E'
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:937:53: note: format string is defined here
+  937 |         LOG_E("LCDC1_irq_en=%x, active=%x, pending=%x", HAL_NVIC_GetEnableIRQ(LCDC1_IRQn), HAL_NVIC_GetActive(LCDC1_IRQn), NVIC_GetPendingIRQ(LCDC1_IRQn));
+      |                                                    ~^
+      |                                                     |
+      |                                                     unsigned int
+      |                                                    %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:942:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  942 |         LOG_E("hlcdc errcode=%x, lock=%x, state=%x", drv_lcd.hlcdc.ErrorCode, drv_lcd.hlcdc.Lock, drv_lcd.hlcdc.State);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                   |
+      |                                                                   uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:942:9: note: in expansion of macro 'LOG_E'
+  942 |         LOG_E("hlcdc errcode=%x, lock=%x, state=%x", drv_lcd.hlcdc.ErrorCode, drv_lcd.hlcdc.Lock, drv_lcd.hlcdc.State);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:942:31: note: format string is defined here
+  942 |         LOG_E("hlcdc errcode=%x, lock=%x, state=%x", drv_lcd.hlcdc.ErrorCode, drv_lcd.hlcdc.Lock, drv_lcd.hlcdc.State);
+      |                              ~^
+      |                               |
+      |                               unsigned int
+      |                              %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:943:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  943 |         LOG_E("LCDC STATUS=%x,TE=%x",    drv_lcd.hlcdc.Instance->STATUS, drv_lcd.hlcdc.Instance->TE_CONF);
+      |               ^~~~~~~~~~~~~~~~~~~~~~     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                |
+      |                                                                uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:943:9: note: in expansion of macro 'LOG_E'
+  943 |         LOG_E("LCDC STATUS=%x,TE=%x",    drv_lcd.hlcdc.Instance->STATUS, drv_lcd.hlcdc.Instance->TE_CONF);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:943:29: note: format string is defined here
+  943 |         LOG_E("LCDC STATUS=%x,TE=%x",    drv_lcd.hlcdc.Instance->STATUS, drv_lcd.hlcdc.Instance->TE_CONF);
+      |                            ~^
+      |                             |
+      |                             unsigned int
+      |                            %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:943:15: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  943 |         LOG_E("LCDC STATUS=%x,TE=%x",    drv_lcd.hlcdc.Instance->STATUS, drv_lcd.hlcdc.Instance->TE_CONF);
+      |               ^~~~~~~~~~~~~~~~~~~~~~                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                                |
+      |                                                                                                uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:943:9: note: in expansion of macro 'LOG_E'
+  943 |         LOG_E("LCDC STATUS=%x,TE=%x",    drv_lcd.hlcdc.Instance->STATUS, drv_lcd.hlcdc.Instance->TE_CONF);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:943:35: note: format string is defined here
+  943 |         LOG_E("LCDC STATUS=%x,TE=%x",    drv_lcd.hlcdc.Instance->STATUS, drv_lcd.hlcdc.Instance->TE_CONF);
+      |                                  ~^
+      |                                   |
+      |                                   unsigned int
+      |                                  %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                      |
+      |                                                      uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:9: note: in expansion of macro 'LOG_E'
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:29: note: format string is defined here
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |                            ~^
+      |                             |
+      |                             unsigned int
+      |                            %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:15: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~                            ~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                |
+      |                                                                                uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:9: note: in expansion of macro 'LOG_E'
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:33: note: format string is defined here
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |                                ~^
+      |                                 |
+      |                                 unsigned int
+      |                                %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:15: warning: format '%x' expects argument of type 'unsigned int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~                                                      ~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                                          |
+      |                                                                                                          uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:9: note: in expansion of macro 'LOG_E'
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:944:37: note: format string is defined here
+  944 |         LOG_E("HAL dbg cnt %x, %x, %x", drv_lcd.hlcdc.debug_cnt0, drv_lcd.hlcdc.debug_cnt1, drv_lcd.hlcdc.debug_cnt2);
+      |                                    ~^
+      |                                     |
+      |                                     unsigned int
+      |                                    %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~~~
+      |                                                |
+      |                                                uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:9: note: in expansion of macro 'LOG_E'
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:29: note: format string is defined here
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |                            ~^
+      |                             |
+      |                             unsigned int
+      |                            %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:15: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~                      ~~~~~~~~~~~~~~~~~~
+      |                                                                    |
+      |                                                                    uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:9: note: in expansion of macro 'LOG_E'
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:33: note: format string is defined here
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |                                ~^
+      |                                 |
+      |                                 unsigned int
+      |                                %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:15: warning: format '%x' expects argument of type 'unsigned int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~                                          ~~~~~~~~~~~~~~~~~~
+      |                                                                                        |
+      |                                                                                        uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:9: note: in expansion of macro 'LOG_E'
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:945:37: note: format string is defined here
+  945 |         LOG_E("DRV dbg cnt %x, %x, %x", drv_lcd.debug_cnt1, drv_lcd.debug_cnt2, drv_lcd.debug_cnt3);
+      |                                    ~^
+      |                                     |
+      |                                     unsigned int
+      |                                    %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  949 |               drv_lcd.hlcdc.Instance->CANVAS_TL_POS,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:9: note: in expansion of macro 'LOG_E'
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:32: note: format string is defined here
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |                               ~^
+      |                                |
+      |                                unsigned int
+      |                               %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:15: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  949 |               drv_lcd.hlcdc.Instance->CANVAS_TL_POS,
+  950 |               drv_lcd.hlcdc.Instance->CANVAS_BR_POS,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:9: note: in expansion of macro 'LOG_E'
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:38: note: format string is defined here
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |                                     ~^
+      |                                      |
+      |                                      unsigned int
+      |                                     %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:15: warning: format '%x' expects argument of type 'unsigned int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+  951 |               drv_lcd.hlcdc.Instance->SETTING,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:9: note: in expansion of macro 'LOG_E'
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:49: note: format string is defined here
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |                                                ~^
+      |                                                 |
+      |                                                 unsigned int
+      |                                                %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:15: warning: format '%x' expects argument of type 'unsigned int', but argument 6 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+  952 |               drv_lcd.hlcdc.Instance->IRQ
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:9: note: in expansion of macro 'LOG_E'
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:948:56: note: format string is defined here
+  948 |         LOG_E("LCDC CANVAS TL=%x,BR=%x,SETTING=%x,IRQ=%x",
+      |                                                       ~^
+      |                                                        |
+      |                                                        unsigned int
+      |                                                       %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  956 |               drv_lcd.hlcdc.Instance->LAYER0_CONFIG,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:9: note: in expansion of macro 'LOG_E'
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:33: note: format string is defined here
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                ~^
+      |                                 |
+      |                                 unsigned int
+      |                                %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:15: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  956 |               drv_lcd.hlcdc.Instance->LAYER0_CONFIG,
+  957 |               drv_lcd.hlcdc.Instance->LAYER0_TL_POS,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:9: note: in expansion of macro 'LOG_E'
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:39: note: format string is defined here
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                      ~^
+      |                                       |
+      |                                       unsigned int
+      |                                      %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:15: warning: format '%x' expects argument of type 'unsigned int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+  958 |               drv_lcd.hlcdc.Instance->LAYER0_BR_POS,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:9: note: in expansion of macro 'LOG_E'
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:45: note: format string is defined here
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                            ~^
+      |                                             |
+      |                                             unsigned int
+      |                                            %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:15: warning: format '%x' expects argument of type 'unsigned int', but argument 6 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+  959 |               drv_lcd.hlcdc.Instance->LAYER0_SRC
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:9: note: in expansion of macro 'LOG_E'
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:955:52: note: format string is defined here
+  955 |         LOG_E("LCDC LAYER0 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                                   ~^
+      |                                                    |
+      |                                                    unsigned int
+      |                                                   %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:963:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  963 |         LOG_E("LAYER0_DECOMP=%x", drv_lcd.hlcdc.Instance->LAYER0_DECOMP);
+      |               ^~~~~~~~~~~~~~~~~~  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                         |
+      |                                                         uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:963:9: note: in expansion of macro 'LOG_E'
+  963 |         LOG_E("LAYER0_DECOMP=%x", drv_lcd.hlcdc.Instance->LAYER0_DECOMP);
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:963:31: note: format string is defined here
+  963 |         LOG_E("LAYER0_DECOMP=%x", drv_lcd.hlcdc.Instance->LAYER0_DECOMP);
+      |                              ~^
+      |                               |
+      |                               unsigned int
+      |                              %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:15: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  968 |               drv_lcd.hlcdc.Instance->LAYER1_CONFIG,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:9: note: in expansion of macro 'LOG_E'
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:33: note: format string is defined here
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                ~^
+      |                                 |
+      |                                 unsigned int
+      |                                %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:15: warning: format '%x' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  968 |               drv_lcd.hlcdc.Instance->LAYER1_CONFIG,
+  969 |               drv_lcd.hlcdc.Instance->LAYER1_TL_POS,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:9: note: in expansion of macro 'LOG_E'
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:39: note: format string is defined here
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                      ~^
+      |                                       |
+      |                                       unsigned int
+      |                                      %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:15: warning: format '%x' expects argument of type 'unsigned int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+  970 |               drv_lcd.hlcdc.Instance->LAYER1_BR_POS,
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:9: note: in expansion of macro 'LOG_E'
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:45: note: format string is defined here
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                            ~^
+      |                                             |
+      |                                             unsigned int
+      |                                            %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:15: warning: format '%x' expects argument of type 'unsigned int', but argument 6 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+  971 |               drv_lcd.hlcdc.Instance->LAYER1_SRC
+      |               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                     |
+      |                                     uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:9: note: in expansion of macro 'LOG_E'
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |         ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:967:52: note: format string is defined here
+  967 |         LOG_E("LCDC LAYER1 CFG=%x,TL=%x,BR=%x,SRC=%x",
+      |                                                   ~^
+      |                                                    |
+      |                                                    unsigned int
+      |                                                   %lx
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c: In function 'draw_core':
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1853:27: warning: format '%d' expects argument of type 'int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+ 1853 |                     LOG_E("ESD error %d", ret_v);
+      |                           ^~~~~~~~~~~~~~  ~~~~~
+      |                                           |
+      |                                           uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1853:21: note: in expansion of macro 'LOG_E'
+ 1853 |                     LOG_E("ESD error %d", ret_v);
+      |                     ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1853:39: note: format string is defined here
+ 1853 |                     LOG_E("ESD error %d", ret_v);
+      |                                      ~^
+      |                                       |
+      |                                       int
+      |                                      %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1925:23: warning: format '%x' expects argument of type 'unsigned int', but argument 3 has type 'const uint8_t *' {aka 'const unsigned char *'} [-Wformat=]
+ 1925 |                 LOG_I("draw_core buf=%x done, cost=%d(rt_ticks)", pixels, (p_drvlcd->end_tick - p_drvlcd->start_tick));
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ~~~~~~
+      |                                                                   |
+      |                                                                   const uint8_t * {aka const unsigned char *}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1925:17: note: in expansion of macro 'LOG_I'
+ 1925 |                 LOG_I("draw_core buf=%x done, cost=%d(rt_ticks)", pixels, (p_drvlcd->end_tick - p_drvlcd->start_tick));
+      |                 ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1925:39: note: format string is defined here
+ 1925 |                 LOG_I("draw_core buf=%x done, cost=%d(rt_ticks)", pixels, (p_drvlcd->end_tick - p_drvlcd->start_tick));
+      |                                      ~^
+      |                                       |
+      |                                       unsigned int
+      |                                      %hhn
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1925:23: warning: format '%d' expects argument of type 'int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+ 1925 |                 LOG_I("draw_core buf=%x done, cost=%d(rt_ticks)", pixels, (p_drvlcd->end_tick - p_drvlcd->start_tick));
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                               |
+      |                                                                                               uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1925:17: note: in expansion of macro 'LOG_I'
+ 1925 |                 LOG_I("draw_core buf=%x done, cost=%d(rt_ticks)", pixels, (p_drvlcd->end_tick - p_drvlcd->start_tick));
+      |                 ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1925:53: note: format string is defined here
+ 1925 |                 LOG_I("draw_core buf=%x done, cost=%d(rt_ticks)", pixels, (p_drvlcd->end_tick - p_drvlcd->start_tick));
+      |                                                    ~^
+      |                                                     |
+      |                                                     int
+      |                                                    %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:23: warning: format '%d' expects argument of type 'int', but argument 3 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 2015 |                       fps,
+      |                       ~~~
+      |                       |
+      |                       uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:17: note: in expansion of macro 'LOG_I'
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                 ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:29: note: format string is defined here
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                            ~^
+      |                             |
+      |                             int
+      |                            %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:23: warning: format '%d' expects argument of type 'int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 2015 |                       fps,
+ 2016 |                       p_drvlcd->statistics.draw_core_min,
+      |                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                           |
+      |                                           uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:17: note: in expansion of macro 'LOG_I'
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                 ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:43: note: format string is defined here
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                                          ~^
+      |                                           |
+      |                                           int
+      |                                          %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:23: warning: format '%d' expects argument of type 'int', but argument 5 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+ 2017 |                       p_drvlcd->statistics.draw_core_max,
+      |                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                           |
+      |                                           uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:17: note: in expansion of macro 'LOG_I'
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                 ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:46: note: format string is defined here
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                                             ~^
+      |                                              |
+      |                                              int
+      |                                             %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:23: warning: format '%d' expects argument of type 'int', but argument 6 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......
+ 2018 |                       p_drvlcd->statistics.draw_core_err_cnt);
+      |                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                           |
+      |                                           uint32_t {aka long unsigned int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:17: note: in expansion of macro 'LOG_I'
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                 ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2014:58: note: format string is defined here
+ 2014 |                 LOG_I("fps=%d,flush_time[%d~%d],err_cnt=%d",
+      |                                                         ~^
+      |                                                          |
+      |                                                          int
+      |                                                         %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c: In function 'set_window':
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2078:23: warning: format '%d' expects argument of type 'int', but argument 3 has type 'long unsigned int' [-Wformat=]
+ 2078 |                 LOG_I("gap %02d ms, set_window x0x1y0y1[%d,%d,%d,%d]",
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2078:17: note: in expansion of macro 'LOG_I'
+ 2078 |                 LOG_I("gap %02d ms, set_window x0x1y0y1[%d,%d,%d,%d]",
+      |                 ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2078:31: note: format string is defined here
+ 2078 |                 LOG_I("gap %02d ms, set_window x0x1y0y1[%d,%d,%d,%d]",
+      |                            ~~~^
+      |                               |
+      |                               int
+      |                            %02ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c: In function 'lcd_task':
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:35: warning: format '%d' expects argument of type 'int', but argument 3 has type 'int32_t' {aka 'long int'} [-Wformat=]
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                                   ^~~~~~~~~~~~~~~~~~~~
+ 2559 |                                   new_x1, flush_info->window.x1, flush_info->pixel_area.x1);
+      |                                   ~~~~~~
+      |                                   |
+      |                                   int32_t {aka long int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:29: note: in expansion of macro 'LOG_E'
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                             ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:47: note: format string is defined here
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                                              ~^
+      |                                               |
+      |                                               int
+      |                                              %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:35: warning: format '%d' expects argument of type 'int', but argument 4 has type 'int32_t' {aka 'long int'} [-Wformat=]
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                                   ^~~~~~~~~~~~~~~~~~~~
+ 2559 |                                   new_x1, flush_info->window.x1, flush_info->pixel_area.x1);
+      |                                           ~~~~~~~~~~~~~~~~~~~~~
+      |                                                             |
+      |                                                             int32_t {aka long int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:29: note: in expansion of macro 'LOG_E'
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                             ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:50: note: format string is defined here
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                                                 ~^
+      |                                                  |
+      |                                                  int
+      |                                                 %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:35: warning: format '%d' expects argument of type 'int', but argument 5 has type 'int32_t' {aka 'long int'} [-Wformat=]
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                                   ^~~~~~~~~~~~~~~~~~~~
+ 2559 |                                   new_x1, flush_info->window.x1, flush_info->pixel_area.x1);
+      |                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                                                                        |
+      |                                                                                        int32_t {aka long int}
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:29: note: in expansion of macro 'LOG_E'
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                             ^~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2558:53: note: format string is defined here
+ 2558 |                             LOG_E("Background%d,%d,%d",
+      |                                                    ~^
+      |                                                     |
+      |                                                     int
+      |                                                    %ld
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2297:19: warning: variable 'start_tick' set but not used [-Wunused-but-set-variable]
+ 2297 |         rt_tick_t start_tick;
+      |                   ^~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c: At top level:
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:2049:13: warning: 'api_lcd_draw_rect_async' defined but not used [-Wunused-function]
+ 2049 | static void api_lcd_draw_rect_async(const char *pixels, int x0, int y0, int x1, int y1)
+      |             ^~~~~~~~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1690:13: warning: 'api_lcd_get_pixel' defined but not used [-Wunused-function]
+ 1690 | static void api_lcd_get_pixel(char *pixel, int x, int y)
+      |             ^~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1674:13: warning: 'api_lcd_set_pixel' defined but not used [-Wunused-function]
+ 1674 | static void api_lcd_set_pixel(const char *pixel, int x, int y)
+      |             ^~~~~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:908:13: warning: 'print_u32_data' defined but not used [-Wunused-function]
+  908 | static void print_u32_data(const char *name, uint32_t *p, uint32_t col_num, uint32_t total)
+      |             ^~~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:895:17: warning: 'api_lcd_close' defined but not used [-Wunused-function]
+  895 | static rt_err_t api_lcd_close(rt_device_t dev)
+      |                 ^~~~~~~~~~~~~
+/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:314:14: warning: 'lcd_msg_to_name' defined but not used [-Wunused-function]
+  314 | static char *lcd_msg_to_name(LCD_MsgIdDef msg)
+      |              ^~~~~~~~~~~~~~~
+[59/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_night.c.o
+[60/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_font_cn_20.c.o
+[61/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_night_ui.c.o
+[62/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/request.cpp.o
+[63/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride_ble.dir/velaride_ble.c.o
+[64/102] Linking C static library drivers/libdrivers.a
+[65/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sport_ui.c.o
+[66/102] Linking C static library apps/examples/velaride/libapps_velaride_ble.a
+[67/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/file.cpp.o
+[68/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/zip.cpp.o
+[69/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/system_zlib.cpp.o
+[70/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/mqttmessage.cpp.o
+[71/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/mqttmessage_impl.cpp.o
+[72/102] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_shell.c.o
+/home/wyj/velaride_product_features/apps/examples/velaride/velaride_shell.c: In function 'velaride_main':
+/home/wyj/velaride_product_features/apps/examples/velaride/velaride_shell.c:4867:11: warning: declaration of 'ret' shadows a previous local [-Wshadow]
+ 4867 |       int ret = 0;
+      |           ^~~
+/home/wyj/velaride_product_features/apps/examples/velaride/velaride_shell.c:4663:7: note: shadowed declaration is here
+ 4663 |   int ret;
+      |       ^~~
+[73/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/cipher.cpp.o
+[74/102] Linking C static library apps/examples/velaride/libapps_velaride.a
+[75/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/cipher_impl.cpp.o
+[76/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/power_impl.cpp.o
+[77/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/power.cpp.o
+[78/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/fetch.cpp.o
+[79/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/zip_impl.cpp.o
+[80/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/system_zlib_impl.cpp.o
+[81/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/prompt.cpp.o
+[82/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/configuration.cpp.o
+[83/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/exchange.cpp.o
+[84/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/file_impl.cpp.o
+[85/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/device_impl.cpp.o
+[86/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/feature_locale.cpp.o
+[87/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/exchange_impl.cpp.o
+[88/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/configuration_impl.cpp.o
+[89/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/locale_impl.cpp.o
+[90/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/error_impl.cpp.o
+[91/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/device.cpp.o
+[92/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/error.cpp.o
+[93/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/velaclaw.cpp.o
+[94/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/ajs_features_registry.cpp.o
+[95/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/request_impl.cpp.o
+[96/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/fetch_impl.cpp.o
+[97/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/prompt_impl.cpp.o
+[98/102] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/velaclaw_impl.cpp.o
+/home/wyj/velaride_product_features/apps/frameworks/runtimes/feature/modules/velaclaw_impl.cpp: In function 'void system_velaclaw_wrap_ask(FeatureInstanceHandle, AppendData, FtPromiseId, system_velaclaw_AskParam*)':
+/home/wyj/velaride_product_features/apps/frameworks/runtimes/feature/modules/velaclaw_impl.cpp:330:51: warning: format '%u' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  330 |     snprintf(chat_id, sizeof(chat_id), "qapp_ask_%u", id);
+      |                                                  ~^   ~~
+      |                                                   |   |
+      |                                                   |   uint32_t {aka long unsigned int}
+      |                                                   unsigned int
+      |                                                  %lu
+[99/102] Linking CXX static library apps/frameworks/runtimes/feature/modules/libfeature_impls.a
+[100/102] Linking CXX executable nuttx
+/opt/arm-gnu-toolchain/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld: warning: nuttx has a LOAD segment with RWX permissions
+Memory region         Used Size  Region Size  %age Used
+           flash:     9781524 B        16 MB     58.30%
+            sram:      498812 B     523008 B     95.37%
+           psram:      702080 B         8 MB      8.37%
+[101/102] Generating System.map
+[102/102] Generating nuttx.bin

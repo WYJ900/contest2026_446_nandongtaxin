@@ -1,0 +1,101 @@
+
+CONSOLE: attached without reset
+draw_core timeout
+
+Error, Clear p_drv_ops 1293e81c, sem_v=0
+
+irq_en=0
+
+LCDC1_irq_en=1, active=0, pending=1
+
+hlcdc errcode=0, lock=0, state=2
+
+LCDC STATUS=0,TE=0
+
+HAL dbg cnt 118, 118, 117
+
+DRV dbg cnt 118, 117, 117
+
+LCDC CANVAS TL=0,BR=1c10185,SETTING=a0141,IRQ=410041
+
+LCDC LAYER0 CFG=14618ff0,TL=0,BR=1c10185,SRC=60000000
+
+LAYER0_DECOMP=0
+
+LCDC LAYER1 CFG=0,TL=0,BR=0,SRC=0
+
+Error, Clear p_drv_ops 1293e81c, sem_v=0
+
+irq_en=0
+
+LCDC1_irq_en=1, active=0, pending=1
+
+hlcdc errcode=0, lock=0, state=2
+
+LCDC STATUS=0,TE=0
+
+HAL dbg cnt 118, 118, 117
+
+DRV dbg cnt 118, 117, 117
+
+LCDC CANVAS TL=0,BR=1c10185,SETTING=a0141,IRQ=410041
+
+LCDC LAYER0 CFG=14618ff0,TL=0,BR=1c10185,SRC=60000000
+
+LAYER0_DECOMP=0
+
+LCDC LAYER1 CFG=0,TL=0,BR=0,SRC=0
+
+[ON] -> [TIMEOUT]
+
+lcd_timeout_error draw_core, 1920
+
+dump_assert_info: Current Version: NuttX  0.0.0  Nov  4 2026 22:09:28 arm
+dump_assert_info: Assertion failed : at file: /home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/drivers/lcd/drv_lcd.c:1921 task: lcd_task process: Kernel 0x1203a841
+up_dump_register: R0: 20008050 R1: 00000781 R2: 20007bd0  R3: 00000000
+up_dump_register: R4: 6011fc48 R5: 00000000 R6: 122b301d  R7: 60120380
+up_dump_register: R8: 20007b60 R9: 2002a4b4 R10: 00000006 R11: 00000781
+up_dump_register: R12: 00000000 SP: 60120188 LR: 1201563d  PC: 1201563d
+up_dump_register: xPSR: 2000000b BASEPRI: 00000000 CONTROL: 00000000
+up_dump_register: EXC_RETURN: 00000000
+sched_dumpstack: backtrace|19: 0x12029a02 0x12014bce 0x1201577e 0x12013b32 0x12013438 0x12013bfa 0x12039990 0x1203a67e
+sched_dumpstack: backtrace|19: 0x1203a84a 0x12016cb6
+dump_tasks:    PID GROUP PRI POLICY   TYPE    NPX STATE   EVENT      SIGMASK          STACKBASE  STACKSIZE   COMMAND
+dump_task:       0     0   0 FIFO     Kthread -   Ready              0000000000000000 0x20079cc4     16016   CPU0 IDLE
+dump_task:       1     0 224 RR       Kthread -   Waiting Semaphore  0000000000000000 0x20024910     15968   hpwork 0x20000540 0x20000588
+dump_task:       2     0 100 RR       Kthread -   Waiting Semaphore  0000000000000000 0x20020a30     15968   lpwork 0x200004c0 0x20000508
+dump_task:       5     0 110 FIFO     pthread -   Waiting Semaphore  0000000000000000 0x2003d260     32688   sysworkq 0x120d293d 0x600b3eb8
+dump_task:       6     0  10 FIFO     pthread -   Waiting Semaphore  0000000000000000 0x20036a38      1320   BT LW WQ 0x120d293d 0x600b3fc0
+dump_task:       7     7 100 RR       Task    -   Waiting Semaphore  0000000000000000 0x600b4a60     15992   nsh_main
+dump_task:       8     8 100 RR       Task    -   Waiting Signal     0000000000000000 0x600b8948     32664   ai_agent
+dump_task:       9     8  50 FIFO     pthread -   Waiting Semaphore  0000000000000000 0x600fe9a8     16304   ai_agent 0x1214b0b9 0x600af738
+dump_task:      10     8  50 FIFO     pthread -   Waiting MQ empty   0000000000000000 0x60106b80     16304   ai_agent 0x1214b0b9 0x600aef28
+dump_task:      11     8  40 FIFO     pthread -   Waiting Semaphore  0000000000000000 0x6010ab88      8112   ai_agent 0x12152bad 0x600adf80
+dump_task:      12     8   3 FIFO     pthread -   Waiting Signal     0000000000000000 0x60102c80      4016   ai_agent 0x12153895 0x600adf90
+dump_task:      14     8  30 FIFO     pthread -   Waiting Semaphore  0000000000000000 0x60110b98     16304   ai_agent 0x12153ad9 0x600afb80
+dump_task:      15    15 100 RR       Task    -   Ready              0000000000000000 0x60115bc0     40856   velaride
+dump_task:      19     0 100 RR       Kthread -   Running            0000000000000000 0x6011fd98      1944   lcd_task
+dump_task:      20    15  40 RR       pthread -   Ready              0000000000000000 0x6010e0f0      8112   velaride 0x12176a29 0
+dump_task:      29    29 100 RR       Task    -   Waiting Semaphore  0000000000000000 0x601270b0      8088   velaride_ble
+dump_task:      31    29 108 FIFO     pthread -   Waiting Signal     0000000000000000 0x20001a78      2992   BT Driver /dev/ttyHCI0 0x120d293d 0x2007e478
+sched_dumpstack: backtrace| 0: 0x12013b5a
+sched_dumpstack: backtrace| 1: 0x12015e70 0x1201602c 0x12017292 0x12016cb6
+sched_dumpstack: backtrace| 2: 0x12015e70 0x1201602c 0x12017292 0x12016cb6
+sched_dumpstack: backtrace| 5: 0x12015e70 0x1201602c 0x120d27f4 0x120d26fa 0x120d11ac 0x120d297c 0x120d9848 0x120db4d4
+sched_dumpstack: backtrace| 6: 0x12015e70 0x1201602c 0x120d27f4 0x120d26fa 0x120d11ac 0x120d297c 0x120d9848 0x120db4d4
+sched_dumpstack: backtrace| 7: 0x12015e70 0x1201602c 0x12034c9c 0x12047378 0x120473ce 0x120473f2 0x12047418 0x1201c146
+sched_dumpstack: backtrace| 7: 0x1201c240 0x1201c1cc 0x12020a88 0x1201c0b6 0x1201b462 0x12054ce0 0x12016c9e
+sched_dumpstack: backtrace| 8: 0x12015e70 0x12019da4 0x1206a248 0x120591ba 0x1214bb40 0x12054ce0 0x12016c9e
+sched_dumpstack: backtrace| 9: 0x12015e70 0x1201602c 0x120db862 0x12210bf2 0x1214bcba 0x1214b228 0x120d9848 0x120db4d4
+sched_dumpstack: backtrace|10: 0x12015e70 0x12211654 0x122114e0 0x12211516 0x1221153a 0x12211562 0x1214b160 0x120d9848
+sched_dumpstack: backtrace|10: 0x120db4d4
+sched_dumpstack: backtrace|11: 0x12015e70 0x1201602c 0x120db862 0x12210bf2 0x12152fe2 0x120d9848 0x120db4d4
+sched_dumpstack: backtrace|12: 0x12015e70 0x12019da4 0x1206a248 0x120591ba 0x121539b4 0x120d9848 0x120db4d4
+sched_dumpstack: backtrace|14: 0x12015e70 0x1201602c 0x12034c9c 0x12047378 0x120473ce 0x120473f2 0x12047418 0x120da17e
+sched_dumpstack: backtrace|14: 0x122101e6 0x122102ac 0x12210224 0x12210246 0x12153b34 0x120d9848 0x120db4d4
+sched_dumpstack: backtrace|15: 0x2000780e
+sched_dumpstack: backtrace|19: 0x12029a02 0x12014bce 0x12015d60 0x120157a4 0x12013b32 0x12013438 0x12013bfa 0x12039990
+sched_dumpstack: backtrace|19: 0x1203a67e 0x1203a84a 0x12016cb6
+sched_dumpstack: backtrace|20: 0x12015e70 0x12019da4 0x1206a248 0x1205921e 0x12176bb0 0x120d9848 0x120db4d4
+sched_dumpstack: backtrace|29: 0x12015e70 0x1201602c 0x1220fe80 0x121793ae 0x12054ce0 0x12016c9e
+sched_dumpstack: backtrace|31: 0x12015e70 0x12019da4 0x1206a248 0x1205921e 0x120c05e8 0x120d297c 0x120d9848 0x120db4d4

@@ -1,0 +1,33 @@
+{
+  "firmware_sha256": "4b2075835e6d075c6b453dabec24a0b112e9f98dafe834a027fd75ed911ca7d4",
+  "firmware_bytes": 9781524,
+  "accepted_parent_firmware": "8027be114e60db5bbdc53b12577668cd45f5717abfa8e634701184b9a857a0c2",
+  "unchanged_config_sha256": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+  "original_tf_driver_sha256": {
+    "vendor/sifli/chips/sf32lb52/sifli_spi.c": "144a6c6e717cae2a84355d4d6794e29c9be963f47f9003a60d4dfce5a07630b9",
+    "nuttx/drivers/mmcsd/mmcsd_spi.c": "2b286fa00ecdac3f49e3fcce9630af4b98846f9e82bc7ca63d29219161404877"
+  },
+  "scope": "Check and dispatch real idle/no-error EOF while waiting for LCD completion; preserve genuine timeouts; bounded native honeycomb diagnostic",
+  "host_tests": {
+    "lcd_fault_injection": true,
+    "actual_stage_lvgl_asan_ubsan": true,
+    "ride_scenarios": 19
+  },
+  "physical_accepted": false,
+  "root_cause_of_missing_irq_confirmed": false,
+  "raw_panic_sha256": "5746ce4d522a8a1e5aabafb188097253e2e6cdd1c1b3cf2abb215b3b96e633e7",
+  "evidence_text_normalized": "ANSI/CR removed and trailing whitespace trimmed; local raw log retained",
+  "source_limit": "Actual application and LCD source snapshots plus accepted archives; full clean dependency rebuild not verified",
+  "files": {
+    "app-source.tar.gz": "0427d9e88bda6583dc7617002d3d4b3ae1e9d009fbc5d801336f54a9976fd8a5",
+    "build_display_repair.sh": "8c3ca2260c228b9db8e7e29bcdd9fee3ed6cee2fe165b974ff25609b420ed6ad",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "firmware.bin": "4b2075835e6d075c6b453dabec24a0b112e9f98dafe834a027fd75ed911ca7d4",
+    "lcd-completion-repair.patch": "c48f1513b6b096862a0f4f82ed09329f37b05e8160899d63a5c39c8ef7573008",
+    "lcd-source.tar.gz": "4b16b2cdf8b773473bbe6dc427d46fd9f480bcf0a90bda17b6f2cbb008354be1",
+    "package_display_repair.py": "8e7e461e9cb9b2795fd68a462bf92f9dfd8a140d8170bc5660d5e8d69c7edf09",
+    "prepare_display_repair.py": "fabed8e1b028a166a77bf3e9b525a6e6b237bdeb05f66019472d1f6817ab93b6",
+    "test_display_repair.sh": "d56db022b25963aebeac82c46d1723a3c2d80e73a7bf5541b9385ba550899c08",
+    "test_lcd_completion.py": "69bf8b712ed24eb854fc298544090a450e213d5eeed1a9e54bb6a265f16a2bd3"
+  }
+}
