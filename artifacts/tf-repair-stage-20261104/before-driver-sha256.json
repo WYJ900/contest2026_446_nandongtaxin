@@ -1,0 +1,4 @@
+{
+  "vendor/sifli/chips/sf32lb52/sifli_spi.c": "144a6c6e717cae2a84355d4d6794e29c9be963f47f9003a60d4dfce5a07630b9",
+  "nuttx/drivers/mmcsd/mmcsd_spi.c": "2b286fa00ecdac3f49e3fcce9630af4b98846f9e82bc7ca63d29219161404877"
+}

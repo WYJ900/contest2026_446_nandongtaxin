@@ -1,0 +1,124 @@
+[1/104] generate quickapp feature registry info: system_file
+[2/104] cd /home/wyj/velaride_product_features/cmake_out/lckfb_huangshan_pi/libs/libc/misc && /usr/bin/cmake -E touch /home/wyj/velaride_product_features/nuttx/libs/libc/misc/lib_utsname.c
+[3/104] Refreshing AI Agent build timestamp
+[4/104] generate quickapp feature registry info: system_request
+[5/104] JIDL: generating glue files for request.jidl
+[6/104] generate quickapp feature registry info: system_zip
+[7/104] JIDL: generating glue files for file.jidl
+[8/104] generate quickapp feature registry info: system_zlib
+[9/104] Generating bin output directories
+[10/104] JIDL: generating glue files for zip.jidl
+[11/104] generate quickapp feature registry info: system_mqttmessage
+[12/104] generate quickapp feature registry info: system_cipher
+[13/104] generate quickapp feature registry info: system_internal_power
+[14/104] JIDL: generating glue files for system_zlib.jidl
+[15/104] generate quickapp feature registry info: system_fetch
+[16/104] JIDL: generating glue files for mqttmessage.jidl
+[17/104] generate quickapp feature registry info: system_prompt
+[18/104] JIDL: generating glue files for cipher.jidl
+[19/104] generate quickapp feature registry info: system_exchange
+[20/104] generate quickapp feature registry info: system_configuration
+[21/104] JIDL: generating glue files for fetch.jidl
+[22/104] JIDL: generating glue files for power.jidl
+[23/104] JIDL: generating glue files for prompt.jidl
+[24/104] generate quickapp feature registry info: system_device
+[25/104] generate quickapp feature registry info: locale
+[26/104] JIDL: generating glue files for exchange.jidl
+[27/104] generate quickapp feature registry info: Error
+[28/104] JIDL: generating glue files for configuration.jidl
+[29/104] generate quickapp feature registry info: system_velaclaw
+[30/104] JIDL: generating glue files for feature_locale.jidl
+[31/104] JIDL: generating glue files for device.jidl
+[32/104] JIDL: generating glue files for error.jidl
+[33/104] JIDL: generating glue files for velaclaw.jidl
+[34/104] cd /home/wyj/velaride_product_features/nuttx && /usr/bin/cmake -DKCONFIG_CONFIG=/home/wyj/velaride_product_features/vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig -DNUTTX_DIR=/home/wyj/velaride_product_features/nuttx -DCMAKE_BINARY_DIR=/home/wyj/velaride_product_features/cmake_out/lckfb_huangshan_pi -P /home/wyj/velaride_product_features/nuttx/cmake/nuttx_generate_dts.cmake
+[35/104] Building C object CMakeFiles/nuttx.dir/empty.c.o
+[36/104] Building C object boards/CMakeFiles/board.dir/__/dummy.c.o
+[37/104] Building C object apps/CMakeFiles/apps.dir/dummy.c.o
+[38/104] Building CXX object CMakeFiles/nuttx.dir/empty.cxx.o
+[39/104] Linking C static library boards/libboard.a
+[40/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_memo.c.o
+[41/104] Linking C static library apps/libapps.a
+[42/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_timekeeper.c.o
+[43/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_24.c.o
+[44/104] Building C object drivers/CMakeFiles/drivers.dir/mmcsd/mmcsd_spi.c.o
+[45/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_compass.c.o
+[46/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_ride_session.c.o
+[47/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_device.c.o
+[48/104] Building C object arch/CMakeFiles/arch.dir/home/wyj/velaride_product_features/vendor/sifli/chips/sf32lb52/sifli_spi.c.o
+[49/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_92.c.o
+[50/104] Linking C static library drivers/libdrivers.a
+[51/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_136.c.o
+[52/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_60.c.o
+[53/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_44.c.o
+[54/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_num_30.c.o
+[55/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_font_night_28.c.o
+[56/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_countdown.c.o
+[57/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sound_assets.c.o
+[58/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sound_render.c.o
+[59/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_alarm.c.o
+[60/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_font_cn_20.c.o
+[61/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sound.c.o
+[62/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_night.c.o
+[63/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_night_ui.c.o
+[64/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/request.cpp.o
+[65/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_sport_ui.c.o
+[66/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride_ble.dir/velaride_ble.c.o
+[67/104] Linking C static library apps/examples/velaride/libapps_velaride_ble.a
+[68/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/file.cpp.o
+[69/104] Linking C static library arch/libarch.a
+[70/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/system_zlib.cpp.o
+[71/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/zip.cpp.o
+[72/104] Building C object apps/examples/velaride/CMakeFiles/apps_velaride.dir/velaride_shell.c.o
+/home/wyj/velaride_product_features/apps/examples/velaride/velaride_shell.c: In function 'velaride_main':
+/home/wyj/velaride_product_features/apps/examples/velaride/velaride_shell.c:4834:11: warning: declaration of 'ret' shadows a previous local [-Wshadow]
+ 4834 |       int ret = 0;
+      |           ^~~
+/home/wyj/velaride_product_features/apps/examples/velaride/velaride_shell.c:4630:7: note: shadowed declaration is here
+ 4630 |   int ret;
+      |       ^~~
+[73/104] Linking C static library apps/examples/velaride/libapps_velaride.a
+[74/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/mqttmessage.cpp.o
+[75/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/mqttmessage_impl.cpp.o
+[76/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/cipher.cpp.o
+[77/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/power.cpp.o
+[78/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/cipher_impl.cpp.o
+[79/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/power_impl.cpp.o
+[80/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/fetch.cpp.o
+[81/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/zip_impl.cpp.o
+[82/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/prompt.cpp.o
+[83/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/configuration.cpp.o
+[84/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/system_zlib_impl.cpp.o
+[85/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/exchange_impl.cpp.o
+[86/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/exchange.cpp.o
+[87/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/device_impl.cpp.o
+[88/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/file_impl.cpp.o
+[89/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/feature_locale.cpp.o
+[90/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/configuration_impl.cpp.o
+[91/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/locale_impl.cpp.o
+[92/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/error_impl.cpp.o
+[93/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/device.cpp.o
+[94/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/error.cpp.o
+[95/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/__/__/__/__/__/jidl_generated/jidl/velaclaw.cpp.o
+[96/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/ajs_features_registry.cpp.o
+[97/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/request_impl.cpp.o
+[98/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/fetch_impl.cpp.o
+[99/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/prompt_impl.cpp.o
+[100/104] Building CXX object apps/frameworks/runtimes/feature/modules/CMakeFiles/feature_impls.dir/velaclaw_impl.cpp.o
+/home/wyj/velaride_product_features/apps/frameworks/runtimes/feature/modules/velaclaw_impl.cpp: In function 'void system_velaclaw_wrap_ask(FeatureInstanceHandle, AppendData, FtPromiseId, system_velaclaw_AskParam*)':
+/home/wyj/velaride_product_features/apps/frameworks/runtimes/feature/modules/velaclaw_impl.cpp:330:51: warning: format '%u' expects argument of type 'unsigned int', but argument 4 has type 'uint32_t' {aka 'long unsigned int'} [-Wformat=]
+  330 |     snprintf(chat_id, sizeof(chat_id), "qapp_ask_%u", id);
+      |                                                  ~^   ~~
+      |                                                   |   |
+      |                                                   |   uint32_t {aka long unsigned int}
+      |                                                   unsigned int
+      |                                                  %lu
+[101/104] Linking CXX static library apps/frameworks/runtimes/feature/modules/libfeature_impls.a
+[102/104] Linking CXX executable nuttx
+/opt/arm-gnu-toolchain/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld: warning: nuttx has a LOAD segment with RWX permissions
+Memory region         Used Size  Region Size  %age Used
+           flash:     9780884 B        16 MB     58.30%
+            sram:      498804 B     523008 B     95.37%
+           psram:      702080 B         8 MB      8.37%
+[103/104] Generating System.map
+[104/104] Generating nuttx.bin

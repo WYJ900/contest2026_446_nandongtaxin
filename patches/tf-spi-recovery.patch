@@ -1,0 +1,226 @@
+--- a/vendor/sifli/chips/sf32lb52/sifli_spi.c
++++ b/vendor/sifli/chips/sf32lb52/sifli_spi.c
+@@ -19,6 +19,7 @@
+ #include <stdlib.h>
+ #include <stdint.h>
+ #include <stdbool.h>
++#include <string.h>
+ #include <stddef.h>
+ #include <assert.h>
+ #include <errno.h>
+@@ -46,6 +47,8 @@
+  * Pre-processor Definitions
+  ****************************************************************************/
+ 
++#define SPI_POLL_TIMEOUT    100
++#define SPI_WORD_TIMEOUT    20
+ #define SPI_XFER_TIMEOUT    5000  /* Timeout in milliseconds */
+ #define SPI_DEFAULT_FREQ    1000000  /* 1 MHz default */
+ 
+@@ -88,6 +91,7 @@
+     uint8_t  port;                  /* SPI port index */
+     uint32_t frequency;             /* Current frequency */
+     enum spi_mode_e mode;           /* Current SPI mode */
++    bool     failed;                /* Stop clocks until de-select after error */
+     int      nbits;                 /* Current number of bits */
+     RCC_MODULE_TYPE mod;            /* RCC module type */
+ };
+@@ -493,6 +497,7 @@
+     {
+         __HAL_SPI_RELEASE_CS(&priv->handle);
+         __HAL_SPI_DISABLE(&priv->handle);
++        priv->failed = false;
+     }
+ 
+     /* Also call board-specific select if available */
+@@ -712,46 +717,79 @@
+  *
+  ****************************************************************************/
+ 
++/* Error cleanup runs in the calling thread, never from an ISR. */
++static void sifli_spi_poll_failed(struct sifli_spi_dev_s *priv)
++{
++    __HAL_SPI_DISABLE_IT(&priv->handle, SPI_IT_RXNE | SPI_IT_TXE | SPI_IT_ERR);
++    __HAL_SPI_RELEASE_CS(&priv->handle);
++    __HAL_SPI_DISABLE(&priv->handle);
++    HAL_SPI_Abort(&priv->handle);
++    priv->failed = true;
++    spierr("SPI%u: polling failed; CS released, IRQs disabled\n",
++           priv->port + 1);
++}
++
+ static uint32_t sifli_spi_send(struct spi_dev_s *dev, uint32_t wd)
+ {
+     struct sifli_spi_dev_s *priv = (struct sifli_spi_dev_s *)dev;
+-    uint32_t rxval = 0;
++    uint16_t tx = (uint16_t)wd;
++    uint16_t rx = UINT16_MAX;
+     HAL_StatusTypeDef status;
+-    uint16_t size;
+-
+-    /* Determine the transfer size based on the data width */
+-
+-    if (priv->nbits <= 8)
+-    {
+-        uint8_t txbyte = (uint8_t)wd;
+-        uint8_t rxbyte = 0;
+-        size = 1;
+-
++
++    if (priv->failed)
++    {
++        return priv->nbits <= 8 ? UINT8_MAX : UINT16_MAX;
++    }
++
++    __HAL_SPI_ENABLE(&priv->handle);
++    status = HAL_SPI_TransmitReceive(&priv->handle, (uint8_t *)&tx,
++                                    (uint8_t *)&rx, 1, SPI_WORD_TIMEOUT);
++    if (status != HAL_OK)
++    {
++        sifli_spi_poll_failed(priv);
++        return priv->nbits <= 8 ? UINT8_MAX : UINT16_MAX;
++    }
++
++    return priv->nbits <= 8 ? rx & UINT8_MAX : rx;
++}
++
++/* TF uses non-DMA SPI. Synchronous chunks keep stack buffers owned until
++ * completion, and supply idle ones for receive-only transfers. The HAL's
++ * Receive_IT otherwise transmits the uninitialized receive buffer itself.
++ */
++static void sifli_spi_poll_exchange(struct sifli_spi_dev_s *priv,
++                                   const void *txbuffer, void *rxbuffer,
++                                   size_t nwords)
++{
++    uint16_t dummy[64];
++    uint16_t discard[64];
++    size_t width = priv->nbits <= 8 ? 1 : 2;
++    const uint8_t *tx = txbuffer;
++    uint8_t *rx = rxbuffer;
++
++    memset(dummy, 0xff, sizeof(dummy));
++    if (!tx && rx)
++    {
++        memset(rx, 0xff, nwords * width);
++    }
++
++    while (nwords > 0 && !priv->failed)
++    {
++        uint16_t count = nwords > 64 ? 64 : (uint16_t)nwords;
+         __HAL_SPI_ENABLE(&priv->handle);
+-        status = HAL_SPI_TransmitReceive(&priv->handle, &txbyte, &rxbyte,
+-                                          size, SPI_XFER_TIMEOUT);
+-        rxval = (uint32_t)rxbyte;
+-    }
+-    else
+-    {
+-        uint16_t txword = (uint16_t)wd;
+-        uint16_t rxword = 0;
+-        size = 1;
+-
+-        __HAL_SPI_ENABLE(&priv->handle);
+-        status = HAL_SPI_TransmitReceive(&priv->handle,
+-                                          (uint8_t *)&txword,
+-                                          (uint8_t *)&rxword,
+-                                          size, SPI_XFER_TIMEOUT);
+-        rxval = (uint32_t)rxword;
+-    }
+-
+-    if (status != HAL_OK)
+-    {
+-        spierr("SPI send failed: %d\n", status);
+-    }
+-
+-    return rxval;
++        HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(
++            &priv->handle, tx ? (uint8_t *)tx : (uint8_t *)dummy,
++            rx ? rx : (uint8_t *)discard, count, SPI_POLL_TIMEOUT);
++        if (status != HAL_OK)
++        {
++            sifli_spi_poll_failed(priv);
++            break;
++        }
++
++        if (tx) tx += count * width;
++        if (rx) rx += count * width;
++        nwords -= count;
++    }
+ }
+ 
+ /****************************************************************************
+@@ -769,6 +807,12 @@
+     HAL_StatusTypeDef status;
+     uint16_t size;
+     int ret;
++
++    if (!priv->spi_dma_tx_flag && !priv->spi_dma_rx_flag)
++    {
++        sifli_spi_poll_exchange(priv, txbuffer, rxbuffer, nwords);
++        return;
++    }
+ 
+     /* Calculate number of bytes to transfer */
+ 
+@@ -1048,6 +1092,7 @@
+     priv->frequency  = 0;
+     priv->mode       = SPIDEV_MODE0;
+     priv->nbits      = 8;
++    priv->failed     = false;
+ 
+     /* Initialize hardware */
+ 
+--- a/nuttx/drivers/mmcsd/mmcsd_spi.c
++++ b/nuttx/drivers/mmcsd/mmcsd_spi.c
+@@ -34,6 +34,7 @@
+ #include <stdint.h>
+ #include <stdbool.h>
+ #include <stdio.h>
++#include <syslog.h>
+ #include <string.h>
+ #include <time.h>
+ #include <assert.h>
+@@ -124,6 +125,7 @@
+ {
+   FAR struct spi_dev_s *spi; /* SPI port bound to this slot */
+   mutex_t  lock;             /* Assures mutually exclusive access to card and SPI */
++  uint8_t trace_left;        /* Bounded card initialization diagnostics */
+   uint8_t  state;            /* State of the slot (see MMCSD_SLOTSTATUS_* definitions) */
+   uint8_t  type;             /* Disk type */
+   uint8_t  csd[16];          /* Copy of card CSD */
+@@ -547,6 +549,12 @@
+ 
+   if ((response & 0x80) != 0)
+     {
++      if (slot->trace_left > 0)
++        {
++          slot->trace_left--;
++          syslog(LOG_ERR, "TF_INIT: CMD%u no response R1=%02x\n",
++                 cmd->cmd & 0x3f, response);
++        }
+       ferr("ERROR: Failed: i=%d response=%02x\n", i, response);
+       return (uint32_t)-1;
+     }
+@@ -632,6 +640,14 @@
+               cmd->cmd & 0x3f, arg, response, slot->r7);
+       }
+       break;
++    }
++
++  if (slot->trace_left > 0)
++    {
++      slot->trace_left--;
++      syslog(LOG_ERR, "TF_INIT: CMD%u arg=%08lx R1=%02lx R7=%08lx OCR=%08lx\n",
++             cmd->cmd & 0x3f, (unsigned long)arg, (unsigned long)result,
++             (unsigned long)slot->r7, (unsigned long)slot->ocr);
+     }
+ 
+   return result;
+@@ -1678,6 +1694,8 @@
+    * initialization.
+    */
+ 
++  slot->trace_left = 16;
++  syslog(LOG_ERR, "TF_INIT: begin\n");
+   slot->state |= MMCSD_SLOTSTATUS_NOTREADY;
+ 
+   /* Check if there is a card present in the slot.  This is normally a

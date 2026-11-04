@@ -1,0 +1,13 @@
+
+COMMAND: velaride ride-status
+velaride ride-status
+{"active":false,"paused":false,"sensor_ready":true,"motion":0,"alert":0,"elapsed_s":0,"moving_s":0,"still_s":0,"pause_count":0,"impact_count":0,"rest_count":0}
+nsh> [K
+COMMAND: velaride wake-status
+velaride wake-status
+VELARIDE_WAKE: off=1 raise_pref=1 sleep=1 by_raise=0 accel=9,-20,-984 up=1.00 err=0 sleeps=1 raises=0 idle=32961ms
+nsh> [K
+COMMAND: ls /dev/input0
+ls /dev/input0
+ /dev/input0
+nsh> [K

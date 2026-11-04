@@ -1,0 +1,20 @@
+{
+  "installed_candidate_sha256": "f43ccbbaf7a9962043dee48bcd32c06f70f9a634d91ce4c90b6abfad0d6f73a7",
+  "candidate_automated_five_boots": true,
+  "candidate_legacy_ble_and_synthetic_bridge_ack": true,
+  "candidate_physical_ui_accepted": false,
+  "user_report": "Freeze after side-key entry and sliding",
+  "restored_firmware_sha256": "8027be114e60db5bbdc53b12577668cd45f5717abfa8e634701184b9a857a0c2",
+  "restored_with_card_user_report": "Still freezes or black",
+  "card_removed_cold_power_cycle_user_report": "Seems normal without card",
+  "card_out_serial_and_ble": true,
+  "retained_sequences": [
+    12,
+    11
+  ],
+  "tf_cmd0_r1": 1,
+  "tf_mounted": false,
+  "cause_confirmed": false,
+  "phone_installation": "User will install APK manually later; not tested on phone",
+  "audio_test_started": false
+}

@@ -1,0 +1,1 @@
+PASS: actual SPI 8/16-bit idle clocks, RX/TX/in-place, 65537-word chunking, bounds, timeout cleanup, fail latch and de-select recovery

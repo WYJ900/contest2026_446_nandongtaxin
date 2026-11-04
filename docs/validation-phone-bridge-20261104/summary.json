@@ -14,12 +14,15 @@
     "ble_payload": true,
     "android_host_tests_and_build": true
   },
-  "device_operations": false,
+  "device_operations": true,
   "candidate_installed": false,
   "pending": [
     "GPS parent real ride acceptance",
     "Physical UI and original functions on candidate",
     "Real Flash persistence and Android backfill on phone"
   ],
-  "source_limit": "Application-stage snapshot and parent archives; clean full dependency rebuild not verified"
+  "source_limit": "Application-stage snapshot and parent archives; clean full dependency rebuild not verified",
+  "candidate_was_installed": true,
+  "physical_ui_accepted": false,
+  "candidate_withdrawn": true
 }

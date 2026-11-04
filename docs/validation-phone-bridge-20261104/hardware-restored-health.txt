@@ -1,0 +1,8 @@
+
+COMMAND: velaride ride-status
+
+COMMAND: velaride wake-status
+
+COMMAND: ls /dev/input0
+
+COMMAND: velaride sound status

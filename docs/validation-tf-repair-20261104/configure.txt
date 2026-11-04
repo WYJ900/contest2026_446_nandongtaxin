@@ -1,0 +1,8 @@
+-- NuttX Host Tools
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/wyj/velaride_product_features/cmake_out/lckfb_huangshan_pi/bin_host
+CONFIG_ZEPHYR_REPO_DEFAULT
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/wyj/velaride_product_features/cmake_out/lckfb_huangshan_pi

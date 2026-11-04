@@ -14,7 +14,7 @@
     "ble_payload": true,
     "android_host_tests_and_build": true
   },
-  "device_operations": false,
+  "device_operations": true,
   "candidate_installed": false,
   "pending": [
     "GPS parent real ride acceptance",
@@ -33,5 +33,8 @@
     "tests-source.zip": "c3b0e29223b28f41e78ebc96b3a6dd07d8560d29da50c499bba06275d8bddb09",
     "test_product_features.sh": "bbb1323f0bc6cf36a2102b2592c42963ffc2ca9e3e1a293084284be7af3f73ef",
     "VelaRide-0.2.1-debug.apk": "8f2ab84646df6472b78d36dc6b22dd93689cd41f1fa172f4fbebe1e13259daa8"
-  }
+  },
+  "candidate_was_installed": true,
+  "physical_ui_accepted": false,
+  "candidate_withdrawn": true
 }
