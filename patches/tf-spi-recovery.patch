@@ -33,7 +33,7 @@
      }
  
      /* Also call board-specific select if available */
-@@ -712,46 +717,79 @@
+@@ -712,46 +717,81 @@
   *
   ****************************************************************************/
  
@@ -84,7 +84,7 @@
 +    return priv->nbits <= 8 ? rx & UINT8_MAX : rx;
 +}
 +
-+/* TF uses non-DMA SPI. Synchronous chunks keep stack buffers owned until
++/* TF uses non-DMA SPI. Synchronous words keep stack buffers owned until
 + * completion, and supply idle ones for receive-only transfers. The HAL's
 + * Receive_IT otherwise transmits the uninitialized receive buffer itself.
 + */
@@ -92,13 +92,12 @@
 +                                   const void *txbuffer, void *rxbuffer,
 +                                   size_t nwords)
 +{
-+    uint16_t dummy[64];
-+    uint16_t discard[64];
++    uint16_t dummy = UINT16_MAX;
++    uint16_t discard;
 +    size_t width = priv->nbits <= 8 ? 1 : 2;
 +    const uint8_t *tx = txbuffer;
 +    uint8_t *rx = rxbuffer;
 +
-+    memset(dummy, 0xff, sizeof(dummy));
 +    if (!tx && rx)
 +    {
 +        memset(rx, 0xff, nwords * width);
@@ -106,7 +105,10 @@
 +
 +    while (nwords > 0 && !priv->failed)
 +    {
-+        uint16_t count = nwords > 64 ? 64 : (uint16_t)nwords;
++        /* This SDK's non-HAL_SSP_VER polling HAL hardcodes TxXferCount=1.
++         * Keep Size=1 rather than waiting for clocks it never generates.
++         */
++        uint16_t count = 1;
          __HAL_SPI_ENABLE(&priv->handle);
 -        status = HAL_SPI_TransmitReceive(&priv->handle, &txbyte, &rxbyte,
 -                                          size, SPI_XFER_TIMEOUT);
@@ -133,8 +135,8 @@
 -
 -    return rxval;
 +        HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(
-+            &priv->handle, tx ? (uint8_t *)tx : (uint8_t *)dummy,
-+            rx ? rx : (uint8_t *)discard, count, SPI_POLL_TIMEOUT);
++            &priv->handle, tx ? (uint8_t *)tx : (uint8_t *)&dummy,
++            rx ? rx : (uint8_t *)&discard, count, SPI_POLL_TIMEOUT);
 +        if (status != HAL_OK)
 +        {
 +            sifli_spi_poll_failed(priv);
@@ -148,7 +150,7 @@
  }
  
  /****************************************************************************
-@@ -769,6 +807,12 @@
+@@ -769,6 +809,12 @@
      HAL_StatusTypeDef status;
      uint16_t size;
      int ret;
@@ -161,7 +163,7 @@
  
      /* Calculate number of bytes to transfer */
  
-@@ -1048,6 +1092,7 @@
+@@ -1048,6 +1094,7 @@
      priv->frequency  = 0;
      priv->mode       = SPIDEV_MODE0;
      priv->nbits      = 8;

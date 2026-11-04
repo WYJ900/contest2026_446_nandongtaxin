@@ -55,7 +55,7 @@ static int HAL_SPI_TransmitReceive(SPI_HandleTypeDef *h, uint8_t *tx, uint8_t *r
 {
     assert(h->enabled); assert(timeout==SPI_WORD_TIMEOUT || timeout==SPI_POLL_TIMEOUT);
     calls++; if (calls==fail_at) return 1;
-    assert(count && count<=64); words+=count;
+    assert(count==1); words+=count;
     for (unsigned i=0; i<count*(unsigned)h->width; i++) {
         if (receive_only) assert(tx[i]==0xff);
         rx[i]=tx[i]^0x5a;
@@ -90,7 +90,7 @@ int main(void)
         uint8_t *rx=malloc(bytes+2),*tx=malloc(bytes); assert(rx&&tx);
         memset(rx,0x91,bytes+2); memset(tx,0x37,bytes);
         receive_only=true; sifli_spi_poll_exchange(&d,NULL,rx+1,count);
-        assert(words==count && calls==1025 && rx[0]==0x91 && rx[bytes+1]==0x91);
+        assert(words==count && calls==count && rx[0]==0x91 && rx[bytes+1]==0x91);
         for(size_t i=1;i<=bytes;i++) assert(rx[i]==(0xff^0x5a));
         receive_only=false; sifli_spi_poll_exchange(&d,tx,NULL,count);
         sifli_spi_poll_exchange(&d,tx,tx,count);
@@ -99,11 +99,11 @@ int main(void)
     }
     d=device(8); uint8_t rx[150]; receive_only=true;fail_at=2;d.handle.irqs=7;
     sifli_spi_poll_exchange(&d,NULL,rx,sizeof(rx));
-    assert(d.failed && calls==2 && words==64 && aborted==1);
-    for(size_t i=64;i<sizeof(rx);i++) assert(rx[i]==0xff);
+    assert(d.failed && calls==2 && words==1 && aborted==1);
+    for(size_t i=1;i<sizeof(rx);i++) assert(rx[i]==0xff);
     sifli_spi_poll_exchange(&d,NULL,rx,10); assert(calls==2);
     d=device(8);sifli_spi_poll_exchange(&d,NULL,NULL,0);assert(!calls);
-    puts("PASS: actual SPI 8/16-bit idle clocks, RX/TX/in-place, 65537-word chunking, bounds, timeout cleanup, fail latch and de-select recovery");
+    puts("PASS: actual SPI 8/16-bit idle clocks, RX/TX/in-place, 65537 words without truncation, single-word HAL limit, bounds, timeout cleanup, fail latch and de-select recovery");
     return 0;
 }
 '''

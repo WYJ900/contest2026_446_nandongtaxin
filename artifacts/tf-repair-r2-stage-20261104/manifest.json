@@ -1,0 +1,25 @@
+{
+  "firmware_sha256": "05f07997226db60eb05c65442f363466fc269d5e7760a2c23a49fb7f64cf16a1",
+  "firmware_bytes": 9780860,
+  "base_firmware": "8027be114e60db5bbdc53b12577668cd45f5717abfa8e634701184b9a857a0c2",
+  "app_source": "../install-stage-20261104/app-source.tar.gz",
+  "unchanged_static_config": true,
+  "scope": "Non-DMA SPI synchronous single words (SDK HAL limit), idle-byte initialization, bounded timeout cleanup; bounded MMC initialization trace",
+  "driver_fault_injection_passed": true,
+  "accepted_app_lvgl_asan_ubsan_passed": true,
+  "ride_scenarios": 19,
+  "hardware_verified": false,
+  "source_limit": "Accepted actual application archive plus actual before/after driver files; full clean dependency rebuild not verified",
+  "files": {
+    "before-driver-sha256.json": "17a96a37ecd12a5d1cb58ec07e573b6064ba02103d68db66080dfc25015fabd2",
+    "build_tf_repair.sh": "da87a684585787adc08540fd87b1aa946c179687ae774526bfd8171c1cdd7584",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "driver-source.tar.gz": "01e6c495130f7f0a1220f192bec583b6be101e5c0fde7fe2943ffa702cc0b1b1",
+    "firmware.bin": "05f07997226db60eb05c65442f363466fc269d5e7760a2c23a49fb7f64cf16a1",
+    "package_tf_repair.py": "9d58c7e03a2b696332470bdf7c6f867c9e9e7efd946ea53ffa6a95045420acb3",
+    "prepare_tf_repair.py": "7136648a64f5e3a64ae9b4b8fa98fff0a106a0d63f2dc241db912e5c5ee91ea3",
+    "test_tf_repair.sh": "3ea67f141d108ee022f1a8075a709f6c222c2a3913e2f2b0b8fe7212bf47c1d8",
+    "test_tf_spi_recovery.py": "f72d89403f4d1e42db47e930a5e2082ef5c0058e039a3fc539024088365a33cf",
+    "tf-spi-recovery.patch": "5d3a5e1b81ce1743272f17e6ba4e12d18e5fce494794c45d763189970d5c9d06"
+  }
+}
