@@ -1,0 +1,1 @@
+PASS: original ride/tools UI plus sedentary settings/ack/snooze and phone inbox/weather/clear rendering

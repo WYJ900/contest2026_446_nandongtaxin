@@ -41,6 +41,7 @@ if(CONFIG_EXAMPLES_VELARIDE)
     velaride_ride_session.c
     velaride_memo.c
     velaride_activity.c
+    velaride_phone.c
     velaride_timekeeper.c
     velaride_device.c
     velaride_compass.c

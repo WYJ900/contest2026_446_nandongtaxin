@@ -1,0 +1,1 @@
+PASS: low-activity threshold, one-shot alert, snooze/ack, sustained activity, brief movement, ride/quiet/invalid suppression, CRC/save failures and uint32 rollover

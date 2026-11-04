@@ -894,7 +894,13 @@ int main(int argc, char **argv)
   lv_obj_send_event(g_notes.banner,LV_EVENT_CLICKED,NULL);
   assert(opened==100+VELARIDE_INFO_ACTIVITY);
   velaride_activity_ack(false);velaride_activity_set(true,50,0);
-  puts("PASS: screen wake, sedentary notification/DND/banner routing and original controls");
+  assert(velaride_phone_note("00000000000000000000000000000001","测试应用","测试摘要","这是一条模拟消息")==0);
+  note_watch();assert(g_notes.items[0].kind==NOTE_PHONE);
+  lv_tick_inc(500);lv_timer_handler();snapshot(argv[1],"32-phone-banner");
+  lv_obj_send_event(g_notes.banner,LV_EVENT_CLICKED,NULL);
+  assert(opened==100+VELARIDE_INFO_PHONE);
+  velaride_phone_notes_clear();
+  puts("PASS: screen wake, sedentary/phone notification/DND/banner routing and original controls");
   puts("PASS: control centre (pull, toggles, back), notifications (banner, dnd, centre, tap, clear, real swipe out), key closes centres; honeycomb and list launchers (all enabled apps, inertia, return), three transitions, fling, catch, reverse; three native faces, four accents, start pill, seven touch routes, key menu/back, rapid/held presses never enter ride");
   lv_deinit();
   return 0;

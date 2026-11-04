@@ -1,0 +1,8 @@
+TF_SPI_PROBE: refused active ride/recording/mounted card
+TF_SPI_PROBE: refused active ride/recording/mounted card
+TF_SPI_PROBE: refused active ride/recording/mounted card
+TF_SPI_PROBE: ioctl=0 errno=0 CMD0_r1=1 rx=ffffffffffffffffffffffffffffffffff01ffffffffffffffffffffffffffff
+TF_SPI_PROBE: ioctl=0 errno=0 CMD0_r1=-1 rx=a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5
+TF_SPI_PROBE: ioctl=-1 errno=5 CMD0_r1=-1 rx=a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5
+TF_SPI_PROBE: open errno=5
+PASS: actual TF probe active/mounted guards, bounded CMD0-only packet, SPI profile, response/silent/error handling and descriptor cleanup

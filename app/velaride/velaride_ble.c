@@ -39,6 +39,7 @@
 
 #include "velaride_ride_session.h"
 #include "velaride_memo.h"
+#include "velaride_phone.h"
 #include "velaride_timekeeper.h"
 
 #define VELARIDE_RX_MAX 768
@@ -304,6 +305,33 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
     {
       velaride_nav_clear();
       velaride_notify_json(conn, "{\"ok\":true,\"event\":\"nav_clear\"}");
+    }
+  else if (strcmp(cmd,"phone_note")==0)
+    {
+      char id[33],source[49],title[73],body[161];
+      if(json_get_string(json,"id",id,sizeof(id))<0 || json_get_string(json,"source",source,sizeof(source))<0 ||
+         json_get_string(json,"title",title,sizeof(title))<0 || json_get_string(json,"body",body,sizeof(body))<0 ||
+         velaride_phone_note(id,source,title,body)<0)
+        velaride_notify_json(conn,"{\"ok\":false,\"error\":\"bad_phone_note\"}");
+      else velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_note\"}");
+    }
+  else if(strcmp(cmd,"phone_notes_clear")==0)
+    {
+      velaride_phone_notes_clear();velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_notes_clear\"}");
+    }
+  else if(strcmp(cmd,"phone_weather_clear")==0)
+    {
+      velaride_weather_clear();velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_weather_clear\"}");
+    }
+  else if (strcmp(cmd,"phone_weather")==0)
+    {
+      char city[49],description[65];double temperature,published;
+      if(json_get_string(json,"city",city,sizeof(city))<0 || json_get_string(json,"description",description,sizeof(description))<0 ||
+         json_get_number(json,"temperature_deci",&temperature)<0 || temperature< -1000 || temperature>1000 || temperature!=(int)temperature ||
+         json_get_number(json,"published_epoch",&published)<0 || published<1704067200 || published>4102444800.0 || published!=(int64_t)published ||
+         velaride_weather_set(city,description,temperature,published)<0)
+        velaride_notify_json(conn,"{\"ok\":false,\"error\":\"bad_phone_weather\"}");
+      else velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_weather\"}");
     }
   else if (strcmp(cmd, "ride_status") == 0)
     {

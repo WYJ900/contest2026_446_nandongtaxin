@@ -1,0 +1,43 @@
+velaride: cannot open /dev/buttons errno=2
+VELARIDE_PREVIEW: buffer[0]=0x7e65d1389800/351000
+VELARIDE_PREVIEW: index=0 scene=0 ready in=1ms
+VELARIDE_PREVIEW: buffer[1]=0x7e65d1331800/351000
+VELARIDE_PREVIEW: index=1 scene=1 ready in=1ms
+VELARIDE_PREVIEW: buffer[2]=0x7e65d12c9800/351000
+VELARIDE_PREVIEW: index=2 scene=2 ready in=1ms
+VELARIDE_PREVIEW: buffer[3]=0x7e65d1271800/351000
+VELARIDE_PREVIEW: index=3 scene=3 ready in=1ms
+VELARIDE_PREVIEW: buffer[4]=0x7e65d0fa9800/351000
+VELARIDE_PREVIEW: index=4 scene=4 ready in=0ms
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=1
+VELARIDE_PERF: nav=11.8Hz max_gap=84ms frames=2 mode=1 axis=h cover=0
+VELARIDE_PERF: nav=12.2Hz max_gap=84ms frames=3 mode=2 axis=h cover=0
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_PREVIEW: index=0 scene=0 ready in=1ms
+VELARIDE_PREVIEW: index=1 scene=1 ready in=0ms
+VELARIDE_PREVIEW: index=2 scene=2 ready in=1ms
+VELARIDE_PREVIEW: index=3 scene=3 ready in=1ms
+VELARIDE_PREVIEW: index=4 scene=4 ready in=0ms
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=1
+VELARIDE_PREVIEW: index=3 scene=3 ready in=1ms
+VELARIDE_PREVIEW: index=4 scene=4 ready in=0ms
+VELARIDE_PERF: nav=2.9Hz max_gap=337ms frames=2 mode=0 axis=v cover=1
+VELARIDE_PREVIEW: index=4 scene=4 ready in=0ms
+VELARIDE_PREVIEW: index=4 scene=4 ready in=0ms
+VELARIDE_PERF: nav=2.9Hz max_gap=337ms frames=2 mode=0 axis=v cover=0
+VELARIDE_PREVIEW: index=4 scene=4 ready in=0ms
+VELARIDE_PERF: nav=2.7Hz max_gap=379ms frames=3 mode=0 axis=v cover=1
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_PERF: nav=0.0Hz max_gap=0ms frames=0
+VELARIDE_COUNTDOWN: completed notification=1
+VELARIDE_PREVIEW: index=3 scene=3 ready in=1ms
+VELARIDE_COUNTDOWN: completed notification=1
+VELARIDE_PREVIEW: index=0 scene=0 ready in=1ms
+VELARIDE_PREVIEW: index=1 scene=1 ready in=1ms
+PASS: screen wake, sedentary/phone notification/DND/banner routing and original controls
+PASS: control centre (pull, toggles, back), notifications (banner, dnd, centre, tap, clear, real swipe out), key closes centres; honeycomb and list launchers (all enabled apps, inertia, return), three transitions, fling, catch, reverse; three native faces, four accents, start pill, seven touch routes, key menu/back, rapid/held presses never enter ride

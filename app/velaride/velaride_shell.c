@@ -33,6 +33,10 @@
 #include <nuttx/lcd/lcd_dev.h>
 #include <nuttx/mtd/configdata.h>
 #include <nuttx/mtd/mtd.h>
+#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
+#include <nuttx/spi/spi_transfer.h>
+#include <sys/statfs.h>
+#endif
 #include <lvgl/lvgl.h>
 
 #include "velaride_sport_ui.h"
@@ -40,6 +44,8 @@
 #include "velaride_timekeeper.h"
 #include "velaride_device.h"
 #include "velaride_activity.h"
+#include "velaride_phone.h"
+#include "velaride_memo.h"
 #include "velaride_icons.h"
 #include "velaride_compass.h"
 #include "velaride_theme.h"
@@ -340,6 +346,7 @@ enum note_kind_e
   NOTE_LINK_UP,
   NOTE_LINK_DOWN,
   NOTE_ACTIVITY,
+  NOTE_PHONE,
 #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
   NOTE_COUNTDOWN,
 #endif
@@ -3251,6 +3258,7 @@ static const struct
                       VR_ICON_BLUETOOTH, 0x6e6e73, APP_CONNECT},
   [NOTE_ACTIVITY] = {"起来活动一下", "手腕活动较少，起身动一动",
                      VR_ICON_PULSE, 0x6ec6ff, -1},
+  [NOTE_PHONE] = {"手机新消息", "点击查看手机摘要",VR_ICON_BLUETOOTH,0x6ec6ff,-1},
 #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
   [NOTE_COUNTDOWN] = {"倒计时结束", "时间到，点击查看",
                       VR_ICON_TIMER, 0xc98536, APP_COUNTDOWN},
@@ -3369,10 +3377,10 @@ static void note_tap(lv_point_t point)
     }
 
   app = g_note_kinds[g_notes.items[index].kind].app;
-  if(g_notes.items[index].kind==NOTE_ACTIVITY&&!velaride_sport_ui_active())
+  if((g_notes.items[index].kind==NOTE_ACTIVITY||g_notes.items[index].kind==NOTE_PHONE)&&!velaride_sport_ui_active())
     {
       if(g_menu.active)menu_hide();
-      velaride_sport_ui_show_info(VELARIDE_INFO_ACTIVITY);
+      velaride_sport_ui_show_info(g_notes.items[index].kind==NOTE_ACTIVITY?VELARIDE_INFO_ACTIVITY:VELARIDE_INFO_PHONE);
       return;
     }
   if (app >= 0)
@@ -3427,10 +3435,10 @@ static void banner_tap_cb(lv_event_t *event)
 #endif
   lv_timer_pause(g_notes.banner_timer);
   lv_obj_add_flag(g_notes.banner, LV_OBJ_FLAG_HIDDEN);
-  if(kind==NOTE_ACTIVITY&&!velaride_sport_ui_active())
+  if((kind==NOTE_ACTIVITY||kind==NOTE_PHONE)&&!velaride_sport_ui_active())
     {
       if(g_menu.active)menu_hide();
-      velaride_sport_ui_show_info(VELARIDE_INFO_ACTIVITY);
+      velaride_sport_ui_show_info(kind==NOTE_ACTIVITY?VELARIDE_INFO_ACTIVITY:VELARIDE_INFO_PHONE);
       return;
     }
   if (g_note_kinds[kind].app >= 0 && !velaride_sport_ui_active())
@@ -3567,6 +3575,8 @@ static void note_watch(void)
   velaride_ride_session_get(&ride);
   if(!ride.active&&!g_nav.dragging&&!g_nav.transition_active&&velaride_activity_take_due())
     note_post(NOTE_ACTIVITY);
+  if(ride.alert==VELARIDE_ALERT_NONE&&!g_nav.dragging&&!g_nav.transition_active&&velaride_phone_take_event())
+    note_post(NOTE_PHONE);
   if (ride.alert == VELARIDE_ALERT_REST && !g_notes.rest_posted)
     {
       g_notes.rest_posted = true;
@@ -4373,8 +4383,40 @@ static int velaride_decode_hex(const char *hex, char *output, size_t size)
   return hex_len / 2;
 }
 
+#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
+static int tf_spi_probe(void)
+{
+  struct velaride_ride_snapshot_s ride;
+  struct velaride_memo_s memo;
+  struct statfs fs;
+  uint8_t tx[32],rx[32];
+  velaride_ride_session_get(&ride);velaride_memo_get(&memo);
+  if(ride.active||memo.state==VELARIDE_MEMO_RECORDING||
+     (statfs("/data/tf",&fs)==0&&fs.f_type==MSDOS_SUPER_MAGIC)) {
+    printf("TF_SPI_PROBE: refused active ride/recording/mounted card\n");return EXIT_FAILURE;
+  }
+  int fd=open("/dev/spi1",O_RDWR|O_CLOEXEC);
+  if(fd<0){printf("TF_SPI_PROBE: open errno=%d\n",errno);return EXIT_FAILURE;}
+  memset(tx,0xff,sizeof(tx));memset(rx,0xa5,sizeof(rx));
+  /* Same CMD0 reset/CRC packet as the in-tree mmcsd SPI initializer.
+   * No sector data, erase, write or filesystem operation is issued. */
+  tx[8]=0x40;tx[9]=tx[10]=tx[11]=tx[12]=0;tx[13]=0x95;
+  struct spi_trans_s trans={.deselect=true,.nwords=sizeof(tx),.txbuffer=tx,.rxbuffer=rx};
+  struct spi_sequence_s sequence={.dev=SPIDEV_MMCSD(0),.mode=SPIDEV_MODE0,.nbits=8,.ntrans=1,.frequency=400000,.trans=&trans};
+  int ret=ioctl(fd,SPIIOC_TRANSFER,(unsigned long)&sequence);int saved_errno=errno;close(fd);
+  int r1=-1;
+  for(unsigned int i=14;i<sizeof(rx);i++)if((rx[i]&0x80)==0){r1=rx[i];break;}
+  printf("TF_SPI_PROBE: ioctl=%d errno=%d CMD0_r1=%d rx=",ret,ret<0?saved_errno:0,r1);
+  for(unsigned int i=0;i<sizeof(rx);i++)printf("%02x",rx[i]);
+  printf("\n");return ret==0&&r1==1?EXIT_SUCCESS:EXIT_FAILURE;
+}
+#endif
+
 int main(int argc, FAR char *argv[])
 {
+#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
+  if(argc==2&&strcmp(argv[1],"tf-probe")==0)return tf_spi_probe();
+#endif
   lv_nuttx_dsc_t info;
   lv_nuttx_result_t result;
 #ifdef CONFIG_LV_USE_NUTTX_LIBUV

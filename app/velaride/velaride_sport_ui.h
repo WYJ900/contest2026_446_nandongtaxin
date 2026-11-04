@@ -39,6 +39,7 @@ enum velaride_info_e
   VELARIDE_INFO_NIGHT,
 #endif
   VELARIDE_INFO_ACTIVITY,
+  VELARIDE_INFO_PHONE,
 };
 
 void velaride_sport_ui_init(lv_obj_t *screen,

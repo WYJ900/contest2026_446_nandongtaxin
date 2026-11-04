@@ -1,0 +1,25 @@
+{
+  "stage": "phone-bridge",
+  "parent_commit": "f675bd2",
+  "firmware_sha256": "f43ccbbaf7a9962043dee48bcd32c06f70f9a634d91ce4c90b6abfad0d6f73a7",
+  "firmware_bytes": 9808412,
+  "application_space_remaining": 218596,
+  "apk_version": "0.2.1",
+  "apk_sha256": "8f2ab84646df6472b78d36dc6b22dd93689cd41f1fa172f4fbebe1e13259daa8",
+  "passed": {
+    "firmware_build": true,
+    "unchanged_config": true,
+    "ride_scenarios": 19,
+    "actual_stage_lvgl_asan_ubsan": true,
+    "ble_payload": true,
+    "android_host_tests_and_build": true
+  },
+  "device_operations": false,
+  "candidate_installed": false,
+  "pending": [
+    "GPS parent real ride acceptance",
+    "Physical UI and original functions on candidate",
+    "Real Flash persistence and Android backfill on phone"
+  ],
+  "source_limit": "Application-stage snapshot and parent archives; clean full dependency rebuild not verified"
+}

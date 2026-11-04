@@ -23,14 +23,17 @@ import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
-/** Foreground companion: direct watch connection, real records, optional phone GPS. */
+/** Direct watch companion; connectedDevice service owns BLE, GPS remains foreground-only. */
 @SuppressLint("MissingPermission")
 public final class MainActivity extends Activity {
     private static final int BG = Color.rgb(16, 21, 18), CARD = Color.rgb(28, 36, 30);
     private static final int INK = Color.rgb(238, 245, 233), MUTED = Color.rgb(155, 173, 157);
     private static final int GREEN = Color.rgb(183, 237, 114), BLE_PERMISSION = 10, GPS_PERMISSION = 11;
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private ExecutorService worker;
+    private final ExecutorService ioWorker=Executors.newSingleThreadExecutor();
+    private PhoneLinkSession phoneSession;
+    private final BleLink.Listener connectionListener=this::connectionChanged;
     private volatile long session;
     private BleLink link;
     private BluetoothAdapter bluetooth;
@@ -74,6 +77,8 @@ public final class MainActivity extends Activity {
     private String lastVoiceName="",lastVoiceDevice="";
     private android.media.MediaPlayer voicePlayer;
     private String historyFailure;
+    private TextView bridgeStatus,weatherStatus;
+    private static final int CONNECTION_NOTIFICATION_PERMISSION=14;
 
     @Override public void onCreate(Bundle stateBundle) {
         super.onCreate(stateBundle);
@@ -81,13 +86,15 @@ public final class MainActivity extends Activity {
         BluetoothManager manager = getSystemService(BluetoothManager.class);
         bluetooth = manager == null ? null : manager.getAdapter();
         locationManager = getSystemService(LocationManager.class);
-        link = new BleLink(this, this::connectionChanged);
+        phoneSession=PhoneLinkSession.get(this);link=phoneSession.link;worker=phoneSession.worker;
         try {
             if (sharedHistory == null) sharedHistory = new RideHistory(new HistoryFile(getFilesDir()));
             history = sharedHistory;
         }
         catch (IOException error) { historyFailure = "历史暂时无法读取，原文件已保留：" + error.getMessage(); }
         makeScreen();
+        phoneSession.add(connectionListener);
+        if(link.isReady())connectionChanged(true,"手表后台连接已恢复到界面");
         lastVoiceName=store.getString("voice_file","");lastVoiceDevice=store.getString("voice_watch","");
         if(!lastVoiceName.isEmpty()) voiceStatus.setText("手机已保存 "+lastVoiceName+"，点击试听或选择关联记录。");
         worker.execute(() -> {
@@ -177,11 +184,36 @@ public final class MainActivity extends Activity {
         state = text("尚未连接", 17, GREEN); device.addView(state);
         live = text("连接后自动校准时间，读取手表状态。", 13, MUTED); gap(device, 7); device.addView(live);
         connect = button(device, "连接手表", true, v -> {
-            if (link.isReady()) link.disconnect("已主动断开手表"); else connectWatch(false);
+            if (link.isReady()) phoneSession.disconnect("已主动断开手表"); else connectWatch(false);
         });
         search = button(device, "搜索附近的 VelaRide", false, v -> connectWatch(true));
         refresh = button(device, "刷新手表状态", false, v -> runJob("正在读取手表…", epoch -> readStatus(epoch)));
         clock = button(device, "同步手机时间", false, v -> runJob("正在校时…", epoch -> syncTime(epoch)));
+
+        LinearLayout bridge=card(root,"红米消息与天气","蓝牙连接由前台服务保持；消息需你授权并选择应用，默认只提示有新消息。");
+        bridgeStatus=text("尚未授权手机消息",13,MUTED);bridge.addView(bridgeStatus);
+        CheckBox relay=new CheckBox(this);relay.setText("转发已选应用的通知");relay.setTextColor(INK);
+        relay.setChecked(bridgePrefs().getBoolean("relay_enabled",false));bridge.addView(relay);
+        relay.setOnCheckedChangeListener((view,checked)->{bridgePrefs().edit().putBoolean("relay_enabled",checked).apply();renderBridgeStatus();});
+        CheckBox preview=new CheckBox(this);preview.setText("在手表显示消息正文摘要");preview.setTextColor(INK);
+        preview.setChecked(bridgePrefs().getBoolean("previews",false));bridge.addView(preview);
+        preview.setOnCheckedChangeListener((view,checked)->{bridgePrefs().edit().putBoolean("previews",checked).apply();renderBridgeStatus();});
+        button(bridge,"选择要转发的应用",false,v->chooseNotificationApps());
+        button(bridge,"授权系统通知读取",false,v->{
+            try{startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));}
+            catch(ActivityNotFoundException error){message.setText("请在系统设置搜索通知使用权并选择 VelaRide。");}
+        });
+        button(bridge,"允许后台连接状态通知",false,v->{
+            if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
+                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},CONNECTION_NOTIFICATION_PERMISSION);
+            else message.setText("后台连接状态通知已具备权限。");
+        });
+        button(bridge,"红米后台/省电设置",false,v->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.parse("package:"+getPackageName()))));
+        weatherStatus=text("系统天气尚未同步；部分 ROM 可能不向普通 App 开放读取。",13,MUTED);gap(bridge,10);bridge.addView(weatherStatus);
+        button(bridge,"尝试同步小米系统天气",false,v->syncSystemWeather());
+        button(bridge,"打开小米天气",false,v->openPhoneApp("com.miui.weather2"));
+        button(bridge,"打开小米运动健康",false,v->openHealthApp());
 
         LinearLayout record = card(root, "最近一次骑行", "结束手表上的骑行后，在这里同步保存。");
         cachedLabel = text("还没有同步的骑行记录", 12, MUTED); record.addView(cachedLabel); gap(record, 12);
@@ -236,10 +268,77 @@ public final class MainActivity extends Activity {
         message = text("记录保存在本机；主动请求在线复盘时，摘要会发送到你配置的服务。", 12, MUTED); root.addView(message);
     }
 
+    private SharedPreferences bridgePrefs(){return getSharedPreferences("phone-bridge",MODE_PRIVATE);}
+    private boolean notificationAccess() {
+        try {
+            String enabled=Settings.Secure.getString(getContentResolver(),"enabled_notification_listeners");
+            ComponentName mine=new ComponentName(this,PhoneNotificationService.class);
+            if(enabled!=null)for(String item:enabled.split(":"))if(mine.equals(ComponentName.unflattenFromString(item)))return true;
+        } catch(SecurityException ignored){}
+        return false;
+    }
+    private void renderBridgeStatus() {
+        if(bridgeStatus==null)return;
+        SharedPreferences settings=bridgePrefs();
+        bridgeStatus.setText("通知读取 "+(notificationAccess()?"已授权":"未授权")+" · 已选 "+
+                settings.getStringSet("selected_apps",Collections.emptySet()).size()+" 个应用\n"
+                +(settings.getBoolean("relay_enabled",false)?"转发已开启":"转发已关闭")+" · "
+                +(settings.getBoolean("previews",false)?"显示正文摘要":"仅提示有新消息")+"\n"
+                +(link!=null&&link.isReady()?settings.getString("relay_status","蓝牙已连接，等待新消息"):"请连接手表以转发新消息"));
+    }
+    private void chooseNotificationApps() {
+        Intent launcher=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+        TreeMap<String,String> apps=new TreeMap<>();
+        for(android.content.pm.ResolveInfo resolved:getPackageManager().queryIntentActivities(launcher,0)) {
+            String pkg=resolved.activityInfo.packageName;
+            if(!getPackageName().equals(pkg))apps.put(pkg,resolved.loadLabel(getPackageManager()).toString());
+        }
+        if(apps.isEmpty()){message.setText("未能读取可选应用，请检查系统应用可见性设置。");return;}
+        List<String> packages=new ArrayList<>(apps.keySet());
+        packages.sort((a,b)->apps.get(a).compareToIgnoreCase(apps.get(b)));
+        Set<String> selected=new HashSet<>(bridgePrefs().getStringSet("selected_apps",Collections.emptySet()));
+        String[] labels=new String[packages.size()];boolean[] checks=new boolean[packages.size()];
+        for(int i=0;i<labels.length;i++){labels[i]=apps.get(packages.get(i));checks[i]=selected.contains(packages.get(i));}
+        new AlertDialog.Builder(this).setTitle("选择转发通知的应用")
+                .setMultiChoiceItems(labels,checks,(dialog,index,checked)->{if(checked)selected.add(packages.get(index));else selected.remove(packages.get(index));})
+                .setPositiveButton("保存",(dialog,which)->{bridgePrefs().edit().putStringSet("selected_apps",selected).apply();renderBridgeStatus();})
+                .setNegativeButton("取消",null).show();
+    }
+    private void openPhoneApp(String pkg) {
+        Intent intent=getPackageManager().getLaunchIntentForPackage(pkg);
+        if(intent==null){message.setText("此手机未提供可打开的对应应用。");return;}
+        try{startActivity(intent);}catch(ActivityNotFoundException error){message.setText("系统无法打开对应应用。");}
+    }
+    private void openHealthApp() {
+        for(String pkg:new String[]{"com.mi.health","com.xiaomi.wearable"})if(getPackageManager().getLaunchIntentForPackage(pkg)!=null){openPhoneApp(pkg);return;}
+        message.setText("未找到小米运动健康；骑行记录仍可在本 App 查看并导出 CSV。");
+    }
+    private void syncSystemWeather() {
+        if(busy)return;
+        if(!link.isReady()){weatherStatus.setText("请先连接手表，再同步系统天气。");return;}
+        weatherStatus.setText("正在读取系统天气…");
+        runJobOn(ioWorker,"正在同步系统天气…",epoch->{
+            try {
+                WeatherData data=MiuiWeatherSource.read(this);
+                JSONObject command=json("phone_weather").put("city",data.city).put("description",data.description)
+                        .put("temperature_deci",data.temperatureDeci).put("published_epoch",data.publishedEpoch);
+                Future<JSONObject> request=worker.submit(()->ask(epoch,command,"phone_weather"));
+                try {request.get(20,TimeUnit.SECONDS);}
+                catch(ExecutionException failed){Throwable cause=failed.getCause();if(cause instanceof Exception)throw (Exception)cause;throw failed;}
+                catch(TimeoutException timedOut){request.cancel(true);throw new IOException("天气同步超时，请重新连接后重试。",timedOut);}
+                main.post(()->{if(epoch==session)weatherStatus.setText(String.format(Locale.ROOT,"已同步 %s · %.1f C · %s",data.city,data.temperatureDeci/10.0,data.description));});
+            } catch(Exception error) {
+                final String text=error instanceof BleLink.DeviceError&&"unknown_cmd".equals(error.getMessage())?"手表需升级后显示手机天气。":readable(error);
+                main.post(()->{if(epoch==session)weatherStatus.setText(text);});throw error;
+            }
+        });
+    }
+    @Override protected void onResume(){super.onResume();renderBridgeStatus();}
     private void connectionChanged(boolean ready, String reason) {
         if (!ready) { session++; busy = false; gpsSupported = false; stopGps(false); }
         else routeSupported = true;
         state.setText(reason); state.setTextColor(ready ? GREEN : MUTED);
+        renderBridgeStatus();
         updateButtons();
         if (ready) runJob("正在同步设备…", epoch -> {
             boolean supported = WatchHandshake.prepare((command, expected) -> ask(epoch, json(command), expected));
@@ -268,9 +367,12 @@ public final class MainActivity extends Activity {
     }
     private interface Job { void run(long epoch) throws Exception; }
     private void runJob(String title, Job job) {
+        runJobOn(worker,title,job);
+    }
+    private void runJobOn(ExecutorService executor,String title,Job job) {
         if (busy) return;
         long epoch = session; busy = true; message.setText(title); updateButtons();
-        worker.execute(() -> {
+        executor.execute(() -> {
             String result = "已完成";
             try { if (epoch == session) job.run(epoch); }
             catch (Exception error) { result = readable(error); }
@@ -561,7 +663,7 @@ public final class MainActivity extends Activity {
     private void onlineReview(RideHistory.Entry entry) {
         String endpoint = store.getString("review_endpoint", "");
         if (endpoint.isEmpty()) { configureReviewEndpoint(entry); return; }
-        runJob("正在生成在线复盘…", epoch -> {
+        runJobOn(ioWorker,"正在生成在线复盘…", epoch -> {
             JSONObject result = new JSONObject(new ReviewClient().post(endpoint, reviewPayload(entry).toString()));
             if (!result.optBoolean("ok") || result.optString("review").trim().isEmpty()
                     || result.optString("source").isEmpty()) throw new IOException("复盘服务回复不完整");
@@ -781,7 +883,7 @@ public final class MainActivity extends Activity {
         }
         String address = store.getString("watch_address", "");
         if (!forceScan && BluetoothAdapter.checkBluetoothAddress(address)) {
-            link.connect(bluetooth.getRemoteDevice(address)); return;
+            phoneSession.connect(bluetooth.getRemoteDevice(address)); return;
         }
         link.disconnect("正在搜索附近手表…");
         stopScan(); devices.clear();
@@ -794,7 +896,7 @@ public final class MainActivity extends Activity {
                         cachedLabel.setText("还没有同步这块手表的骑行记录"); duration.setText("—");
                         moving.setText("运动时间  —"); recordDetail.setText("暂停  —    休息提醒  —");
                     }
-                    store.edit().putString("watch_address", selected.getAddress()).apply(); link.connect(selected);
+                    store.edit().putString("watch_address", selected.getAddress()).apply(); phoneSession.connect(selected);
                 }).setNegativeButton("取消", (d,w) -> stopScan()).create();
         scanDialog.setOnCancelListener(d -> stopScan()); scanDialog.show();
         scanner = bluetooth.getBluetoothLeScanner();
@@ -859,8 +961,7 @@ public final class MainActivity extends Activity {
         if (gps != null) gps.setText("开始定位同步");
         if (wasRunning && gpsStatus != null) gpsStatus.setText("定位已停止 · 本次累计距离保留在手机显示");
         if (wasRunning && clearWatch && link.isReady()) {
-            long epoch = session;
-            worker.execute(() -> { try { ask(epoch, json("phone_clear"), "phone_clear"); } catch (Exception ignored) { } });
+            phoneSession.clearPhoneData();
         }
     }
     private final Runnable gpsFreshness = new Runnable() {
@@ -943,6 +1044,7 @@ public final class MainActivity extends Activity {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) startGps();
             else gpsStatus.setText("未开启精确位置权限，蓝牙与骑行同步仍可使用。");
         }
+        if(code==CONNECTION_NOTIFICATION_PERMISSION)renderBridgeStatus();
     }
     @Override protected void onStop() {
         stopVoice();
@@ -952,7 +1054,10 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         stopVoice();
-        session++; stopScan(); stopGps(false); link.disconnect("连接已结束"); worker.shutdownNow(); super.onDestroy();
+        session++; stopScan(); stopGps(false);
+        if(phoneSession!=null)phoneSession.remove(connectionListener);
+        ioWorker.shutdownNow();
+        super.onDestroy();
     }
     @Override protected void onSaveInstanceState(Bundle saved) {
         saved.putString("draft", note.getText().toString()); super.onSaveInstanceState(saved);

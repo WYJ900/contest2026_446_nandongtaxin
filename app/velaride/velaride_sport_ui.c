@@ -19,6 +19,7 @@
 #include "velaride_memo.h"
 #include "velaride_device.h"
 #include "velaride_activity.h"
+#include "velaride_phone.h"
 #include "velaride_compass.h"
 #include "velaride_icons.h"
 #include "velaride_theme.h"
@@ -2788,6 +2789,25 @@ static void build_night(void)
 
 static void update_info(void)
 {
+  if(g_sport.info==VELARIDE_INFO_PHONE)
+    {
+      struct velaride_weather_s weather;
+      struct velaride_phone_note_s notes[VELARIDE_PHONE_NOTES];
+      char text[3200];size_t used;
+      if(velaride_weather_get(&weather)) {
+        snprintf(text,sizeof(text),"手机天气 · %s\n%.1f C · %s\n\n",weather.city,
+                 weather.temperature_deci/10.0,weather.description);
+      } else snprintf(text,sizeof(text),"手机天气 --\n尚未同步、接口不可用或已过期\n\n");
+      used=strlen(text);
+      int count=velaride_phone_notes_get(notes,VELARIDE_PHONE_NOTES);
+      if(count==0)snprintf(text+used,sizeof(text)-used,"没有手机消息\n请在手机 App 选择应用并授权通知读取。");
+      for(int i=0;i<count;i++) {
+        int written=snprintf(text+used,sizeof(text)-used,"%s\n%s\n%s\n\n",notes[i].source,notes[i].title,notes[i].body);
+        if(written<0||(size_t)written>=sizeof(text)-used)break;
+        used+=written;
+      }
+      set_label(g_sport.body,text);return;
+    }
   if(g_sport.info==VELARIDE_INFO_ACTIVITY)
     {
       struct velaride_activity_s state;char text[512];
@@ -3651,6 +3671,11 @@ static void build_activity(void)
   }
 }
 
+static void phone_clear_cb(lv_event_t *event)
+{
+  LV_UNUSED(event);velaride_phone_notes_clear();update_info();
+}
+
 static void display_set_cb(lv_event_t *event)
 {
   uintptr_t value = (uintptr_t)lv_event_get_user_data(event);
@@ -3681,6 +3706,7 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
      , "夜骑模式"
 #endif
      , "久坐提醒"
+     , "手机与天气"
     };
 
   if (g_sport.root == NULL || g_sport.session_started ||
@@ -3730,6 +3756,11 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
     {
       build_activity();
     }
+  else if(info==VELARIDE_INFO_PHONE)
+    {
+      g_sport.body=scroll_body("",110,258);
+      button("清除手机消息",BTN_SECONDARY,70,392,250,44,phone_clear_cb,0);
+    }
   else if (info == VELARIDE_INFO_DEVICE)
     {
       lv_obj_t *list = setting_list();
@@ -3761,14 +3792,22 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
 #else
                   7);
 #endif
+      setting_row(list,"手机与天气",VR_ICON_BLUETOOTH,VELARIDE_INFO_PHONE,
+#if defined(CONFIG_EXAMPLES_VELARIDE_SOUND) && defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
+                  10);
+#elif defined(CONFIG_EXAMPLES_VELARIDE_SOUND) || defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
+                  9);
+#else
+                  8);
+#endif
       g_sport.body = label(list, "", MUTED_COLOR, &velaride_font_cn_20,
                            18,
 #if defined(CONFIG_EXAMPLES_VELARIDE_SOUND) && defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
-                           10 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+                           11 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
 #elif defined(CONFIG_EXAMPLES_VELARIDE_SOUND) || defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
-                           9 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+                           10 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
 #else
-                           8 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+                           9 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
 #endif
                            354);
     }

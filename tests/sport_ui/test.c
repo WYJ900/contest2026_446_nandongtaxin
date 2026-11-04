@@ -1086,7 +1086,19 @@ int main(int argc, char **argv)
   }
   velaride_activity_set(true,50,0);
   velaride_sport_ui_back();
-  puts("PASS: ride flow, safety/voice/route, local tools and sedentary settings/ack/snooze with original UI regression");
+  velaride_sport_ui_show_info(VELARIDE_INFO_DEVICE);
+  click("手机与天气");
+  assert(g_sport.info==VELARIDE_INFO_PHONE);
+  assert(strstr(lv_label_get_text(g_sport.body),"没有手机消息"));
+  assert(velaride_phone_note("00000000000000000000000000000001","测试应用","测试摘要","这是一条模拟消息，用于界面检查")==0);
+  assert(velaride_weather_set("测试城市","多云",185,time(NULL))==0);
+  update_info();
+  assert(strstr(lv_label_get_text(g_sport.body),"18.5 C")&&strstr(lv_label_get_text(g_sport.body),"测试摘要"));
+  screenshot("32-phone-weather");
+  click("清除手机消息");
+  assert(strstr(lv_label_get_text(g_sport.body),"没有手机消息"));
+  velaride_weather_clear();
+  puts("PASS: original ride/tools UI plus sedentary settings/ack/snooze and phone inbox/weather/clear rendering");
   lv_deinit();
   return 0;
 }
