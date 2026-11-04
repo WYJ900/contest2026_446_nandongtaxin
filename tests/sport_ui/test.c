@@ -1062,7 +1062,31 @@ int main(int argc, char **argv)
   fake_history_count = 1;
   velaride_sport_ui_show_records();
   velaride_sport_ui_back();
-  puts("PASS: ride flow (goal presets, countdown cancel, real swipes between three views, lock, real hold to end), alerts, summary scroll, night light, stopwatch, level, empty state, save retry");
+  velaride_sport_ui_back();
+  velaride_sport_ui_show_info(VELARIDE_INFO_DEVICE);
+  click("久坐提醒");
+  assert(g_sport.info==VELARIDE_INFO_ACTIVITY);
+  assert(has_label(g_sport.root,"久坐提醒  已开启"));
+  screenshot("31-activity-settings");
+  click("提醒间隔  50 分钟");
+  {
+    struct velaride_activity_s activity;velaride_activity_get(&activity);
+    assert(activity.interval_min==60);
+  }
+  assert(velaride_activity_set(true,20,2)==0);
+  velaride_activity_sample(1000,600,true,false,true,0,0,16384);
+  for(unsigned int i=1;i<=1200;i++)velaride_activity_sample(1000+i*1000,600,true,false,true,0,0,16384);
+  update_info();
+  assert(!lv_obj_has_state(g_sport.activity_actions[0],LV_STATE_DISABLED));
+  screenshot("31b-activity-reminder");
+  click("10分钟后再提醒");
+  {
+    struct velaride_activity_s activity;velaride_activity_get(&activity);
+    assert(activity.snooze_remaining_s==600&&!activity.pending);
+  }
+  velaride_activity_set(true,50,0);
+  velaride_sport_ui_back();
+  puts("PASS: ride flow, safety/voice/route, local tools and sedentary settings/ack/snooze with original UI regression");
   lv_deinit();
   return 0;
 }

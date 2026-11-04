@@ -28,3 +28,4 @@ app/velaride/velaride_font_cn_*.c -whitespace
 /artifacts/navigation-stage-20261104/** -text
 /artifacts/voice-stage-20261104/** -text
 /artifacts/install-stage-20261104/** -text
+/artifacts/activity-stage-20261104/** -text

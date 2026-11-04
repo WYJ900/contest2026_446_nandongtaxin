@@ -877,7 +877,24 @@ int main(int argc, char **argv)
   snapshot(argv[1], "30c-night-watch-restored");
 #endif
 
-  puts("PASS: screen wake (idle off, touch/key wake without pressing, raise, lower, table, touch after raise, raise off, banner, dnd, ride keep-on, always on, 10 s)");
+  g_notes.count=0;g_notes.dnd=true;g_nav.dragging=false;g_nav.transition_active=false;page_active=false;
+  lv_obj_add_flag(g_notes.banner,LV_OBJ_FLAG_HIDDEN);
+  velaride_activity_set(true,20,2);
+  velaride_activity_sample(1000,600,true,false,true,0,0,16384);
+  for(unsigned int i=1;i<=1200;i++)velaride_activity_sample(1000+i*1000,600,true,false,true,0,0,16384);
+  note_watch();
+  assert(g_notes.count==1&&g_notes.items[0].kind==NOTE_ACTIVITY);
+  assert(lv_obj_has_flag(g_notes.banner,LV_OBJ_FLAG_HIDDEN));
+  velaride_activity_ack(false);
+  g_notes.dnd=false;
+  for(unsigned int i=1201;i<=2400;i++)velaride_activity_sample(1000+i*1000,600,true,false,true,0,0,16384);
+  note_watch();assert(!lv_obj_has_flag(g_notes.banner,LV_OBJ_FLAG_HIDDEN));
+  lv_tick_inc(500);lv_timer_handler();
+  snapshot(argv[1],"31-activity-banner");
+  lv_obj_send_event(g_notes.banner,LV_EVENT_CLICKED,NULL);
+  assert(opened==100+VELARIDE_INFO_ACTIVITY);
+  velaride_activity_ack(false);velaride_activity_set(true,50,0);
+  puts("PASS: screen wake, sedentary notification/DND/banner routing and original controls");
   puts("PASS: control centre (pull, toggles, back), notifications (banner, dnd, centre, tap, clear, real swipe out), key closes centres; honeycomb and list launchers (all enabled apps, inertia, return), three transitions, fling, catch, reverse; three native faces, four accents, start pill, seven touch routes, key menu/back, rapid/held presses never enter ride");
   lv_deinit();
   return 0;

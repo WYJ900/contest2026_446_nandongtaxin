@@ -27,6 +27,8 @@
 
 #include "velaride_device.h"
 #include "velaride_compass.h"
+#include "velaride_activity.h"
+#include "velaride_ride_session.h"
 
 #define DEVICE_ADC_PERIOD_MS 10000
 #define DEVICE_ADC_CHANNEL 7
@@ -383,10 +385,30 @@ static void sample_light(int fd, struct velaride_device_snapshot_s *sample)
   sample->light_samples++;
 }
 
+static void sample_activity(uint32_t now,time_t wall)
+{
+  struct velaride_ride_snapshot_s ride;
+  struct velaride_activity_s activity;
+  struct tm local;
+  int16_t x=0,y=0,z=0;
+  velaride_ride_session_get(&ride);
+  velaride_activity_get(&activity);
+  bool time_valid=wall>=1704067200&&localtime_r(&wall,&local)!=NULL;
+  unsigned int minute=time_valid?local.tm_hour*60+local.tm_min:0;
+  bool in_window=time_valid&&(activity.hours==2||
+        (activity.hours==0&&minute>=540&&minute<1260)||
+        (activity.hours==1&&minute>=360&&minute<1320));
+  bool valid=activity.enabled&&!ride.active&&in_window&&
+             velaride_ride_session_read_accel(&x,&y,&z)==0;
+  velaride_activity_sample(now,minute,
+                           time_valid,ride.active,valid,x,y,z);
+}
+
 static void *device_worker(void *arg)
 {
   struct velaride_device_snapshot_s sample;
   uint32_t last_adc = 0;
+  uint32_t last_activity = 0;
   uint32_t now;
   bool first = true;
   int adc_fd = -1;
@@ -444,6 +466,11 @@ static void *device_worker(void *arg)
       ui_prefs_save();
       wake_prefs_save();
       velaride_compass_sample();
+      if (first || (uint32_t)(now - last_activity) >= 1000)
+        {
+          sample_activity(now,time(NULL));
+          last_activity=now;
+        }
       usleep(250000);
     }
 

@@ -39,6 +39,7 @@
 #include "velaride_ride_session.h"
 #include "velaride_timekeeper.h"
 #include "velaride_device.h"
+#include "velaride_activity.h"
 #include "velaride_icons.h"
 #include "velaride_compass.h"
 #include "velaride_theme.h"
@@ -338,6 +339,7 @@ enum note_kind_e
   NOTE_REST,
   NOTE_LINK_UP,
   NOTE_LINK_DOWN,
+  NOTE_ACTIVITY,
 #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
   NOTE_COUNTDOWN,
 #endif
@@ -3241,12 +3243,14 @@ static const struct
 {
   [NOTE_REVIEW] = {"AI 复盘已同步", "最近一次骑行的建议已保存",
                    VR_ICON_SPARK, 0xb06ad9, APP_REVIEW},
-  [NOTE_REST] = {"该休息了", "已连续运动 45 分钟",
+  [NOTE_REST] = {"该休息了", "已到骑前设置的休息时间",
                  VR_ICON_MOON, 0xe99a2c, -1},
   [NOTE_LINK_UP] = {"已连接网关", "已自动校准时间",
                     VR_ICON_BLUETOOTH, 0x3d6fe0, APP_CONNECT},
   [NOTE_LINK_DOWN] = {"蓝牙已断开", "记录会先保存在手表里",
                       VR_ICON_BLUETOOTH, 0x6e6e73, APP_CONNECT},
+  [NOTE_ACTIVITY] = {"起来活动一下", "手腕活动较少，起身动一动",
+                     VR_ICON_PULSE, 0x6ec6ff, -1},
 #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
   [NOTE_COUNTDOWN] = {"倒计时结束", "时间到，点击查看",
                       VR_ICON_TIMER, 0xc98536, APP_COUNTDOWN},
@@ -3365,6 +3369,12 @@ static void note_tap(lv_point_t point)
     }
 
   app = g_note_kinds[g_notes.items[index].kind].app;
+  if(g_notes.items[index].kind==NOTE_ACTIVITY&&!velaride_sport_ui_active())
+    {
+      if(g_menu.active)menu_hide();
+      velaride_sport_ui_show_info(VELARIDE_INFO_ACTIVITY);
+      return;
+    }
   if (app >= 0)
     {
       launch_app(app);
@@ -3417,6 +3427,12 @@ static void banner_tap_cb(lv_event_t *event)
 #endif
   lv_timer_pause(g_notes.banner_timer);
   lv_obj_add_flag(g_notes.banner, LV_OBJ_FLAG_HIDDEN);
+  if(kind==NOTE_ACTIVITY&&!velaride_sport_ui_active())
+    {
+      if(g_menu.active)menu_hide();
+      velaride_sport_ui_show_info(VELARIDE_INFO_ACTIVITY);
+      return;
+    }
   if (g_note_kinds[kind].app >= 0 && !velaride_sport_ui_active())
     {
       launch_app(g_note_kinds[kind].app);
@@ -3549,6 +3565,8 @@ static void note_watch(void)
     }
 
   velaride_ride_session_get(&ride);
+  if(!ride.active&&!g_nav.dragging&&!g_nav.transition_active&&velaride_activity_take_due())
+    note_post(NOTE_ACTIVITY);
   if (ride.alert == VELARIDE_ALERT_REST && !g_notes.rest_posted)
     {
       g_notes.rest_posted = true;

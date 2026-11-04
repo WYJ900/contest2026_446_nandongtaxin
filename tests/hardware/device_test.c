@@ -24,6 +24,13 @@ static int light_error;
 static int save_error;
 static uint8_t disk[8];
 static int commits;
+static bool activity_enabled,activity_riding,activity_sample_valid;
+static int activity_reads;
+void velaride_activity_get(struct velaride_activity_s *out) {memset(out,0,sizeof(*out));out->enabled=activity_enabled;}
+void velaride_activity_sample(uint32_t now,unsigned int minute,bool time_valid,bool riding,bool valid,int16_t x,int16_t y,int16_t z)
+{(void)now;(void)minute;(void)time_valid;(void)riding;(void)x;(void)y;(void)z;activity_sample_valid=valid;}
+void velaride_ride_session_get(struct velaride_ride_snapshot_s *out) {memset(out,0,sizeof(*out));out->active=activity_riding;}
+int velaride_ride_session_read_accel(int16_t *x,int16_t *y,int16_t *z) {*x=0;*y=0;*z=16384;activity_reads++;return 0;}
 void velaride_compass_init(void) {}
 void velaride_compass_sample(void) {}
 
@@ -249,6 +256,15 @@ int main(void)
   assert(velaride_display_tick() == 50);
   velaride_display_set(20, false);
   assert(velaride_display_tick() == 20);
-  puts("PASS: ADC/light faults, stale data, brightness ramp/hysteresis/fallback, persistence and retry");
+  {
+    struct tm noon={.tm_year=126,.tm_mon=10,.tm_mday=4,.tm_hour=12};
+    time_t day=mktime(&noon);
+    activity_enabled=true;sample_activity(fake_now,day);assert(activity_reads==1&&activity_sample_valid);
+    activity_riding=true;sample_activity(fake_now,day);assert(activity_reads==1&&!activity_sample_valid);
+    activity_riding=false;activity_enabled=false;sample_activity(fake_now,day);assert(activity_reads==1&&!activity_sample_valid);
+    activity_enabled=true;noon.tm_hour=23;sample_activity(fake_now,mktime(&noon));assert(activity_reads==1&&!activity_sample_valid);
+    sample_activity(fake_now,0);assert(activity_reads==1&&!activity_sample_valid);
+  }
+  puts("PASS: ADC/light/brightness regressions and sedentary sampling disabled during ride, quiet hours, disabled setting and invalid time");
   return 0;
 }

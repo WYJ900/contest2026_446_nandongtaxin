@@ -18,6 +18,7 @@
 #include "velaride_ride_session.h"
 #include "velaride_memo.h"
 #include "velaride_device.h"
+#include "velaride_activity.h"
 #include "velaride_compass.h"
 #include "velaride_icons.h"
 #include "velaride_theme.h"
@@ -109,6 +110,7 @@ struct sport_ui_s
   lv_obj_t *heading_label;
   lv_obj_t *heading_name;
   lv_obj_t *nav_label;
+  lv_obj_t *activity_actions[2];
   lv_obj_t *tape;
   lv_obj_t *scroll;
   lv_obj_t *review_card;
@@ -334,6 +336,7 @@ static void clear_page_state(enum sport_page_e page)
   g_sport.heading_label = NULL;
   g_sport.heading_name = NULL;
   g_sport.nav_label = NULL;
+  memset(g_sport.activity_actions,0,sizeof(g_sport.activity_actions));
   g_sport.tape = NULL;
   g_sport.scroll = NULL;
   g_sport.review_card = NULL;
@@ -2785,6 +2788,22 @@ static void build_night(void)
 
 static void update_info(void)
 {
+  if(g_sport.info==VELARIDE_INFO_ACTIVITY)
+    {
+      struct velaride_activity_s state;char text[512];
+      velaride_activity_get(&state);
+      for(int i=0;i<2;i++)if(g_sport.activity_actions[i]!=NULL) {
+        if(state.pending)lv_obj_remove_state(g_sport.activity_actions[i],LV_STATE_DISABLED);
+        else lv_obj_add_state(g_sport.activity_actions[i],LV_STATE_DISABLED);
+      }
+      snprintf(text,sizeof(text),"%s · 每 %u 分钟\n低活动 %lu 分钟 / 活动 %lu 秒\n"
+               "%s\n基于手腕活动估计，静放也可能提醒。\n持续活动约两分钟重新计时；重启后重新计时。\n%s",
+               state.enabled?"已开启":"已关闭",state.interval_min,(unsigned long)(state.low_activity_s/60),
+               (unsigned long)state.active_s,state.riding?"骑行期间不提醒":state.quiet?"当前处于安静时段":
+               !state.sensor_ready?"等待有效运动采样":state.pending?"该起来活动一下了":"正在观察手腕活动",
+               state.save_error<0?"设置未保存，请重试":"");
+      set_label(g_sport.body,text);return;
+    }
 #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
   if (g_sport.info == VELARIDE_INFO_COUNTDOWN)
     {
@@ -3595,6 +3614,43 @@ static void build_wake(void)
                        30, 250 + VELARIDE_SLEEP_COUNT * 86 + 6, 330);
 }
 
+static void activity_settings_cb(lv_event_t *event)
+{
+  struct velaride_activity_s state;
+  intptr_t action=(intptr_t)lv_event_get_user_data(event);
+  bool from_settings=g_sport.info_from_settings;
+  velaride_activity_get(&state);
+  if(action==0)velaride_activity_set(!state.enabled,state.interval_min,state.hours);
+  else if(action==1) {
+    uint8_t interval=state.interval_min==30?50:state.interval_min==50?60:state.interval_min==60?90:30;
+    velaride_activity_set(state.enabled,interval,state.hours);
+  }
+  else if(action==2)velaride_activity_set(state.enabled,state.interval_min,(state.hours+1)%3);
+  else velaride_activity_ack(action==4);
+  velaride_sport_ui_show_info(VELARIDE_INFO_ACTIVITY);
+  g_sport.info_from_settings=from_settings;
+}
+
+static void build_activity(void)
+{
+  static const char *hours[]={"09:00–21:00","06:00–22:00","全天"};
+  struct velaride_activity_s state;
+  lv_obj_t *list=setting_list();
+  char text[80];
+  velaride_activity_get(&state);
+  g_sport.body=label(list,"",MUTED_COLOR,&velaride_font_cn_20,18,0,354);
+  for(int i=0;i<5;i++) {
+    lv_obj_t *row;
+    if(i==0)snprintf(text,sizeof(text),"久坐提醒  %s",state.enabled?"已开启":"已关闭");
+    else if(i==1)snprintf(text,sizeof(text),"提醒间隔  %u 分钟",state.interval_min);
+    else if(i==2)snprintf(text,sizeof(text),"提醒时段  %s",hours[state.hours]);
+    else snprintf(text,sizeof(text),"%s",i==3?"我会起来活动":"10分钟后再提醒");
+    row=button(text,BTN_TILE,18,208+i*80,354,66,activity_settings_cb,i);
+    lv_obj_set_parent(row,list);
+    if(i>=3)g_sport.activity_actions[i-3]=row;
+  }
+}
+
 static void display_set_cb(lv_event_t *event)
 {
   uintptr_t value = (uintptr_t)lv_event_get_user_data(event);
@@ -3624,6 +3680,7 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
 #ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
      , "夜骑模式"
 #endif
+     , "久坐提醒"
     };
 
   if (g_sport.root == NULL || g_sport.session_started ||
@@ -3669,7 +3726,11 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
     }
   else
 #endif
-  if (info == VELARIDE_INFO_DEVICE)
+  if(info==VELARIDE_INFO_ACTIVITY)
+    {
+      build_activity();
+    }
+  else if (info == VELARIDE_INFO_DEVICE)
     {
       lv_obj_t *list = setting_list();
 
@@ -3692,14 +3753,22 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
                   7);
 #endif
 #endif
+      setting_row(list,"久坐提醒",VR_ICON_PULSE,VELARIDE_INFO_ACTIVITY,
+#if defined(CONFIG_EXAMPLES_VELARIDE_SOUND) && defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
+                  9);
+#elif defined(CONFIG_EXAMPLES_VELARIDE_SOUND) || defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
+                  8);
+#else
+                  7);
+#endif
       g_sport.body = label(list, "", MUTED_COLOR, &velaride_font_cn_20,
                            18,
 #if defined(CONFIG_EXAMPLES_VELARIDE_SOUND) && defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
-                           9 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+                           10 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
 #elif defined(CONFIG_EXAMPLES_VELARIDE_SOUND) || defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
-                           8 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+                           9 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
 #else
-                           7 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+                           8 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
 #endif
                            354);
     }

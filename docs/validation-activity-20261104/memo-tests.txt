@@ -1,0 +1,1 @@
+PASS: bounded memo worker, active-ride guard, missing storage, WAV/ride hint/CRC/chunks, no-overwrite and failure cleanup

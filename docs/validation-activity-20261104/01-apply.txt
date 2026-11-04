@@ -1,0 +1,16 @@
+patching file velaride_sport_ui.c
+Hunk #6 succeeded at 3706 (offset 26 lines).
+Hunk #7 succeeded at 3752 (offset 26 lines).
+Hunk #8 succeeded at 3779 (offset 26 lines).
+patching file CMakeLists.txt
+patching file velaride_activity.c
+patching file velaride_activity.h
+patching file velaride_device.c
+patching file velaride_shell.c
+Hunk #2 succeeded at 342 (offset 3 lines).
+Hunk #3 succeeded at 3485 (offset 242 lines).
+Hunk #4 succeeded at 3611 (offset 242 lines).
+Hunk #5 succeeded at 3669 (offset 242 lines).
+Hunk #6 succeeded at 3807 (offset 242 lines).
+patching file velaride_sport_ui.h
+patching file velaride_font_night_28.c

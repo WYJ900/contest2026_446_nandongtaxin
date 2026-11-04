@@ -3,12 +3,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <kvdb.h>
-static uint8_t record[2][12];
-static bool present[2];
+static uint8_t record[3][12];
+static bool present[3];
 static int slot(const char *key)
 {
   return strcmp(key, "persist.velaride.alarm") == 0 ? 0 :
-         strcmp(key, "persist.velaride.night") == 0 ? 1 : -1;
+         strcmp(key, "persist.velaride.night") == 0 ? 1 :
+         strcmp(key, "persist.velaride.activity") == 0 ? 2 : -1;
 }
 ssize_t property_get_buffer(const char *key, void *data, size_t size)
 {

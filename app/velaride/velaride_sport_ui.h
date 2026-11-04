@@ -38,6 +38,7 @@ enum velaride_info_e
 #ifdef CONFIG_EXAMPLES_VELARIDE_NIGHT
   VELARIDE_INFO_NIGHT,
 #endif
+  VELARIDE_INFO_ACTIVITY,
 };
 
 void velaride_sport_ui_init(lv_obj_t *screen,
