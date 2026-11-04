@@ -902,6 +902,14 @@ static int ride_load_key(const char *key, struct velaride_ride_record_s *record)
 
   memset(&disk, 0, sizeof(disk));
   ret = property_get_buffer(key, &disk, sizeof(disk));
+  if (ret == -EINVAL)
+    {
+      /* property_get_buffer() maps missing keys to -EINVAL on this KVDB.
+       * Check the error-preserving API so empty slots are not corruption. */
+      char value[256];
+      int exists = property_get_with_err(key, value);
+      if (exists < 0) return exists;
+    }
   if (ret == sizeof(struct ride_record_disk_v3_s) && disk.magic == RIDE_RECORD_MAGIC &&
       disk.version == 3 && disk.size == sizeof(struct ride_record_disk_v3_s))
     {

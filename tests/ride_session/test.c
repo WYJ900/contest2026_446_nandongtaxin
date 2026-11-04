@@ -97,6 +97,17 @@ ssize_t property_get_buffer(const char *key, void *data, size_t size)
           return store[i].size;
         }
     }
+  return -EINVAL; /* Actual KVDB wrapper collapses missing-key errors. */
+}
+
+int property_get_with_err(const char *key, char *value)
+{
+  for (size_t i = 0; i < 64; i++)
+    if (strcmp(store[i].key, key) == 0)
+      {
+        value[0] = 'x'; value[1] = '\0';
+        return 1;
+      }
   return -ENOENT;
 }
 
