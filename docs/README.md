@@ -1,5 +1,12 @@
 # VelaRide AI 文档索引
 
+- **[2026-11-04 八项新增功能与上手路径（综合候选，先读）](FEATURES_20261104.md)**
+- [综合候选与停车语音交接](HANDOFF_VOICE_20261104.md)
+- [GPX 路线点指引](HANDOFF_NAVIGATION_20261104.md)
+- [提醒、停车建议和目标分段](HANDOFF_RIDE_TOOLS_20261103.md)
+- [离线/在线复盘](HANDOFF_REVIEW_20261103.md)
+- [16 条离线历史与补传](HANDOFF_HISTORY_20261103.md)
+
 - **[2026-11-03 安全确认候选与安卓 0.1.5（已构建，未刷入）](HANDOFF_SAFETY_20261103.md)**
 - [开发前 Git 检查点](CHECKPOINT_BEFORE_SAFETY_20261103.md)
 - **[2026-11-01 每次骑行 GPS 统计与安卓 0.1.4（手表保留此版，用户待测）](HANDOFF_RIDE_GPS_20261101.md)**

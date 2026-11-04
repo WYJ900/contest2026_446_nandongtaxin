@@ -42,6 +42,10 @@ public final class RideReview {
     private static String delta(long value, String unit) {
         return value == 0 ? "相同" : (value > 0 ? "增加 " : "减少 ") + Math.abs(value) + " " + unit;
     }
+    public static String recordIdentity(RideHistory.Entry e) {
+        return identity(new RideHistory.Entry(e.device,e.sequence,e.elapsed,e.moving,e.still,e.pauses,
+                e.rests,e.impacts,e.firstSync,e.lastSync,""));
+    }
     public static String identity(RideHistory.Entry e) {
         String data = e.device.length() + ":" + e.device + ":" + e.sequence + ":" + e.elapsed + ":" + e.moving + ":" + e.still
                 + ":" + e.pauses + ":" + e.rests + ":" + e.impacts + ":" + e.gps.timeMs + ":" + e.gps.distanceM

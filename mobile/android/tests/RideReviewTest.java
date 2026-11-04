@@ -19,6 +19,9 @@ public final class RideReviewTest {
         check(text.contains("不代表骑行发生顺序") && text.contains("40 秒"));
         check(RideReview.identity(current).equals(RideReview.identity(current.withNote("新备注"))));
         check(!RideReview.identity(current).equals(RideReview.identity(old)));
+        RideHistory.Entry missing=new RideHistory.Entry(current.device,current.sequence,current.elapsed,current.moving,
+                current.still,current.pauses,current.rests,current.impacts,current.firstSync,current.lastSync,"");
+        check(RideReview.recordIdentity(current).equals(RideReview.recordIdentity(missing)));
         String watch = RideReview.watchText("fallback",String.join("",Collections.nCopies(200,"骑行🚲")));
         check(watch.startsWith("本地复盘：") && watch.getBytes(StandardCharsets.UTF_8).length <= 260);
         check(!Character.isHighSurrogate(watch.charAt(watch.length()-1)));

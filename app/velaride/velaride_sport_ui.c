@@ -16,6 +16,7 @@
 
 #include "velaride_sport_ui.h"
 #include "velaride_ride_session.h"
+#include "velaride_memo.h"
 #include "velaride_device.h"
 #include "velaride_compass.h"
 #include "velaride_icons.h"
@@ -74,6 +75,7 @@ enum sport_page_e
   SPORT_PAGE_REVIEW,
   SPORT_PAGE_HISTORY,
   SPORT_PAGE_RIDE_PREFS,
+  SPORT_PAGE_MEMO,
   SPORT_PAGE_INFO,
 };
 
@@ -175,6 +177,8 @@ static void show_select(void);
 static void show_goal(void);
 static void show_ride_prefs(void);
 static void ride_prefs_open_cb(lv_event_t *event);
+static void memo_open_cb(lv_event_t *event);
+static void update_memo(void);
 static void pause_cb(lv_event_t *event);
 static void update_info(void);
 static void show_active(void);
@@ -722,6 +726,45 @@ static void lap_cb(lv_event_t *event)
   show_active();
 }
 
+static int g_memo_start_error;
+static void memo_record_cb(lv_event_t *event)
+{
+  LV_UNUSED(event);
+  g_memo_start_error=velaride_memo_start();
+  update_memo();
+}
+
+static void update_memo(void)
+{
+  struct velaride_memo_s memo;
+  struct velaride_ride_snapshot_s ride;
+  char text[320];
+  velaride_memo_get(&memo);
+  velaride_ride_session_get(&ride);
+  if(memo.state==VELARIDE_MEMO_RECORDING)
+    snprintf(text,sizeof(text),"正在录制 3 秒\n请保持暂停，等待保存完成。\n不会连续录音或自动放音。");
+  else if(g_memo_start_error<0 || memo.state==VELARIDE_MEMO_ERROR)
+    snprintf(text,sizeof(text),"录音未完成（%d）\n请确认已暂停、TF 卡已挂载且空间足够，再重试。",
+             g_memo_start_error<0?g_memo_start_error:memo.error);
+  else if(memo.state==VELARIDE_MEMO_SAVED)
+    snprintf(text,sizeof(text),"已保存 M%07lu.WAV\n3 秒板载录音\n%s # %lu\n手机同步后可试听并选择关联记录。",
+             (unsigned long)memo.id,memo.pending?"待结束会话编号":"骑行编号",
+             (unsigned long)memo.sequence);
+  else snprintf(text,sizeof(text),"%s\n仅在点击后录制 3 秒。\n文件保存在 FAT TF 卡 MEMOS 目录，手机可同步。",
+                ride.active&&!ride.paused?"请先返回并暂停骑行":"请在安全地点录音");
+  set_label(g_sport.body,text);
+}
+
+static void memo_open_cb(lv_event_t *event)
+{
+  LV_UNUSED(event);
+  clear_page(SPORT_PAGE_MEMO,"语音标记");
+  g_memo_start_error=0;
+  g_sport.body=label(g_sport.root,"",TEXT_COLOR,&velaride_font_cn_20,28,128,SPORT_W-56);
+  button("录制 3 秒",BTN_PRIMARY,30,338,SPORT_W-60,62,memo_record_cb,0);
+  update_memo();
+}
+
 static void build_control_view(void)
 {
   struct velaride_ride_snapshot_s ride;
@@ -757,8 +800,9 @@ static void build_control_view(void)
   lv_obj_remove_flag(g_sport.hold_arc, LV_OBJ_FLAG_CLICKABLE |
                                        LV_OBJ_FLAG_SCROLLABLE);
 
-  control(143, 250, 0x6ec6ff, 0x0b2230, VR_ICON_SAFETY, NULL, "防误触锁",
+  control(60, 250, 0x6ec6ff, 0x0b2230, VR_ICON_SAFETY, NULL, "防误触锁",
           lock_cb);
+  control(226, 250, 0x6ec6ff, 0x0b2230, VR_ICON_PULSE, NULL, "语音标记", memo_open_cb);
   {
     char text[64];
     snprintf(text, sizeof(text), "分段 %u · 最近 %lu s", ride.extras.lap_count,
@@ -2965,6 +3009,7 @@ static void session_timer_cb(lv_timer_t *timer)
   if (ride.alert != VELARIDE_ALERT_NONE &&
       (g_sport.page == SPORT_PAGE_ACTIVE ||
        g_sport.page == SPORT_PAGE_GOAL_DONE ||
+       (g_sport.page == SPORT_PAGE_MEMO && ride.alert == VELARIDE_ALERT_IMPACT) ||
        (g_sport.page == SPORT_PAGE_ALERT &&
         ride.alert != g_sport.shown_alert)))
     {
@@ -3003,6 +3048,15 @@ void velaride_sport_ui_back(void)
         break;
       case SPORT_PAGE_RIDE_PREFS:
         show_goal();
+        break;
+      case SPORT_PAGE_MEMO:
+        {
+          struct velaride_memo_s memo;
+          velaride_memo_get(&memo);
+          if(memo.state==VELARIDE_MEMO_RECORDING) break;
+        }
+        g_sport.ride_view = RIDE_VIEW_CONTROL;
+        show_active();
         break;
       case SPORT_PAGE_COUNTDOWN:
         lv_timer_pause(g_sport.countdown_timer);
@@ -3066,6 +3120,7 @@ static void info_timer_cb(lv_timer_t *timer)
 {
   LV_UNUSED(timer);
   if (g_sport.page == SPORT_PAGE_INFO) update_info();
+  if (g_sport.page == SPORT_PAGE_MEMO) update_memo();
   if (g_sport.page == SPORT_PAGE_ACTIVE &&
       g_sport.ride_view == RIDE_VIEW_HEADING)
     {

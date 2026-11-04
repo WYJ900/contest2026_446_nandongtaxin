@@ -38,6 +38,7 @@
 #include <zephyr/sys/util.h>
 
 #include "velaride_ride_session.h"
+#include "velaride_memo.h"
 #include "velaride_timekeeper.h"
 
 #define VELARIDE_RX_MAX 768
@@ -334,6 +335,49 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
                ride.active && ride.alert == VELARIDE_ALERT_IMPACT ? "true" : "false",
                ride.safety_remaining_s, ride.safety.help, ride.safety.last_action);
       velaride_notify_json(conn, response);
+    }
+  else if (strcmp(cmd, "memo_list") == 0)
+    {
+      uint32_t ids[16];
+      int count=velaride_memo_list(ids,16);
+      int used;
+      if(count<0) {velaride_notify_json(conn,"{\"ok\":false,\"error\":\"memo_storage_unavailable\"}");return;}
+      used=snprintf(response,sizeof(response),"{\"ok\":true,\"event\":\"memo_list\",\"ids\":[");
+      for(int i=0;i<count;i++) used+=snprintf(response+used,sizeof(response)-used,"%s%" PRIu32,i==0?"":",",ids[i]);
+      snprintf(response+used,sizeof(response)-used,"]}");velaride_notify_json(conn,response);
+    }
+  else if (strcmp(cmd, "memo_info") == 0 || strcmp(cmd, "memo_read") == 0)
+    {
+      double id;
+      if(json_get_number(json,"id",&id)<0 || id<1 || id>9999999 || id!=(uint32_t)id)
+        {velaride_notify_json(conn,"{\"ok\":false,\"error\":\"bad_memo_id\"}");return;}
+      if(strcmp(cmd,"memo_info")==0)
+        {
+          struct velaride_memo_s memo;
+          ret=velaride_memo_info(id,&memo);
+          if(ret<0) {velaride_notify_json(conn,"{\"ok\":false,\"error\":\"memo_unavailable\"}");return;}
+          snprintf(response,sizeof(response),"{\"ok\":true,\"event\":\"memo_info\",\"id\":%" PRIu32
+                   ",\"sequence\":%" PRIu32 ",\"pending\":%s,\"bytes\":%" PRIu32 ",\"crc32\":%" PRIu32 "}",
+                   memo.id,memo.sequence,memo.pending?"true":"false",memo.bytes,memo.crc32);
+        }
+      else
+        {
+          double offset;
+          double length;
+          uint8_t data[160];
+          char hex[321];
+          static const char digits[]="0123456789abcdef";
+          if(json_get_number(json,"offset",&offset)<0 || offset<0 || offset>96060 || offset!=(uint32_t)offset ||
+             json_get_number(json,"length",&length)<0 || length<1 || length>160 || length!=(uint32_t)length)
+            {velaride_notify_json(conn,"{\"ok\":false,\"error\":\"bad_memo_range\"}");return;}
+          ret=velaride_memo_read(id,offset,data,length);
+          if(ret<0) {velaride_notify_json(conn,"{\"ok\":false,\"error\":\"memo_read_failed\"}");return;}
+          for(int i=0;i<ret;i++) {hex[i*2]=digits[data[i]>>4];hex[i*2+1]=digits[data[i]&15];}
+          hex[ret*2]='\0';
+          snprintf(response,sizeof(response),"{\"ok\":true,\"event\":\"memo_chunk\",\"id\":%" PRIu32
+                   ",\"offset\":%" PRIu32 ",\"data\":\"%s\"}",(uint32_t)id,(uint32_t)offset,hex);
+        }
+      velaride_notify_json(conn,response);
     }
   else if (strcmp(cmd, "ride_history") == 0)
     {

@@ -1,0 +1,6 @@
+patching file velaride_ble.c
+Hunk #2 succeeded at 332 (offset -4 lines).
+patching file velaride_sport_ui.c
+patching file CMakeLists.txt
+patching file velaride_memo.c
+patching file velaride_memo.h

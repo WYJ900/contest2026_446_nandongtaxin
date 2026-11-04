@@ -70,6 +70,9 @@ public final class MainActivity extends Activity {
     private TextView routeStatus;
     private volatile long routeGeneration;
     private volatile boolean routeSupported = true;
+    private TextView voiceStatus;
+    private String lastVoiceName="",lastVoiceDevice="";
+    private android.media.MediaPlayer voicePlayer;
     private String historyFailure;
 
     @Override public void onCreate(Bundle stateBundle) {
@@ -85,6 +88,8 @@ public final class MainActivity extends Activity {
         }
         catch (IOException error) { historyFailure = "历史暂时无法读取，原文件已保留：" + error.getMessage(); }
         makeScreen();
+        lastVoiceName=store.getString("voice_file","");lastVoiceDevice=store.getString("voice_watch","");
+        if(!lastVoiceName.isEmpty()) voiceStatus.setText("手机已保存 "+lastVoiceName+"，点击试听或选择关联记录。");
         worker.execute(() -> {
             File saved = new File(getFilesDir(), "route.gpx");
             if (!saved.exists()) return;
@@ -216,6 +221,12 @@ public final class MainActivity extends Activity {
                 catch(BleLink.DeviceError error) { if(!"unknown_cmd".equals(error.getMessage())) throw error; }
             });
         });
+
+        LinearLayout voice=card(root,"停车语音标记","在手表暂停后录制 3 秒，保存到 TF 卡。这里可校验同步、试听并选择关联骑行。");
+        voiceStatus=text("尚未同步语音；需要手表已挂载 FAT TF 卡。",13,MUTED);voice.addView(voiceStatus);
+        button(voice,"同步手表最近录音",false,v->downloadVoice());
+        button(voice,"试听已同步录音",false,v->{try{playVoice(voiceFile(lastVoiceName));}catch(Exception error){message.setText(readable(error));}});
+        button(voice,"将录音关联到骑行",false,v->bindVoice());
 
         LinearLayout memo = card(root, "骑行备注", "把一句简短备注保存到手表的最近一次骑行中。");
         note = new EditText(this); note.setTextColor(INK); note.setHintTextColor(MUTED);
@@ -474,7 +485,12 @@ public final class MainActivity extends Activity {
     private void showHistoryDetail(RideHistory.Entry entry) {
         TextView detail = text(historyDetail(entry), 16, INK); detail.setPadding(dp(22), dp(12), dp(22), dp(12));
         detail.setTextIsSelectable(true);
-        ScrollView scroll = new ScrollView(this); scroll.addView(detail);
+        LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.addView(detail);
+        String attached=store.getString("voice_bind_"+RideReview.recordIdentity(entry),"");
+        if(!attached.isEmpty()) button(panel,"试听关联语音",false,v->{
+            try{playVoice(voiceFile(attached));}catch(Exception error){message.setText(readable(error));}
+        });
+        ScrollView scroll = new ScrollView(this); scroll.addView(panel);
         new AlertDialog.Builder(this).setTitle("骑行详情").setView(scroll)
                 .setNeutralButton("骑行复盘", (dialog, which) -> showReview(entry))
                 .setPositiveButton("分享摘要", (dialog, which) -> {
@@ -592,6 +608,95 @@ public final class MainActivity extends Activity {
         try { startActivityForResult(intent, EXPORT_HISTORY); }
         catch (ActivityNotFoundException error) { message.setText("当前手机没有文件保存工具，可先分享单条摘要。"); }
     }
+    private File voiceFile(String name) throws IOException {
+        if(!name.matches("[A-Za-z0-9_-]+\\.wav"))throw new IOException("尚无可试听的手机录音");
+        File folder=new File(getFilesDir(),"voice");
+        if(!folder.isDirectory()&&!folder.mkdirs())throw new IOException("语音目录不可用");
+        return new File(folder,name);
+    }
+    private static long uintField(JSONObject json,String key) throws Exception {
+        Object value=json.get(key);
+        if(!(value instanceof Number))throw new IOException("语音字段类型异常");
+        double number=((Number)value).doubleValue();
+        if(!Double.isFinite(number)||number<0||number>4294967295.0||number!=Math.rint(number))throw new IOException("语音字段数值异常");
+        return ((Number)value).longValue();
+    }
+    private void downloadVoice() {
+        if(!link.isReady()){message.setText("请先连接手表。");return;}
+        final String device=store.getString("watch_address","");
+        runJob("正在同步录音；请保持手表暂停…",epoch->{
+            JSONObject status=ask(epoch,json("ride_status"),"ride_status");
+            if(status.optBoolean("active")&&!status.optBoolean("paused"))throw new IOException("请先暂停骑行，再同步语音。");
+            JSONObject list;
+            try{list=ask(epoch,json("memo_list"),"memo_list");}
+            catch(BleLink.DeviceError error){if("unknown_cmd".equals(error.getMessage()))throw new IOException("当前手表需升级后才能同步录音。");throw error;}
+            JSONArray ids=list.getJSONArray("ids");
+            if(ids.length()>16)throw new IOException("手表录音清单过长");
+            if(ids.length()==0)throw new IOException("TF 卡中没有已完成录音。");
+            Object idValue=ids.get(0);
+            if(!(idValue instanceof Number))throw new IOException("录音清单异常");
+            double idNumber=((Number)idValue).doubleValue();
+            if(!Double.isFinite(idNumber)||idNumber<1||idNumber>9999999||idNumber!=Math.rint(idNumber))throw new IOException("录音编号异常");
+            long id=((Number)idValue).longValue();
+            JSONObject details=ask(epoch,json("memo_info").put("id",id),"memo_info");
+            if(!(details.get("pending") instanceof Boolean))throw new IOException("录音关联状态异常");
+            VoiceMemo.Info info=new VoiceMemo.Info(uintField(details,"id"),uintField(details,"sequence"),uintField(details,"bytes"),
+                    uintField(details,"crc32"),details.getBoolean("pending"));
+            if(info.id!=id)throw new IOException("录音编号已变化");
+            byte[] bytes=VoiceMemo.download(info,(offset,length)->{
+                if(offset%1600==0) {
+                    JSONObject now=ask(epoch,json("ride_status"),"ride_status");
+                    if(now.optBoolean("active")&&!now.optBoolean("paused"))throw new IOException("骑行已继续，语音同步中止，请停车后重试。");
+                    final long done=offset;
+                    main.post(()->{if(epoch==session)voiceStatus.setText("同步中 "+done+" / "+info.bytes+" 字节，请保持暂停。");});
+                }
+                JSONObject chunk=ask(epoch,json("memo_read").put("id",id).put("offset",offset).put("length",length),"memo_chunk");
+                if(uintField(chunk,"id")!=id||uintField(chunk,"offset")!=offset)throw new IOException("录音分片序号不一致");
+                return VoiceMemo.hex(chunk.getString("data"),length);
+            });
+            String name=device.replaceAll("[^A-Za-z0-9]","")+"-M"+id+"-"+info.crc+".wav";
+            android.util.AtomicFile file=new android.util.AtomicFile(voiceFile(name));
+            FileOutputStream output=file.startWrite();
+            try{output.write(bytes);output.getFD().sync();file.finishWrite(output);}
+            catch(IOException error){file.failWrite(output);throw error;}
+            if(!Arrays.equals(bytes,file.readFully()))throw new IOException("手机录音保存校验失败，请重试。");
+            store.edit().putString("voice_file",name).putString("voice_watch",device).apply();
+            main.post(()->{if(epoch==session){lastVoiceName=name;lastVoiceDevice=device;
+                voiceStatus.setText("已校验保存 3 秒录音。录制时"+(info.pending?"会话尚未结束，编号提示 #":"骑行编号 #")
+                        +info.sequence+"；请选择实际骑行关联。");}});
+        });
+    }
+    private void bindVoice() {
+        try{if(!voiceFile(lastVoiceName).isFile())throw new IOException("请先同步录音。");}
+        catch(IOException error){message.setText(readable(error));return;}
+        List<RideHistory.Entry> choices=new ArrayList<>();
+        if(history!=null)for(RideHistory.Entry entry:history.snapshot())if(entry.device.equals(lastVoiceDevice))choices.add(entry);
+        if(choices.isEmpty()){message.setText("请先同步这块手表的骑行记录，再选择关联。");return;}
+        String[] labels=new String[choices.size()];
+        for(int i=0;i<labels.length;i++)labels[i]="#"+choices.get(i).sequence+" · "+time(choices.get(i).elapsed);
+        new AlertDialog.Builder(this).setTitle("选择这段录音对应的骑行").setItems(labels,(dialog,index)->{
+            store.edit().putString("voice_bind_"+RideReview.recordIdentity(choices.get(index)),lastVoiceName).apply();
+            voiceStatus.setText("已关联到手机记录 #"+choices.get(index).sequence+"，可在历史详情试听。");
+        }).setNegativeButton("取消",null).show();
+    }
+    private void stopVoice() {
+        if(voicePlayer!=null){voicePlayer.release();voicePlayer=null;}
+    }
+    private void playVoice(File file) throws IOException {
+        if(!file.isFile())throw new IOException("语音文件不存在，请重新同步。");
+        stopVoice();
+        android.media.MediaPlayer player=new android.media.MediaPlayer();voicePlayer=player;
+        try {
+            player.setDataSource(file.getAbsolutePath());
+            player.setOnPreparedListener(ready->{if(voicePlayer==ready)ready.start();});
+            player.setOnCompletionListener(done->{if(voicePlayer==done)stopVoice();});
+            player.setOnErrorListener((failed,what,extra)->{if(voicePlayer==failed)stopVoice();message.setText("当前录音无法播放，请重新同步。");return true;});
+            player.prepareAsync();
+        } catch(IOException|RuntimeException error) {
+            if(voicePlayer==player)stopVoice();
+            throw new IOException("当前录音无法播放，请重新同步。",error);
+        }
+    }
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
         if(request==IMPORT_ROUTE && result==RESULT_OK && data!=null && data.getData()!=null) {
@@ -605,6 +710,7 @@ public final class MainActivity extends Activity {
                     FileOutputStream output=file.startWrite();
                     try { output.write(bytes);output.getFD().sync();file.finishWrite(output); }
                     catch(IOException error) { file.failWrite(output);throw error; }
+                    if(!Arrays.equals(bytes,file.readFully()))throw new IOException("路线保存校验失败，请重试。");
                     main.post(() -> { if(!isDestroyed()) {route=loaded;routeGeneration++;
                         routeStatus.setText("已载入 "+loaded.size()+" 个路线点，请开启定位。");} });
                 } catch(Exception error) { main.post(() -> { if(!isDestroyed()) routeStatus.setText("路线导入失败："+error.getMessage()); }); }
@@ -839,11 +945,13 @@ public final class MainActivity extends Activity {
         }
     }
     @Override protected void onStop() {
+        stopVoice();
         stopScan();
         if (scanDialog != null && scanDialog.isShowing()) scanDialog.dismiss();
         stopGps(true); super.onStop();
     }
     @Override protected void onDestroy() {
+        stopVoice();
         session++; stopScan(); stopGps(false); link.disconnect("连接已结束"); worker.shutdownNow(); super.onDestroy();
     }
     @Override protected void onSaveInstanceState(Bundle saved) {

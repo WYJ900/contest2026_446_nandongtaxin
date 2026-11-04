@@ -26,6 +26,12 @@ void sound_test_reset(void);
 static struct velaride_ride_snapshot_s state;
 static struct velaride_ride_record_s saved;
 static bool has_saved = true;
+static struct velaride_memo_s memo_fixture;
+int velaride_memo_start(void) {
+  if(state.active&&!state.paused)return -EBUSY;
+  memo_fixture.state=VELARIDE_MEMO_RECORDING;return 0;
+}
+void velaride_memo_get(struct velaride_memo_s *out) { *out=memo_fixture; }
 static int fake_history_count = 1;
 static struct velaride_ride_prefs_s ride_prefs = {.rest_min=45};
 void velaride_ride_prefs_get(struct velaride_ride_prefs_s *out) { *out=ride_prefs; }
@@ -514,6 +520,16 @@ int main(int argc, char **argv)
   advance(2000);
   assert(state.elapsed_s == paused_elapsed && state.paused);
   screenshot("06-paused");
+  pointer=(lv_point_t){.x=278,.y=302};pressing=true;lv_indev_read(input);advance(80);
+  pressing=false;lv_indev_read(input);advance(80);
+  assert(g_sport.page==SPORT_PAGE_MEMO);
+  click("录制 3 秒");
+  assert(memo_fixture.state==VELARIDE_MEMO_RECORDING);
+  velaride_sport_ui_back();assert(g_sport.page==SPORT_PAGE_MEMO);
+  memo_fixture=(struct velaride_memo_s){.state=VELARIDE_MEMO_SAVED,.id=1,.sequence=8,.pending=true};
+  advance(300);screenshot("06a-memo-saved");
+  assert(strstr(lv_label_get_text(g_sport.body),"已保存")!=NULL);
+  velaride_sport_ui_back();assert(g_sport.page==SPORT_PAGE_ACTIVE&&state.paused);
 
   /* Hold to end: letting go early does nothing. */
 
