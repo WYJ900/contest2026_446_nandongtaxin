@@ -1,0 +1,50 @@
+{
+  "stage": "safety-fixes-20261105",
+  "firmware_sha256": "57e472ce952161ab2876acc4b9feedf90cfbf0093c0ebf6f773de82a9d34a436",
+  "firmware_bytes": 9803728,
+  "parent_firmware": "661393dadc5a1a3852b0e516e6f7d7e648883b7866ab9377d39bf6dd93308ad2 (stable-features-20261105)",
+  "config_same_as": "stable-features-20261105/config (88612096...)",
+  "build_tree": "WSL Ubuntu-22.04 /home/wyj/velaride_history_cache; drv_lcd.c and drv_ext_dma.c patched only during build and restored to velaride_safety_stage originals afterwards",
+  "patches_in_order": [
+    "patch_history_cache.py (stable)",
+    "patch_sensor_lock.py (stable)",
+    "patch_still_gyro.py: gyro zero-rate offset removed before still/moving decision; ride-status debug fields",
+    "patch_impact_window.py: post-impact stillness window restarts at each jolt",
+    "patch_safety_alert_cue.py: safety check wakes screen without wake shield, rings until answered, side key silences",
+    "patch_safety_sound.py: VR_SOUND_SAFETY rings through DND/mute, >=70% volume",
+    "patch_lcd_timeout_eof.py (vendor drv_lcd.c): deliver missed LCDC EOF after a draw timeout instead of asserting",
+    "patch_lcd_irq_priority.py (vendor drv_lcd.c, drv_ext_dma.c): LCDC1/EXTDMA NVIC 0xC0 -> 0x80 (NuttX default)"
+  ],
+  "device_checks": {
+    "boot_after_flash": "lcd co5300 found, /dev/input0 present, BLE advertising, history seq=18 readable, NVIC IPR[63]=IPR[77]=0x80 read back",
+    "user_confirmed_2026_11_05": "fall check triggers after shake+lie still, alarm rings until answered, ride finish/review/done no hang (on d43b3f92); safety tone heard",
+    "serial_evidence": "watch-serial-20261105.log (LCD timeout crash dumps 19:56:57 and 20:24:47, EOF_RECOVERED 20:09:43, per-second ride-status)"
+  },
+  "not_verified": [
+    "57e472ce wake-shield fix: first tap after an auto-woken safety check (screen was off) not yet hand-tested",
+    "occasional unresponsive tap reported by user: page/button and whether present on 661393da unknown",
+    "boot_check.py 5-reset run skipped at user's request",
+    "side-key/list/scroll/raise/settings regression after IRQ priority change: user said 'almost fine', not checked item by item",
+    "real outdoor ride; false alarm rate on bumpy roads",
+    "LCPU2HCPU (IRQ58, 0x60) and DMAC1_CH7 (IRQ56, 0x00) remain above default priority (set by BT/ROM code, unchanged)"
+  ],
+  "files": {
+    "VelaRide-0.3.1-debug.apk": "3ca7c5cb67ebb42a5b73bf7f8d800d1f43f8da0e14218a7b76ea960608cd281b",
+    "app-source.tar.gz": "b73edbf2c5cc1e403e58fa6cd422d4aa6651942ad67e1e2611501917f622f2f5",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "drv_ext_dma.c": "54b5412e08ca02683ed484d7a4305977c3d47f37d34c09907cce1bf66d295fff",
+    "drv_lcd.c": "bf12465708ccca3ccb21be19ecaa589a4215a4d3a1b89d7e3bed271001d388ae",
+    "firmware.bin": "57e472ce952161ab2876acc4b9feedf90cfbf0093c0ebf6f773de82a9d34a436",
+    "serial_logger.py": "f86f8df9671c4f4d30c3b01018b6a6d2cd122b1c5840e1274b950c5e5d807a02",
+    "watch-serial-20261105.log": "db78dc81f7c8d89d74328acf828a11a0d51b74181e5dc0cf928762a5ccd2892e",
+    "wsl_build.sh": "02d073d01b45002d4e94def8f9e3cef658cf3b253f96c806549cdbd8e525497b",
+    "patches/patch_history_cache.py": "b058fe0a1c86cce2de991ae9c0837ae6a0e24ed93436aeb24769330b5d027a8a",
+    "patches/patch_impact_window.py": "f92388a0cc8e2c6f24db522aa82a7f9750b6e65d44797797fa38fbd0bf07fc8f",
+    "patches/patch_lcd_irq_priority.py": "31e69626296321a900773d53a221578a0334fe66da22a3281ec04d279d93fb26",
+    "patches/patch_lcd_timeout_eof.py": "c352e32aac660e22c476640d62c37fbf5d2d2136d14dd5596932bbff2e83b100",
+    "patches/patch_safety_alert_cue.py": "22721b0e3ed4ecb224c0ef7c9706dafd055f1561e90c7c05dae3948e45aa0f45",
+    "patches/patch_safety_sound.py": "c11e6a7348adc541b8e4faaacc6b4f2c5776434ab8537c9ab8bf4ed74cd91fdd",
+    "patches/patch_sensor_lock.py": "f0683cb810d5495ca7093f3ce15c2f774dbd9f0164b5b6a1cbc778dce1e248e6",
+    "patches/patch_still_gyro.py": "fde09c732754e29d405136abbb5335379511245b653f84da085a924d528b4f21"
+  }
+}

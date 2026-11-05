@@ -4,6 +4,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
     <uses-feature android:name="android.hardware.location" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
@@ -22,11 +28,13 @@
     </queries>
     <application android:allowBackup="false" android:label="VelaRide" android:theme="@style/AppTheme"
         android:icon="@drawable/ic_launcher" android:supportsRtl="true">
-        <service android:name=".WatchConnectionService" android:exported="false" android:foregroundServiceType="connectedDevice" />
+        <service android:name=".WatchConnectionService" android:exported="false" android:foregroundServiceType="connectedDevice|location" />
         <service android:name=".PhoneNotificationService" android:label="VelaRide 手机消息" android:exported="false"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
         </service>
+        <activity android:name=".EmergencyActivity" android:exported="false" android:showWhenLocked="true"
+            android:turnScreenOn="true" android:launchMode="singleTop" android:excludeFromRecents="true" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

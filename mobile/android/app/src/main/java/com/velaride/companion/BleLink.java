@@ -40,6 +40,8 @@ public final class BleLink {
     }
 
     public boolean isReady() { return ready; }
+    /** A GATT attempt is in flight (connecting, discovering or subscribing). */
+    public boolean isConnecting() { return gatt != null && !ready; }
 
     public void connect(BluetoothDevice device) {
         disconnect("正在连接手表…");

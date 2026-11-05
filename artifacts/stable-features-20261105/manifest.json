@@ -1,0 +1,44 @@
+{
+  "stage": "stable-features",
+  "firmware_sha256": "661393dadc5a1a3852b0e516e6f7d7e648883b7866ab9377d39bf6dd93308ad2",
+  "firmware_bytes": 9802792,
+  "build_tree": "WSL /home/wyj/velaride_history_cache = rsync of velaride_safety_stage (original LCD driver, no TF repair) + activity-stage app source + two patches",
+  "app_source_parent": "artifacts/activity-stage-20261104/app-source.tar.gz (ba36aacf build input)",
+  "patches": [
+    "patch_history_cache.py: RAM cache of 16 history slots",
+    "patch_sensor_lock.py: serialize LSM6DSL reads across UI and device threads"
+  ],
+  "config_same_as": "activity-stage-20261104/config (88612096...)",
+  "host_tests": {
+    "ride_session_19_scenarios_asan_ubsan": true
+  },
+  "device_checks": {
+    "boot_5_resets": true,
+    "legacy_ble_ping_status_latest": true,
+    "user_confirmed": "side key, list entry and sliding normal (2026-11-05)"
+  },
+  "not_verified_on_device": [
+    "real ride save/history backfill",
+    "safety confirmation trigger",
+    "low-activity 50 min reminder",
+    "GPX route",
+    "TF voice (no card inserted)"
+  ],
+  "apk": {
+    "file": "VelaRide-0.3.0-debug.apk",
+    "sha256": "cb49ffafa85440d8e6a6a065958f37a299733f7422a62b6cd2dbfd5889ef35dc",
+    "installed_on_phone": false
+  },
+  "files": {
+    "VelaRide-0.3.0-debug.apk": "cb49ffafa85440d8e6a6a065958f37a299733f7422a62b6cd2dbfd5889ef35dc",
+    "app-source.tar.gz": "2f568e42181b7fa08a3c224265421246295078684920d10dbabc3efc5c22ea2e",
+    "boot-five-ble.json": "25574f19e581236b0737e12db39c1de274a79f4bb1bde5ae38c0b25ba85d87f1",
+    "config": "88612096729099a65fba2c237deb78610a7a9fbd002c06c17f5479724e988b99",
+    "firmware.bin": "661393dadc5a1a3852b0e516e6f7d7e648883b7866ab9377d39bf6dd93308ad2",
+    "patch_history_cache.py": "b058fe0a1c86cce2de991ae9c0837ae6a0e24ed93436aeb24769330b5d027a8a",
+    "patch_history_cache_test.py": "5eee961c9bf98c24d1836c3444c03c4d2acb063897dac1d406cfc3112bd003a3",
+    "patch_sensor_lock.py": "f0683cb810d5495ca7093f3ce15c2f774dbd9f0164b5b6a1cbc778dce1e248e6",
+    "wsl_build_history_cache.sh": "77b4182439a8495376e7783f3759c93f3a0a4ff997fca52456f71d4bf88a6625",
+    "wsl_test_history_cache.sh": "9beb7e15c6228455e8985bd69c00e8defca25d01146430072192b1c273906a64"
+  }
+}

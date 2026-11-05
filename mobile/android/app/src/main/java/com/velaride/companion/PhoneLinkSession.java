@@ -20,6 +20,8 @@ final class PhoneLinkSession {
     private final CopyOnWriteArrayList<BleLink.Listener> listeners=new CopyOnWriteArrayList<>();
     private volatile long generation;
     volatile boolean keepAlive;
+    private volatile BluetoothDevice lastDevice;
+    private volatile long holdUntil;
     private volatile boolean notesSupported=true;
     private final AtomicInteger pendingNotes=new AtomicInteger();
     private PhoneLinkSession(Context context) {
@@ -33,7 +35,7 @@ final class PhoneLinkSession {
     void remove(BleLink.Listener listener){listeners.remove(listener);}
     void connect(BluetoothDevice device) {
         try {
-            keepAlive=true;
+            keepAlive=true;lastDevice=device;holdUntil=0;
             context.startForegroundService(new Intent(context,WatchConnectionService.class));
             link.connect(device);
         } catch(RuntimeException error) {
@@ -41,6 +43,15 @@ final class PhoneLinkSession {
             context.stopService(new Intent(context,WatchConnectionService.class));
         }
     }
+    /** Service retry after a drop, so fall protection does not silently stop. */
+    boolean reconnect() {
+        BluetoothDevice device=lastDevice;
+        if(!keepAlive||device==null||link.isReady()||link.isConnecting()
+                ||SystemClock.elapsedRealtime()<holdUntil)return false;
+        try{link.connect(device);return true;}catch(RuntimeException error){return false;}
+    }
+    /** A connected watch stops advertising; keep the retry away while the user scans. */
+    void holdReconnect(long millis){holdUntil=SystemClock.elapsedRealtime()+millis;}
     void disconnect(String reason) {
         keepAlive=false;link.disconnect(reason);
         context.stopService(new Intent(context,WatchConnectionService.class));

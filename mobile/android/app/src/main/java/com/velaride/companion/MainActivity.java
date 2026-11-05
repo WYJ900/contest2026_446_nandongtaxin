@@ -78,7 +78,10 @@ public final class MainActivity extends Activity {
     private android.media.MediaPlayer voicePlayer;
     private String historyFailure;
     private TextView bridgeStatus,weatherStatus;
-    private static final int CONNECTION_NOTIFICATION_PERMISSION=14;
+    private static final int CONNECTION_NOTIFICATION_PERMISSION=14, EMERGENCY_PERMISSION=15;
+    private EmergencyCenter emergency;
+    private TextView emergencyStatus;
+    private final EmergencyCenter.Listener emergencyListener=()->main.post(this::renderEmergency);
 
     @Override public void onCreate(Bundle stateBundle) {
         super.onCreate(stateBundle);
@@ -87,6 +90,7 @@ public final class MainActivity extends Activity {
         bluetooth = manager == null ? null : manager.getAdapter();
         locationManager = getSystemService(LocationManager.class);
         phoneSession=PhoneLinkSession.get(this);link=phoneSession.link;worker=phoneSession.worker;
+        emergency=EmergencyCenter.get(this);
         try {
             if (sharedHistory == null) sharedHistory = new RideHistory(new HistoryFile(getFilesDir()));
             history = sharedHistory;
@@ -94,6 +98,7 @@ public final class MainActivity extends Activity {
         catch (IOException error) { historyFailure = "历史暂时无法读取，原文件已保留：" + error.getMessage(); }
         makeScreen();
         phoneSession.add(connectionListener);
+        emergency.add(emergencyListener);renderEmergency();
         if(link.isReady())connectionChanged(true,"手表后台连接已恢复到界面");
         lastVoiceName=store.getString("voice_file","");lastVoiceDevice=store.getString("voice_watch","");
         if(!lastVoiceName.isEmpty()) voiceStatus.setText("手机已保存 "+lastVoiceName+"，点击试听或选择关联记录。");
@@ -190,6 +195,41 @@ public final class MainActivity extends Activity {
         refresh = button(device, "刷新手表状态", false, v -> runJob("正在读取手表…", epoch -> readStatus(epoch)));
         clock = button(device, "同步手机时间", false, v -> runJob("正在校时…", epoch -> syncTime(epoch)));
 
+        LinearLayout sos=card(root,"摔倒呼救","手表检测到撞击后静止，30 秒内未在腕上确认，或你在手表上点“需要帮助”，手机会响铃倒计时，随后给紧急联系人发送定位短信并拨打第一位联系人。");
+        emergencyStatus=text("",13,MUTED);sos.addView(emergencyStatus);
+        CheckBox sosEnabled=new CheckBox(this);sosEnabled.setText("开启摔倒自动呼救");sosEnabled.setTextColor(INK);
+        sosEnabled.setChecked(emergency.enabled());sos.addView(sosEnabled);
+        sosEnabled.setOnCheckedChangeListener((view,checked)->{
+            emergency.prefs().edit().putBoolean("enabled",checked).apply();
+            if(checked)requestEmergencyPermissions();
+            renderEmergency();
+        });
+        EditText contacts=new EditText(this);contacts.setTextColor(INK);contacts.setHintTextColor(MUTED);contacts.setTextSize(15);
+        contacts.setHint("每行一位，最多 3 位，例如：\n妈妈 13800000000");contacts.setMinLines(2);contacts.setMaxLines(4);
+        contacts.setText(emergency.prefs().getString("contacts",""));
+        sos.addView(contacts,new LinearLayout.LayoutParams(-1,-2));
+        button(sos,"保存紧急联系人",true,v->{
+            try{
+                List<EmergencyPlan.Contact> parsed=EmergencyPlan.parse(contacts.getText().toString());
+                String saved=EmergencyPlan.format(parsed);
+                emergency.prefs().edit().putString("contacts",saved).apply();contacts.setText(saved);
+                message.setText(parsed.isEmpty()?"已清空紧急联系人。":"已保存 "+parsed.size()+" 位紧急联系人。");
+            }catch(IllegalArgumentException error){message.setText(error.getMessage());}
+            renderEmergency();
+        });
+        button(sos,"授权短信、电话、定位和提醒",false,v->requestEmergencyPermissions());
+        button(sos,"允许锁屏全屏提醒",false,v->{
+            try{
+                if(Build.VERSION.SDK_INT>=34)startActivity(new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                        android.net.Uri.parse("package:"+getPackageName())));
+                else startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:"+getPackageName())));
+            }catch(ActivityNotFoundException error){message.setText("请在系统设置中允许 VelaRide 的锁屏显示和悬浮通知。");}
+        });
+        button(sos,"呼救演练（不发短信、不拨号）",false,v->emergency.arm(FallAlert.Reason.DRILL,true));
+        button(sos,"给联系人发送测试短信",false,v->new AlertDialog.Builder(this).setTitle("发送测试短信？")
+                .setMessage("将向已保存的紧急联系人发送一条标注“演练测试”的定位短信，不会拨号。")
+                .setPositiveButton("发送",(d,w)->emergency.sendTest()).setNegativeButton("取消",null).show());
+
         LinearLayout bridge=card(root,"红米消息与天气","蓝牙连接由前台服务保持；消息需你授权并选择应用，默认只提示有新消息。");
         bridgeStatus=text("尚未授权手机消息",13,MUTED);bridge.addView(bridgeStatus);
         CheckBox relay=new CheckBox(this);relay.setText("转发已选应用的通知");relay.setTextColor(INK);
@@ -268,6 +308,35 @@ public final class MainActivity extends Activity {
         message = text("记录保存在本机；主动请求在线复盘时，摘要会发送到你配置的服务。", 12, MUTED); root.addView(message);
     }
 
+    private void requestEmergencyPermissions() {
+        List<String> wanted=new ArrayList<>(Arrays.asList(Manifest.permission.SEND_SMS,Manifest.permission.CALL_PHONE,
+                Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION));
+        if(Build.VERSION.SDK_INT>=33)wanted.add(Manifest.permission.POST_NOTIFICATIONS);
+        List<String> missing=new ArrayList<>();
+        for(String p:wanted)if(checkSelfPermission(p)!=PackageManager.PERMISSION_GRANTED)missing.add(p);
+        if(missing.isEmpty())message.setText("摔倒呼救所需权限已具备。红米手机请在应用权限中把“发送短信”设为始终允许。");
+        else requestPermissions(missing.toArray(new String[0]),EMERGENCY_PERMISSION);
+    }
+    private boolean granted(String permission){return checkSelfPermission(permission)==PackageManager.PERMISSION_GRANTED;}
+    private void renderEmergency() {
+        if(emergencyStatus==null||emergency==null)return;
+        int people=emergency.contacts().size();
+        StringBuilder text=new StringBuilder();
+        text.append(emergency.enabled()?"已开启":"未开启").append(" · 紧急联系人 ").append(people).append(" 位\n")
+            .append("短信").append(granted(Manifest.permission.SEND_SMS)?"✓":"✗").append("  电话").append(granted(Manifest.permission.CALL_PHONE)?"✓":"✗")
+            .append("  定位").append(granted(Manifest.permission.ACCESS_FINE_LOCATION)?"✓":"✗");
+        if(Build.VERSION.SDK_INT>=33)text.append("  通知").append(granted(Manifest.permission.POST_NOTIFICATIONS)?"✓":"✗");
+        if(Build.VERSION.SDK_INT>=34){
+            NotificationManager manager=getSystemService(NotificationManager.class);
+            text.append("  锁屏全屏").append(manager!=null&&manager.canUseFullScreenIntent()?"✓":"✗");
+        }
+        text.append("\n需要保持手表连接（后台服务会持续读取安全状态）。");
+        if(emergency.enabled()&&people==0)text.append("\n⚠ 还没有紧急联系人，触发时无法自动求助。");
+        if(!emergency.watchNote().isEmpty())text.append("\n").append(emergency.watchNote());
+        if(!emergency.counting()&&!"未触发".equals(emergency.status()))text.append("\n上次结果：").append(emergency.status());
+        emergencyStatus.setText(text.toString());
+        emergencyStatus.setTextColor(emergency.enabled()&&people>0?GREEN:MUTED);
+    }
     private SharedPreferences bridgePrefs(){return getSharedPreferences("phone-bridge",MODE_PRIVATE);}
     private boolean notificationAccess() {
         try {
@@ -401,7 +470,8 @@ public final class MainActivity extends Activity {
                 (response.optBoolean("paused") ? "骑行暂停中" : "正在骑行") + " · " + time(response.optLong("elapsed_s")) : "手表待机中 · 时间已同步";
         if (response.optBoolean("safety_pending")) summary += "\n手表正在等待安全确认，请在腕上处理。";
         else if (response.optBoolean("active") && response.optInt("safety_last_action") == 3)
-            summary += "\n已记录求助意向，尚未发送消息；请使用手机联系他人。";
+            summary += emergency.enabled() ? "\n手表已选择“需要帮助”，手机已按摔倒呼救设置处理。"
+                    : "\n手表已选择“需要帮助”；摔倒呼救未开启，请手动联系他人。";
         final String display = summary;
         main.post(() -> { if (epoch == session) live.setText(display); });
     }
@@ -885,6 +955,7 @@ public final class MainActivity extends Activity {
         if (!forceScan && BluetoothAdapter.checkBluetoothAddress(address)) {
             phoneSession.connect(bluetooth.getRemoteDevice(address)); return;
         }
+        phoneSession.holdReconnect(30000);
         link.disconnect("正在搜索附近手表…");
         stopScan(); devices.clear();
         deviceNames = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
@@ -992,6 +1063,7 @@ public final class MainActivity extends Activity {
             final double speed = sample.speed;
             phoneDistance = sample.distance; lastGpsFix = location.getElapsedRealtimeNanos(); gpsStale = false;
             lastLocation = new Location(location);
+            emergency.rememberFix(location);
             RoutePlan.Hint hint=null;
             if(route!=null) {
                 try {hint=route.update(location.getLatitude(),location.getLongitude(),location.getAccuracy());
@@ -1045,6 +1117,7 @@ public final class MainActivity extends Activity {
             else gpsStatus.setText("未开启精确位置权限，蓝牙与骑行同步仍可使用。");
         }
         if(code==CONNECTION_NOTIFICATION_PERMISSION)renderBridgeStatus();
+        if(code==EMERGENCY_PERMISSION)renderEmergency();
     }
     @Override protected void onStop() {
         stopVoice();
@@ -1056,6 +1129,7 @@ public final class MainActivity extends Activity {
         stopVoice();
         session++; stopScan(); stopGps(false);
         if(phoneSession!=null)phoneSession.remove(connectionListener);
+        if(emergency!=null)emergency.remove(emergencyListener);
         ioWorker.shutdownNow();
         super.onDestroy();
     }
