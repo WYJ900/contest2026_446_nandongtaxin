@@ -14,8 +14,10 @@ public final class PhoneNotificationService extends NotificationListenerService 
         SharedPreferences settings=getSharedPreferences("phone-bridge",MODE_PRIVATE);
         boolean enabled=settings.getBoolean("relay_enabled",false);
         Set<String> selected=settings.getStringSet("selected_apps",Collections.emptySet());
-        if(!enabled||!selected.contains(posted.getPackageName()))return;
-        long age=System.currentTimeMillis()-posted.getPostTime();if(age< -10000||age>120000)return;
+        if(!enabled||!selected.contains(posted.getPackageName())){
+            android.util.Log.i("VelaRideNote","skip "+posted.getPackageName()+" enabled="+enabled+" selected="+selected);return;
+        }
+        long age=System.currentTimeMillis()-posted.getPostTime();if(age< -10000||age>120000){android.util.Log.i("VelaRideNote","skip age="+age);return;}
         Notification notification=posted.getNotification();
         boolean preview=settings.getBoolean("previews",false);
         String title="",body="";
@@ -29,6 +31,7 @@ public final class PhoneNotificationService extends NotificationListenerService 
         NotificationPolicy.Envelope note=policy.accept(enabled,selected,preview,posted.getPackageName(),posted.getKey(),app,title,body,
                 (notification.flags&Notification.FLAG_ONGOING_EVENT)!=0,(notification.flags&Notification.FLAG_GROUP_SUMMARY)!=0,
                 notification.visibility==Notification.VISIBILITY_SECRET,SystemClock.elapsedRealtime());
+        android.util.Log.i("VelaRideNote","policy "+posted.getPackageName()+" flags="+notification.flags+" vis="+notification.visibility+" -> "+(note==null?"filtered":"relay"));
         if(note!=null)PhoneLinkSession.get(this).relay(note);
     }
 }

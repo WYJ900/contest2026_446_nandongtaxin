@@ -33,10 +33,6 @@
 #include <nuttx/lcd/lcd_dev.h>
 #include <nuttx/mtd/configdata.h>
 #include <nuttx/mtd/mtd.h>
-#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
-#include <nuttx/spi/spi_transfer.h>
-#include <sys/statfs.h>
-#endif
 #include <lvgl/lvgl.h>
 
 #include "velaride_sport_ui.h"
@@ -83,6 +79,7 @@
 #define IRIS_MAX_RADIUS 300
 #define IRIS_MARGIN 2
 #define IRIS_BAND 64
+#define FRAME_PERIOD_MS 16
 #define FACE_COUNT 3
 #define FACE_PILL_X 30
 #define FACE_PILL_Y 358
@@ -143,6 +140,8 @@
 static volatile bool g_refresh_requested;
 static volatile bool g_lcd_test_requested;
 static volatile int g_lcd_control_requested;
+static volatile int g_list_bench_requested;
+static volatile bool g_ui_bench_requested;
 
 /* Screen wake asks the frame timer to switch the panel: -1 nothing,
  * 0 display off, 1 draw the current frame and then display on.
@@ -369,6 +368,8 @@ static struct
   bool dnd;
   bool connected;
   bool rest_posted;
+  bool impact_alerted;
+  bool impact_silenced;
   bool watch_started;
   lv_obj_t *banner;
   lv_obj_t *banner_title;
@@ -444,6 +445,7 @@ static void cc_status(struct scene_slot_s *slot);
 static void cc_style(struct scene_slot_s *slot);
 static void cc_tap(lv_point_t point);
 static void screen_wake(bool raise);
+static void screen_wake_untouched(void);
 static void note_tap(lv_point_t point);
 static void note_watch(void);
 #if defined(CONFIG_EXAMPLES_VELARIDE_COUNTDOWN) || defined(CONFIG_EXAMPLES_VELARIDE_ALARM)
@@ -1196,7 +1198,7 @@ static void preview_timer_cb(lv_timer_t *timer)
           return;
         }
 
-      /* These PSRAM snapshot buffers are rendered
+      /* EPIC cannot access PSRAM snapshots, so these buffers are rendered
        * by the CPU.  Snapshot completion must clean dirty pixels before
        * invalidation; a plain invalidate discards the software drawing.
        */
@@ -1410,6 +1412,29 @@ static int32_t iris_half_width(int32_t radius, int32_t y1, int32_t y2)
     }
 
   return (int32_t)sqrtf((float)(radius * radius - dy * dy)) + 1;
+}
+
+/* Narrowest half-width of the circle within rows [y1, y2], or -1 when some
+ * row lies outside it.  Rows far from the centre have shorter chords; the
+ * pixels that change in a band reach in to the shortest one.
+ */
+
+static int32_t iris_half_width_min(int32_t radius, int32_t y1, int32_t y2)
+{
+  int32_t dy;
+
+  if (radius <= 0)
+    {
+      return -1;
+    }
+
+  dy = LV_MAX(LV_ABS(y1 - SCR_H / 2), LV_ABS(y2 - SCR_H / 2)) + IRIS_MARGIN;
+  if (dy >= radius)
+    {
+      return -1;
+    }
+
+  return (int32_t)sqrtf((float)(radius * radius - dy * dy)) - 1;
 }
 
 /* When the target page has a cached snapshot, the revealed pixels are copied
@@ -1677,6 +1702,64 @@ static void nav_flush_start_cb(lv_event_t *event)
     }
 }
 
+/* Where nav_flush_start_cb overwrites every pixel of an area with snapshot
+ * rows, the pages below would be drawn only to be overwritten.  Reporting
+ * the reveal layer (on top, draws nothing itself) as covering such areas
+ * makes LVGL start drawing at it, so a vertical slide costs a row copy per
+ * pixel instead of rendering the face underneath.
+ */
+
+static bool reveal_covers(const lv_area_t *area)
+{
+  int count;
+  int k;
+
+  if (g_nav.axis == AXIS_NONE || g_nav.reveal_preview < 0)
+    {
+      return false;
+    }
+
+  if (g_nav.cover_preview >= 0)
+    {
+      return true;
+    }
+
+  if (g_nav.reveal_value == 0 || g_nav.mode == VELARIDE_TRANSITION_IRIS)
+    {
+      return false;
+    }
+
+  count = nav_strip_count();
+  for (k = 0; k < count; k++)
+    {
+      lv_area_t strip;
+      int32_t a1;
+      int32_t a2;
+
+      if (nav_strip_span(k, count, nav_progress(g_nav.reveal_value),
+                         &a1, &a2))
+        {
+          nav_span_area(a1, a2, &strip);
+          if (_lv_area_is_in(area, &strip, 0))
+            {
+              return true;
+            }
+        }
+    }
+
+  return false;
+}
+
+static void reveal_cover_cb(lv_event_t *event)
+{
+  lv_cover_check_info_t *info = lv_event_get_param(event);
+
+  if (info->res != LV_COVER_RES_MASKED && reveal_covers(info->area))
+    {
+      info->res = LV_COVER_RES_COVER;
+    }
+}
+
 static void reveal_draw_cb(lv_event_t *event)
 {
   lv_area_t clip_saved;
@@ -1755,16 +1838,21 @@ static void nav_apply(int32_t value)
       int32_t r_new = iris_radius(value);
       int32_t y;
 
+      if (r_old == r_new)
+        {
+          return;
+        }
+
       for (y = 0; y < SCR_H; y += IRIS_BAND)
         {
           int32_t y2 = LV_MIN(y + IRIS_BAND, SCR_H) - 1;
-          int32_t h_old = iris_half_width(r_old, y, y2);
-          int32_t h_new = iris_half_width(r_new, y, y2);
-          int32_t hi = LV_MAX(h_old, h_new);
-          int32_t lo = LV_MIN(h_old, h_new);
+          int32_t hi = LV_MAX(iris_half_width(r_old, y, y2),
+                              iris_half_width(r_new, y, y2));
+          int32_t lo = LV_MIN(iris_half_width_min(r_old, y, y2),
+                              iris_half_width_min(r_new, y, y2));
           lv_area_t area;
 
-          if (hi < 0 || hi == lo)
+          if (hi < 0 || lo > SCR_W / 2)
             {
               continue;
             }
@@ -1912,6 +2000,8 @@ static void nav_refr_start_cb(lv_event_t *event)
 static void nav_finish(void)
 {
   struct scene_slot_s *old_current;
+  enum axis_e axis = g_nav.axis;
+  bool cover = g_nav.cover_preview >= 0;
 
   /* Cancelled transitions must clear what was revealed. */
 
@@ -1980,9 +2070,11 @@ static void nav_finish(void)
       stats->max_gap_us = LV_MAX(stats->max_gap_us, g_nav.perf_max_gap_us);
       stats->slow_frames += g_nav.perf_slow_frames;
       printf("VELARIDE_PERF: nav=%" PRIu32 ".%" PRIu32
-             "Hz max_gap=%" PRIu32 "ms frames=%" PRIu32 " mode=%u\n",
+             "Hz max_gap=%" PRIu32 "ms frames=%" PRIu32
+             " mode=%u axis=%c cover=%d\n",
              rate_x10 / 10, rate_x10 % 10,
-             g_nav.perf_max_gap_us / 1000, g_nav.perf_frames, g_nav.mode);
+             g_nav.perf_max_gap_us / 1000, g_nav.perf_frames, g_nav.mode,
+             axis == AXIS_H ? 'h' : 'v', cover);
     }
   else
     {
@@ -3027,6 +3119,155 @@ static void menu_hide(void)
   lv_obj_add_flag(g_menu.list, LV_OBJ_FLAG_HIDDEN);
 }
 
+/* `velaride ui-bench`: open Settings, scroll its list end to end a few
+ * times, then open each settings page and come back, printing how long
+ * each page took to build.  Frame timing comes from /data/lv_prof.
+ */
+
+lv_obj_t *velaride_sport_ui_bench_scroller(void);
+
+static void ui_bench_open(enum velaride_info_e info, bool launch)
+{
+  uint64_t start = monotonic_us();
+
+  if (launch)
+    {
+      launch_app(APP_SETTINGS);
+    }
+  else
+    {
+      velaride_sport_ui_show_info(info);
+    }
+
+  printf("VELARIDE_UI_BENCH: page=%d build=%" PRIu32 "us\n",
+         (int)info, (uint32_t)(monotonic_us() - start));
+}
+
+static void ui_bench_step(void)
+{
+  static const enum velaride_info_e pages[] =
+  {
+    VELARIDE_INFO_APPEARANCE, VELARIDE_INFO_DISPLAY, VELARIDE_INFO_WAKE,
+    VELARIDE_INFO_COMPASS, VELARIDE_INFO_CONNECTION,
+    VELARIDE_INFO_HARDWARE, VELARIDE_INFO_HELP
+  };
+
+  static int step = -1;
+  static uint32_t since;
+  static uint32_t pause;
+  lv_obj_t *scroller;
+  int k;
+
+  if (g_ui_bench_requested)
+    {
+      g_ui_bench_requested = false;
+      screen_wake(false);
+      step = 0;
+      pause = 0;
+    }
+
+  if (step >= 0)
+    {
+      lv_display_trigger_activity(NULL);
+    }
+
+  if (step < 0 || lv_tick_elaps(since) < pause)
+    {
+      return;
+    }
+
+  scroller = velaride_sport_ui_bench_scroller();
+  if (scroller != NULL && lv_anim_get(scroller, NULL) != NULL)
+    {
+      return;
+    }
+
+  since = lv_tick_get();
+  pause = 600;
+  if (step == 0)
+    {
+      printf("VELARIDE_UI_BENCH: start\n");
+      ui_bench_open(VELARIDE_INFO_DEVICE, true);
+    }
+  else if (step <= 8)
+    {
+      pause = 0;
+      if (scroller != NULL && lv_obj_get_scroll_bottom(scroller) > 0)
+        {
+          lv_obj_scroll_by(scroller, 0, -lv_obj_get_scroll_bottom(scroller),
+                           LV_ANIM_ON);
+        }
+      else if (scroller != NULL)
+        {
+          lv_obj_scroll_to_y(scroller, 0, LV_ANIM_ON);
+        }
+    }
+  else if ((k = step - 9) < 2 * (int)(sizeof(pages) / sizeof(pages[0])))
+    {
+      ui_bench_open(k % 2 == 0 ? pages[k / 2] : VELARIDE_INFO_DEVICE, false);
+    }
+  else
+    {
+      velaride_sport_ui_back();
+      printf("VELARIDE_UI_BENCH: done\n");
+      step = -1;
+      return;
+    }
+
+  step++;
+}
+
+/* `velaride list-bench [n]`: open the list menu and scroll it end to end
+ * n times with LVGL's scroll animation, so builds can be compared without
+ * a finger.  Each scroll prints VELARIDE_MENU_PERF style=1.
+ */
+
+static void list_bench_step(void)
+{
+  static int left;
+
+  if (g_list_bench_requested > 0)
+    {
+      left = g_list_bench_requested;
+      g_list_bench_requested = 0;
+      screen_wake(false);
+      g_menu.list_mode = true;
+      g_menu.active = true;
+      lv_obj_add_flag(g_menu.root, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_scroll_to_y(g_menu.list, 0, LV_ANIM_OFF);
+      list_fade();
+      lv_obj_remove_flag(g_menu.list, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_move_foreground(g_menu.list);
+      printf("VELARIDE_LIST_BENCH: start n=%d\n", left);
+      return;
+    }
+
+  if (left > 0)
+    {
+      lv_display_trigger_activity(NULL);
+    }
+
+  if (left <= 0 || lv_anim_get(g_menu.list, NULL) != NULL)
+    {
+      return;
+    }
+
+  if (--left == 0)
+    {
+      menu_hide();
+      printf("VELARIDE_LIST_BENCH: done\n");
+    }
+  else if (lv_obj_get_scroll_bottom(g_menu.list) > 0)
+    {
+      lv_obj_scroll_by(g_menu.list, 0,
+                       -lv_obj_get_scroll_bottom(g_menu.list), LV_ANIM_ON);
+    }
+  else
+    {
+      lv_obj_scroll_to_y(g_menu.list, 0, LV_ANIM_ON);
+    }
+}
+
 static void switch_shell_mode(void)
 {
   /* From either centre the key closes it, like the opposite swipe. */
@@ -3587,6 +3828,40 @@ static void note_watch(void)
       g_notes.rest_posted = false;
     }
 
+  if (ride.alert == VELARIDE_ALERT_IMPACT)
+    {
+      if (!g_notes.impact_alerted)
+        {
+          g_notes.impact_alerted = true;
+          g_notes.impact_silenced = false;
+          screen_wake_untouched();
+          printf("VELARIDE_SAFETY: check shown, screen woken\n");
+        }
+
+#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+      if (!g_notes.impact_silenced)
+        {
+          struct velaride_sound_s sound;
+
+          velaride_sound_get(&sound);
+          if (sound.active == VR_SOUND_NONE &&
+              sound.pending == VR_SOUND_NONE)
+            {
+              velaride_sound_request(VR_SOUND_SAFETY);
+            }
+        }
+#endif
+    }
+  else if (g_notes.impact_alerted)
+    {
+      g_notes.impact_alerted = false;
+      g_notes.impact_silenced = false;
+#ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
+      velaride_sound_stop(VR_SOUND_SAFETY);
+#endif
+      printf("VELARIDE_SAFETY: check closed\n");
+    }
+
   g_notes.watch_started = true;
 }
 
@@ -3803,6 +4078,16 @@ static void screen_wake(bool raise)
   screen_power(true);
 }
 
+/* Wake for an event, not a touch: nothing is pressed, so the first tap
+ * must reach the page instead of the wake shield.
+ */
+
+static void screen_wake_untouched(void)
+{
+  screen_wake(false);
+  lv_obj_add_flag(g_wake.shield, LV_OBJ_FLAG_HIDDEN);
+}
+
 static void shield_cb(lv_event_t *event)
 {
   lv_event_code_t code = lv_event_get_code(event);
@@ -3981,6 +4266,11 @@ static void button_handle_state(btn_buttonset_t state, uint64_t now)
 #ifdef CONFIG_EXAMPLES_VELARIDE_SOUND
   velaride_sound_stop_alerts();
 #endif
+  if (g_notes.impact_alerted)
+    {
+      g_notes.impact_silenced = true;
+    }
+
   if (g_wake.off)
     {
       screen_wake(false);
@@ -4068,6 +4358,8 @@ static void build_shell(void)
   lv_obj_remove_flag(g_nav.reveal,
                      LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_event_cb(g_nav.reveal, reveal_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
+  lv_obj_add_event_cb(g_nav.reveal, reveal_cover_cb, LV_EVENT_COVER_CHECK,
+                      NULL);
 
   g_nav.current = &g_nav.slots[0];
   g_nav.target = &g_nav.slots[1];
@@ -4166,6 +4458,8 @@ static bool g_screen_dark;
 
 static void frame_timer_cb(uv_timer_t *timer)
 {
+  uint64_t frame_start;
+  uint64_t elapsed;
 #ifdef CONFIG_LCD_USING_CO5300
   static uint32_t last_check;
   static uint32_t last_brightness;
@@ -4190,6 +4484,9 @@ static void frame_timer_cb(uv_timer_t *timer)
           g_lcd_control_requested = LCDDEVIO_REINITIALIZE;
         }
     }
+
+  list_bench_step();
+  ui_bench_step();
 
   if (g_screen_power_request == 0)
     {
@@ -4282,6 +4579,7 @@ static void frame_timer_cb(uv_timer_t *timer)
         }
     }
 
+
   if (g_lcd_test_requested)
     {
       g_lcd_test_requested = false;
@@ -4302,8 +4600,21 @@ static void frame_timer_cb(uv_timer_t *timer)
     }
 
   review_watch();
-  LV_UNUSED(timer);
+  frame_start = uv_now(timer->loop);
   _lv_display_refr_timer(NULL);
+
+  /* libuv re-arms this timer from the loop time cached before the frame,
+   * so a frame longer than the period would sleep another full period
+   * before the next one.  Re-arm it from the real time instead, but at
+   * least 1 ms ahead: an already due timer runs again inside the same
+   * uv__run_timers() pass and the touch fd is never polled in between.
+   */
+
+  uv_update_time(timer->loop);
+  elapsed = uv_now(timer->loop) - frame_start;
+  uv_timer_start(timer, frame_timer_cb,
+                 elapsed + 1 < FRAME_PERIOD_MS ? FRAME_PERIOD_MS - elapsed : 1,
+                 FRAME_PERIOD_MS);
 }
 #endif
 
@@ -4383,40 +4694,8 @@ static int velaride_decode_hex(const char *hex, char *output, size_t size)
   return hex_len / 2;
 }
 
-#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
-static int tf_spi_probe(void)
-{
-  struct velaride_ride_snapshot_s ride;
-  struct velaride_memo_s memo;
-  struct statfs fs;
-  uint8_t tx[32],rx[32];
-  velaride_ride_session_get(&ride);velaride_memo_get(&memo);
-  if(ride.active||memo.state==VELARIDE_MEMO_RECORDING||
-     (statfs("/data/tf",&fs)==0&&fs.f_type==MSDOS_SUPER_MAGIC)) {
-    printf("TF_SPI_PROBE: refused active ride/recording/mounted card\n");return EXIT_FAILURE;
-  }
-  int fd=open("/dev/spi1",O_RDWR|O_CLOEXEC);
-  if(fd<0){printf("TF_SPI_PROBE: open errno=%d\n",errno);return EXIT_FAILURE;}
-  memset(tx,0xff,sizeof(tx));memset(rx,0xa5,sizeof(rx));
-  /* Same CMD0 reset/CRC packet as the in-tree mmcsd SPI initializer.
-   * No sector data, erase, write or filesystem operation is issued. */
-  tx[8]=0x40;tx[9]=tx[10]=tx[11]=tx[12]=0;tx[13]=0x95;
-  struct spi_trans_s trans={.deselect=true,.nwords=sizeof(tx),.txbuffer=tx,.rxbuffer=rx};
-  struct spi_sequence_s sequence={.dev=SPIDEV_MMCSD(0),.mode=SPIDEV_MODE0,.nbits=8,.ntrans=1,.frequency=400000,.trans=&trans};
-  int ret=ioctl(fd,SPIIOC_TRANSFER,(unsigned long)&sequence);int saved_errno=errno;close(fd);
-  int r1=-1;
-  for(unsigned int i=14;i<sizeof(rx);i++)if((rx[i]&0x80)==0){r1=rx[i];break;}
-  printf("TF_SPI_PROBE: ioctl=%d errno=%d CMD0_r1=%d rx=",ret,ret<0?saved_errno:0,r1);
-  for(unsigned int i=0;i<sizeof(rx);i++)printf("%02x",rx[i]);
-  printf("\n");return ret==0&&r1==1?EXIT_SUCCESS:EXIT_FAILURE;
-}
-#endif
-
 int main(int argc, FAR char *argv[])
 {
-#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
-  if(argc==2&&strcmp(argv[1],"tf-probe")==0)return tf_spi_probe();
-#endif
   lv_nuttx_dsc_t info;
   lv_nuttx_result_t result;
 #ifdef CONFIG_LV_USE_NUTTX_LIBUV
@@ -4592,7 +4871,7 @@ int main(int argc, FAR char *argv[])
         {
           static const char *names[] = {"none", "ride", "3", "2", "1",
             "go", "alarm", "countdown", "alarm-mode", "countdown-mode",
-            "stopwatch"};
+            "stopwatch", "safety"};
           int cue;
           status = -EINVAL;
           for (cue = 1; cue < VR_SOUND_CUE_COUNT; cue++)
@@ -4717,6 +4996,18 @@ int main(int argc, FAR char *argv[])
             }
         }
 
+      return EXIT_SUCCESS;
+    }
+
+  if (argc > 1 && strcmp(argv[1], "ui-bench") == 0)
+    {
+      g_ui_bench_requested = true;
+      return EXIT_SUCCESS;
+    }
+
+  if (argc > 1 && strcmp(argv[1], "list-bench") == 0)
+    {
+      g_list_bench_requested = argc > 2 ? atoi(argv[2]) + 1 : 9;
       return EXIT_SUCCESS;
     }
 
@@ -4980,19 +5271,28 @@ int main(int argc, FAR char *argv[])
   if (argc > 1 && strcmp(argv[1], "ride-status") == 0)
     {
       struct velaride_ride_snapshot_s snapshot;
+      int32_t accel_delta;
+      int32_t gyro_raw;
+      int32_t gyro_sum;
+      int32_t bias[3];
 
       velaride_ride_session_get(&snapshot);
+      velaride_ride_session_motion_debug(&accel_delta, &gyro_raw,
+                                         &gyro_sum, bias);
       printf("{\"active\":%s,\"paused\":%s,\"sensor_ready\":%s,"
              "\"motion\":%d,\"alert\":%d,\"elapsed_s\":%" PRIu32
              ",\"moving_s\":%" PRIu32 ",\"still_s\":%" PRIu32
              ",\"pause_count\":%u,\"impact_count\":%u,"
-             "\"rest_count\":%u}\n",
+             "\"rest_count\":%u,\"accel_delta\":%" PRId32
+             ",\"gyro_raw\":%" PRId32 ",\"gyro_sum\":%" PRId32
+             ",\"gyro_bias\":[%" PRId32 ",%" PRId32 ",%" PRId32 "]}\n",
              snapshot.active ? "true" : "false",
              snapshot.paused ? "true" : "false",
              snapshot.sensor_ready ? "true" : "false",
              snapshot.motion, snapshot.alert, snapshot.elapsed_s,
              snapshot.moving_s, snapshot.still_s, snapshot.pause_count,
-             snapshot.impact_count, snapshot.rest_count);
+             snapshot.impact_count, snapshot.rest_count,
+             accel_delta, gyro_raw, gyro_sum, bias[0], bias[1], bias[2]);
       return EXIT_SUCCESS;
     }
 
@@ -5166,28 +5466,11 @@ int main(int argc, FAR char *argv[])
       close(config_fd);
       return erase_ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
     }
-  if (!wait_for_device("/dev/lcd0", 10000))
+  if (!wait_for_device("/dev/lcd0", 10000) ||
+      !wait_for_device("/dev/input0", 10000))
     {
       return EXIT_FAILURE;
     }
-
-#if defined(CONFIG_ARCH_CHIP_SF32LB52) && defined(CONFIG_INPUT_FT6146)
-  {
-    extern int huangshan_touch_retry(void) __attribute__((weak));
-    int touch_ret = huangshan_touch_retry != NULL ?
-                    huangshan_touch_retry() : -ENOSYS;
-
-    if (touch_ret < 0)
-      {
-        printf("velaride: touch recovery failed: %d; starting display\n",
-               touch_ret);
-      }
-  }
-#endif
-
-  /* Missing touch input is reported below, but must not suppress the
-   * entire watch face and hardware-button interface.
-   */
 
   /* Restore wall clock before the first watch-face labels are created. */
 
@@ -5251,7 +5534,7 @@ int main(int argc, FAR char *argv[])
       return EXIT_FAILURE;
     }
 
-  uv_timer_start(&frame_timer, frame_timer_cb, 0, 16);
+  uv_timer_start(&frame_timer, frame_timer_cb, 0, FRAME_PERIOD_MS);
   printf("velaride: 2D watch shell enabled\n");
   uv_run(&ui_loop, UV_RUN_DEFAULT);
 #else

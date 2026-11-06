@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.hardware.*;
 import android.location.*;
 import android.os.*;
 import android.provider.Settings;
@@ -78,10 +79,35 @@ public final class MainActivity extends Activity {
     private android.media.MediaPlayer voicePlayer;
     private String historyFailure;
     private TextView bridgeStatus,weatherStatus;
-    private static final int CONNECTION_NOTIFICATION_PERMISSION=14, EMERGENCY_PERMISSION=15;
+    private static final int CONNECTION_NOTIFICATION_PERMISSION=14, EMERGENCY_PERMISSION=15, CAR_PERMISSION=16;
     private EmergencyCenter emergency;
     private TextView emergencyStatus;
     private final EmergencyCenter.Listener emergencyListener=()->main.post(this::renderEmergency);
+    private TextView liveHead, liveDetail, liveSafety;
+    private RideLive liveRide;
+    private final PhoneLinkSession.StatusListener statusListener=reply->{
+        RideLive parsed=rideLive(reply);main.post(()->{liveRide=parsed;renderLive();});
+    };
+    private final Runnable liveTick=new Runnable(){
+        @Override public void run(){renderLive();main.postDelayed(this,1000);}
+    };
+    private TextView carStatus, carArrow, carGuide;
+    private Button carFind;
+    private volatile boolean carFinding;
+    private Location carFix;
+    private double compassHeading=Double.NaN;
+    private float declination;
+    private SensorManager sensors;
+    private final Runnable parkingListener=()->main.post(this::renderParking);
+    private final List<View> pages=new ArrayList<>();
+    private final List<TextView> tabs=new ArrayList<>();
+    private View coachPage;
+    private android.webkit.WebView coachWeb;
+    private TextView coachHint;
+    private boolean coachLoaded;
+    private TrackView trackView;
+    private TextView trackInfo;
+    private static final String COACH_URL="http://127.0.0.1:4173/agent.html";
 
     @Override public void onCreate(Bundle stateBundle) {
         super.onCreate(stateBundle);
@@ -97,8 +123,13 @@ public final class MainActivity extends Activity {
         }
         catch (IOException error) { historyFailure = "历史暂时无法读取，原文件已保留：" + error.getMessage(); }
         makeScreen();
+        if(Settings.Secure.getString(getContentResolver(),"enabled_notification_listeners")!=null
+                &&Settings.Secure.getString(getContentResolver(),"enabled_notification_listeners").contains(getPackageName()))
+            rebindNotificationListener();
         phoneSession.add(connectionListener);
         emergency.add(emergencyListener);renderEmergency();
+        phoneSession.addStatus(statusListener);ParkingStore.add(parkingListener);renderParking();
+        sensors=getSystemService(SensorManager.class);
         if(link.isReady())connectionChanged(true,"手表后台连接已恢复到界面");
         lastVoiceName=store.getString("voice_file","");lastVoiceDevice=store.getString("voice_watch","");
         if(!lastVoiceName.isEmpty()) voiceStatus.setText("手机已保存 "+lastVoiceName+"，点击试听或选择关联记录。");
@@ -168,22 +199,80 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(48));
         params.topMargin = dp(8); parent.addView(view, params); view.setOnClickListener(action); return view;
     }
-    private void makeScreen() {
+    private LinearLayout page(FrameLayout frame) {
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.setBackgroundColor(BG);
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(20), dp(24), dp(20), dp(24)); scroll.addView(root); setContentView(scroll);
-        scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+        root.setPadding(dp(20), dp(20), dp(20), dp(24)); scroll.addView(root);
+        frame.addView(scroll, new FrameLayout.LayoutParams(-1, -1)); pages.add(scroll); return root;
+    }
+    private void pageTitle(LinearLayout root, String title, String subtitle) {
+        TextView brand = text("VELARIDE", 13, GREEN); brand.setLetterSpacing(.22f); root.addView(brand);
+        gap(root, 9); TextView heading = text(title, 30, INK);
+        heading.setTypeface(null, Typeface.BOLD); root.addView(heading);
+        gap(root, 8); root.addView(text(subtitle, 15, MUTED)); gap(root, 22);
+    }
+    private void tab(LinearLayout bar, String label) {
+        int index = tabs.size();
+        TextView view = text(label, 13, MUTED); view.setGravity(Gravity.CENTER);
+        view.setPadding(0, dp(12), 0, dp(12)); view.setOnClickListener(v -> showTab(index));
+        bar.addView(view, new LinearLayout.LayoutParams(0, -2, 1)); tabs.add(view);
+    }
+    private void showTab(int index) {
+        for (int i = 0; i < pages.size(); i++) {
+            pages.get(i).setVisibility(i == index ? View.VISIBLE : View.GONE);
+            tabs.get(i).setTextColor(i == index ? GREEN : MUTED);
+            tabs.get(i).setTypeface(null, i == index ? Typeface.BOLD : Typeface.NORMAL);
+        }
+        store.edit().putInt("tab", index).apply();
+        // The coach page has its own status; keep the shared message line out of its way.
+        if (message != null) message.setVisibility(pages.get(index) == coachPage ? View.GONE : View.VISIBLE);
+        if (pages.get(index) == coachPage && !coachLoaded) loadCoach();
+    }
+    /** The AI coach runs on the home openvela device; the phone reaches its dashboard over USB (adb reverse). */
+    private View coachScreen(FrameLayout frame) {
+        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setBackgroundColor(Color.BLACK);
+        coachHint = text("", 13, MUTED); coachHint.setPadding(dp(20), dp(12), dp(20), dp(12)); coachHint.setVisibility(View.GONE);
+        coachHint.setOnClickListener(v -> loadCoach());
+        box.addView(coachHint, new LinearLayout.LayoutParams(-1, -2));
+        coachWeb = new android.webkit.WebView(this); coachWeb.setBackgroundColor(Color.BLACK);
+        coachWeb.getSettings().setJavaScriptEnabled(true); coachWeb.getSettings().setDomStorageEnabled(true);
+        coachWeb.setWebViewClient(new android.webkit.WebViewClient() {
+            @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request,
+                                                  android.webkit.WebResourceError error) {
+                if (!request.isForMainFrame()) return;
+                coachLoaded = false;
+                coachHint.setText("没有连上家里的骑行中枢。手机用 USB 连电脑并开启 adb reverse tcp:4173 tcp:4173 后，点这里重试。");
+                coachHint.setVisibility(View.VISIBLE);
+            }
+            @Override public void onPageFinished(android.webkit.WebView view, String url) {
+                if (coachLoaded) coachHint.setVisibility(View.GONE);
+            }
+        });
+        box.addView(coachWeb, new LinearLayout.LayoutParams(-1, 0, 1));
+        frame.addView(box, new FrameLayout.LayoutParams(-1, -1)); pages.add(box); coachPage = box; return box;
+    }
+    private void loadCoach() { coachLoaded = true; coachHint.setVisibility(View.GONE); coachWeb.loadUrl(COACH_URL); }
+    private void makeScreen() {
+        LinearLayout outer = new LinearLayout(this); outer.setOrientation(LinearLayout.VERTICAL); outer.setBackgroundColor(BG);
+        FrameLayout frame = new FrameLayout(this);
+        outer.addView(frame, new LinearLayout.LayoutParams(-1, 0, 1));
+        setContentView(outer);
+        outer.setOnApplyWindowInsetsListener((view, insets) -> {
             int top, bottom;
             if (Build.VERSION.SDK_INT >= 30) {
                 android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
                 top = bars.top; bottom = bars.bottom;
             } else { top = insets.getSystemWindowInsetTop(); bottom = insets.getSystemWindowInsetBottom(); }
-            root.setPadding(dp(20), top + dp(20), dp(20), bottom + dp(24)); return insets;
+            outer.setPadding(0, top, 0, bottom); return insets;
         });
-        TextView brand = text("VELARIDE", 13, GREEN); brand.setLetterSpacing(.22f); root.addView(brand);
-        gap(root, 9); TextView heading = text("一起，骑得更远。", 30, INK);
-        heading.setTypeface(null, Typeface.BOLD); root.addView(heading);
-        gap(root, 8); root.addView(text("手机与手表，保持同一步调。", 15, MUTED)); gap(root, 25);
+        LinearLayout ridePage = page(frame), safetyPage = page(frame), recordPage = page(frame);
+        coachScreen(frame);
+        LinearLayout linkPage = page(frame);
+        pageTitle(ridePage, "一起，骑得更远。", "手机与手表，保持同一步调。");
+        pageTitle(safetyPage, "安全", "摔倒由手表本地检测，手机负责呼救和找车。");
+        pageTitle(recordPage, "记录", "骑行历史、复盘、语音和备注。");
+        pageTitle(linkPage, "联动", "手机消息、天气和路线同步到手表。");
+        LinearLayout root = ridePage;
 
         LinearLayout device = card(root, "我的手表", "通过蓝牙直接连接，无需电脑或网络。");
         state = text("尚未连接", 17, GREEN); device.addView(state);
@@ -195,7 +284,12 @@ public final class MainActivity extends Activity {
         refresh = button(device, "刷新手表状态", false, v -> runJob("正在读取手表…", epoch -> readStatus(epoch)));
         clock = button(device, "同步手机时间", false, v -> runJob("正在校时…", epoch -> syncTime(epoch)));
 
-        LinearLayout sos=card(root,"摔倒呼救","手表检测到撞击后静止，30 秒内未在腕上确认，或你在手表上点“需要帮助”，手机会响铃倒计时，随后给紧急联系人发送定位短信并拨打第一位联系人。");
+        LinearLayout dash=card(root,"骑行实时看板","手表每 2 秒同步一次骑行状态，App 在后台时也持续读取。");
+        liveHead=text("连接手表后显示",30,INK);liveHead.setTypeface(Typeface.MONOSPACE,Typeface.BOLD);dash.addView(liveHead);
+        liveDetail=text("",13,MUTED);gap(dash,8);dash.addView(liveDetail);
+        liveSafety=text("",14,Color.rgb(255,176,92));dash.addView(liveSafety);
+
+        LinearLayout sos=card(safetyPage,"摔倒呼救","手表检测到撞击后静止，30 秒内未在腕上确认，或你在手表上点“需要帮助”，手机会响铃倒计时，随后给紧急联系人发送定位短信并拨打第一位联系人。");
         emergencyStatus=text("",13,MUTED);sos.addView(emergencyStatus);
         CheckBox sosEnabled=new CheckBox(this);sosEnabled.setText("开启摔倒自动呼救");sosEnabled.setTextColor(INK);
         sosEnabled.setChecked(emergency.enabled());sos.addView(sosEnabled);
@@ -230,7 +324,24 @@ public final class MainActivity extends Activity {
                 .setMessage("将向已保存的紧急联系人发送一条标注“演练测试”的定位短信，不会拨号。")
                 .setPositiveButton("发送",(d,w)->emergency.sendTest()).setNegativeButton("取消",null).show());
 
-        LinearLayout bridge=card(root,"红米消息与天气","蓝牙连接由前台服务保持；消息需你授权并选择应用，默认只提示有新消息。");
+        LinearLayout car=card(safetyPage,"寻车","手表上结束骑行时自动记录手机位置；找车时按手机指南针显示停车点方向和直线距离。仅在 App 前台使用。");
+        carStatus=text("",13,MUTED);car.addView(carStatus);
+        carArrow=text("",64,GREEN);carArrow.setGravity(Gravity.CENTER);
+        car.addView(carArrow,new LinearLayout.LayoutParams(-1,-2));
+        carGuide=text("",17,INK);carGuide.setGravity(Gravity.CENTER);car.addView(carGuide,new LinearLayout.LayoutParams(-1,-2));
+        carFind=button(car,"开始寻车",true,v->{if(carFinding)stopCarFinder();else startCarFinder();});
+        button(car,"在这里记录停车点",false,v->{
+            if(!granted(Manifest.permission.ACCESS_FINE_LOCATION)){
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},CAR_PERMISSION);return;
+            }
+            Location here=freshFix();
+            if(here!=null){ParkingStore.save(this,here,false);message.setText("已记录停车点 · 精度约 "+Math.round(here.getAccuracy())+" 米");}
+            else{message.setText("正在定位，请稍候…");ParkingStore.capture(this,false,text->message.setText(text));}
+        });
+        button(car,"清除停车点",false,v->{stopCarFinder();ParkingStore.clear(this);message.setText("已清除停车点。");});
+
+        PhoneVendor vendor=PhoneVendor.current();
+        LinearLayout bridge=card(linkPage,vendor.name+"消息与天气","蓝牙连接由前台服务保持；消息需你授权并选择应用，默认只提示有新消息。");
         bridgeStatus=text("尚未授权手机消息",13,MUTED);bridge.addView(bridgeStatus);
         CheckBox relay=new CheckBox(this);relay.setText("转发已选应用的通知");relay.setTextColor(INK);
         relay.setChecked(bridgePrefs().getBoolean("relay_enabled",false));bridge.addView(relay);
@@ -248,12 +359,17 @@ public final class MainActivity extends Activity {
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},CONNECTION_NOTIFICATION_PERMISSION);
             else message.setText("后台连接状态通知已具备权限。");
         });
-        button(bridge,"红米后台/省电设置",false,v->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                android.net.Uri.parse("package:"+getPackageName()))));
-        weatherStatus=text("系统天气尚未同步；部分 ROM 可能不向普通 App 开放读取。",13,MUTED);gap(bridge,10);bridge.addView(weatherStatus);
-        button(bridge,"尝试同步小米系统天气",false,v->syncSystemWeather());
-        button(bridge,"打开小米天气",false,v->openPhoneApp("com.miui.weather2"));
-        button(bridge,"打开小米运动健康",false,v->openHealthApp());
+        button(bridge,"允许后台持续连接（关闭电池优化）",false,v->requestUnrestricted());
+        button(bridge,vendor.name+"后台/耗电设置",false,v->{
+            message.setText(vendor.backgroundHint());
+            startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:"+getPackageName())));
+        });
+        weatherStatus=text("连接手表后自动联网获取当地天气（Open-Meteo，坐标约 1 公里精度）并显示在手表“手机消息”页。",13,MUTED);
+        gap(bridge,10);bridge.addView(weatherStatus);
+        button(bridge,"立即同步联网天气",true,v->syncOnlineWeather());
+        if(vendor.systemWeatherReadable())button(bridge,"尝试同步"+vendor.name+"系统天气",false,v->syncSystemWeather());
+        if(vendor.weatherPackage()!=null)button(bridge,"打开"+vendor.name+"天气",false,v->openPhoneApp(vendor.weatherPackage()));
+        button(bridge,"打开运动健康",false,v->openHealthApp(vendor));
 
         LinearLayout record = card(root, "最近一次骑行", "结束手表上的骑行后，在这里同步保存。");
         cachedLabel = text("还没有同步的骑行记录", 12, MUTED); record.addView(cachedLabel); gap(record, 12);
@@ -262,13 +378,18 @@ public final class MainActivity extends Activity {
         recordDetail = text("暂停  —    休息提醒  —", 13, MUTED); gap(record, 10); record.addView(recordDetail);
         sync = button(record, "同步最新骑行", true, v -> runJob("正在同步骑行记录…", epoch -> readLatest(epoch)));
 
-        LinearLayout archive = card(root, "我的骑行历史", "自动补传手表最近 16 条，手机保存完整历史。旧固件仍只同步最近一条。");
+        LinearLayout archive = card(recordPage, "我的骑行历史", "自动补传手表最近 16 条，手机保存完整历史。旧固件仍只同步最近一条。");
         historySummary = text("还没有保存的骑行", 16, INK); archive.addView(historySummary);
         syncArchive = button(archive, "补传手表全部记录", false,
                 v -> runJob("正在补传手表历史…", epoch -> readHistory(epoch)));
         browseHistory = button(archive, "查看全部记录", false, v -> browseHistory());
         reviewEntry = button(archive, "最近骑行复盘与建议", false, v -> {
-            if (history != null && !history.snapshot().isEmpty()) showReview(history.snapshot().get(0));
+            if (history == null || history.snapshot().isEmpty()) return;
+            // Backfill syncs a whole watch at once, so sync order is not ride order; take that watch's newest sequence.
+            List<RideHistory.Entry> all = history.snapshot();
+            RideHistory.Entry newest = all.get(0);
+            for (RideHistory.Entry e : all) if (e.device.equals(newest.device) && e.sequence > newest.sequence) newest = e;
+            showReview(newest);
         });
         exportHistory = button(archive, "导出全部记录 CSV", false, v -> chooseExport());
 
@@ -276,13 +397,41 @@ public final class MainActivity extends Activity {
         gpsValue = text("0.0 km/h   ·   0.00 km", 23, INK); position.addView(gpsValue);
         gpsStatus = text("尚未开启 · 需要手机位置权限", 13, MUTED); gap(position, 8); position.addView(gpsStatus);
         gps = button(position, "开始定位同步", false, v -> { if (gpsRunning) stopGps(true); else startGps(); });
+        gap(position, 14);
+        trackView = new TrackView(this, GREEN, INK, MUTED); trackView.setBackground(background(BG, 16));
+        position.addView(trackView, new LinearLayout.LayoutParams(-1, -2));
+        trackInfo = text("走过的路线：0 米 · 蓝牙断开时继续记录", 13, MUTED); gap(position, 8); position.addView(trackInfo);
+        button(position, "把轨迹存为路线", false, v -> {
+            try {
+                RoutePlan plan = new RoutePlan(TrackView.asRoute());
+                route = plan; routeGeneration++;
+                routeStatus.setText("已把刚才走的轨迹设为路线 · " + plan.size() + " 个路线点。回到起点即可开始指引。");
+                message.setText("已存为路线，手表指南针页会显示方向提示。"); refreshTrack();
+            } catch (IllegalArgumentException error) { message.setText("轨迹太短，先多走一段（至少 25 米）。"); }
+        });
+        button(position, "清除轨迹", false, v -> { TrackView.clear(); refreshTrack(); });
 
-        LinearLayout navigation = card(root, "GPX 路线点指引", "按导入路线显示下一点的方向和直线距离；没有道路重规划。需保持前台定位。");
+        LinearLayout navigation = card(linkPage, "GPX 路线点指引", "按导入路线显示下一点的方向和直线距离；没有道路重规划。需保持前台定位。");
         routeStatus = text("尚未导入路线", 14, MUTED); navigation.addView(routeStatus);
         button(navigation, "导入 GPX 路线", false, v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
             try { startActivityForResult(intent, IMPORT_ROUTE); }
             catch (ActivityNotFoundException error) { message.setText("当前手机没有文件选择工具。"); }
+        });
+        button(navigation, "生成演示环线（约 320 米）", false, v -> {
+            if (!granted(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, GPS_PERMISSION);
+                return;
+            }
+            routeStatus.setText("正在定位起点…");
+            ioWorker.execute(() -> {
+                try {
+                    RoutePlan plan = demoRoute(routeStart());
+                    main.post(() -> { if (isDestroyed()) return; route = plan; routeGeneration++; refreshTrack();
+                        routeStatus.setText("已生成演示路线：向北 80 米 → 向东 80 米 → 向南 80 米 → 回到起点。"
+                                + "开启“定位同步”并在手表开始骑行，指南针页底部显示方向和距离。"); });
+                } catch (Exception error) { main.post(() -> { if (!isDestroyed()) routeStatus.setText(readable(error)); }); }
+            });
         });
         button(navigation, "停止路线指引", false, v -> {
             route=null; routeGeneration++;
@@ -294,18 +443,24 @@ public final class MainActivity extends Activity {
             });
         });
 
-        LinearLayout voice=card(root,"停车语音标记","在手表暂停后录制 3 秒，保存到 TF 卡。这里可校验同步、试听并选择关联骑行。");
+        LinearLayout voice=card(recordPage,"停车语音标记","在手表暂停后录制 3 秒，保存到 TF 卡。这里可校验同步、试听并选择关联骑行。");
         voiceStatus=text("尚未同步语音；需要手表已挂载 FAT TF 卡。",13,MUTED);voice.addView(voiceStatus);
         button(voice,"同步手表最近录音",false,v->downloadVoice());
         button(voice,"试听已同步录音",false,v->{try{playVoice(voiceFile(lastVoiceName));}catch(Exception error){message.setText(readable(error));}});
         button(voice,"将录音关联到骑行",false,v->bindVoice());
 
-        LinearLayout memo = card(root, "骑行备注", "把一句简短备注保存到手表的最近一次骑行中。");
+        LinearLayout memo = card(recordPage, "骑行备注", "把一句简短备注保存到手表的最近一次骑行中。");
         note = new EditText(this); note.setTextColor(INK); note.setHintTextColor(MUTED);
         note.setTextSize(15); note.setHint("例如：今天骑得很舒服，下次继续"); note.setMinLines(2); note.setMaxLines(4);
         memo.addView(note, new LinearLayout.LayoutParams(-1, -2));
         saveNote = button(memo, "保存备注到手表", false, v -> sendNote());
-        message = text("记录保存在本机；主动请求在线复盘时，摘要会发送到你配置的服务。", 12, MUTED); root.addView(message);
+        message = text("记录保存在本机；主动请求在线复盘时，摘要会发送到你配置的服务。", 12, MUTED);
+        message.setMaxLines(3); message.setPadding(dp(20), dp(8), dp(20), dp(6));
+        outer.addView(message, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout bar = new LinearLayout(this); bar.setBackgroundColor(CARD);
+        tab(bar, "骑行"); tab(bar, "安全"); tab(bar, "记录"); tab(bar, "AI 教练"); tab(bar, "联动");
+        outer.addView(bar, new LinearLayout.LayoutParams(-1, -2));
+        showTab(Math.max(0, Math.min(pages.size() - 1, store.getInt("tab", 0))));
     }
 
     private void requestEmergencyPermissions() {
@@ -314,7 +469,7 @@ public final class MainActivity extends Activity {
         if(Build.VERSION.SDK_INT>=33)wanted.add(Manifest.permission.POST_NOTIFICATIONS);
         List<String> missing=new ArrayList<>();
         for(String p:wanted)if(checkSelfPermission(p)!=PackageManager.PERMISSION_GRANTED)missing.add(p);
-        if(missing.isEmpty())message.setText("摔倒呼救所需权限已具备。红米手机请在应用权限中把“发送短信”设为始终允许。");
+        if(missing.isEmpty())message.setText("摔倒呼救所需权限已具备。"+PhoneVendor.current().smsHint());
         else requestPermissions(missing.toArray(new String[0]),EMERGENCY_PERMISSION);
     }
     private boolean granted(String permission){return checkSelfPermission(permission)==PackageManager.PERMISSION_GRANTED;}
@@ -378,9 +533,92 @@ public final class MainActivity extends Activity {
         if(intent==null){message.setText("此手机未提供可打开的对应应用。");return;}
         try{startActivity(intent);}catch(ActivityNotFoundException error){message.setText("系统无法打开对应应用。");}
     }
-    private void openHealthApp() {
-        for(String pkg:new String[]{"com.mi.health","com.xiaomi.wearable"})if(getPackageManager().getLaunchIntentForPackage(pkg)!=null){openPhoneApp(pkg);return;}
-        message.setText("未找到小米运动健康；骑行记录仍可在本 App 查看并导出 CSV。");
+    private void openHealthApp(PhoneVendor vendor) {
+        for(String pkg:vendor.healthPackages())if(getPackageManager().getLaunchIntentForPackage(pkg)!=null){openPhoneApp(pkg);return;}
+        message.setText("未找到运动健康应用；骑行记录仍可在本 App 查看并导出 CSV。");
+    }
+    @SuppressLint("BatteryLife")
+    private void requestUnrestricted() {
+        PowerManager power=getSystemService(PowerManager.class);
+        if(power!=null&&power.isIgnoringBatteryOptimizations(getPackageName())){message.setText("已允许后台持续运行。"+PhoneVendor.current().backgroundHint());return;}
+        try{startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,android.net.Uri.parse("package:"+getPackageName())));}
+        catch(ActivityNotFoundException error){startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:"+getPackageName())));}
+    }
+    /** Any recent fix is good enough for weather; ask once for a network fix otherwise. */
+    private Location weatherLocation() throws Exception {
+        if(!granted(Manifest.permission.ACCESS_FINE_LOCATION)&&!granted(Manifest.permission.ACCESS_COARSE_LOCATION))
+            throw new IOException("需要位置权限才能查询当地天气。");
+        if(locationManager==null)throw new IOException("手机不支持定位。");
+        Location best=null;
+        for(String provider:locationManager.getProviders(true)) {
+            Location candidate=locationManager.getLastKnownLocation(provider);
+            if(candidate!=null&&(best==null||candidate.getTime()>best.getTime()))best=candidate;
+        }
+        if(best!=null&&System.currentTimeMillis()-best.getTime()<6*3600_000L)return best;
+        if(Build.VERSION.SDK_INT>=30) {
+            String provider=locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)?LocationManager.NETWORK_PROVIDER:LocationManager.GPS_PROVIDER;
+            CountDownLatch done=new CountDownLatch(1);Location[] got=new Location[1];
+            locationManager.getCurrentLocation(provider,null,getMainExecutor(),fix->{got[0]=fix;done.countDown();});
+            done.await(15,TimeUnit.SECONDS);
+            if(got[0]!=null)return got[0];
+        }
+        if(best!=null)return best;
+        throw new IOException("暂时无法定位，请打开手机位置服务后重试。");
+    }
+    /** requestRebind() is ignored on ColorOS after an update; toggling the component forces a rebind. */
+    private void rebindNotificationListener() {
+        ComponentName listener=new ComponentName(this,PhoneNotificationService.class);
+        android.content.pm.PackageManager pm=getPackageManager();
+        pm.setComponentEnabledSetting(listener,android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,android.content.pm.PackageManager.DONT_KILL_APP);
+        pm.setComponentEnabledSetting(listener,android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,android.content.pm.PackageManager.DONT_KILL_APP);
+        android.service.notification.NotificationListenerService.requestRebind(listener);
+    }
+    /** A fresh GPS fix for the demo route start; route cues need metre-level, not weather-level, accuracy. */
+    private Location routeStart() throws Exception {
+        if(locationManager==null||!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
+            throw new IOException("请打开手机位置服务（GPS）后重试。");
+        Location last=locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if(last!=null&&System.currentTimeMillis()-last.getTime()<120_000L&&last.getAccuracy()<=50)return last;
+        if(Build.VERSION.SDK_INT>=30) {
+            CountDownLatch done=new CountDownLatch(1);Location[] got=new Location[1];
+            locationManager.getCurrentLocation(LocationManager.GPS_PROVIDER,null,getMainExecutor(),fix->{got[0]=fix;done.countDown();});
+            done.await(30,TimeUnit.SECONDS);
+            if(got[0]!=null&&got[0].getAccuracy()<=50)return got[0];
+        }
+        throw new IOException("GPS 定位不够准（需 50 米以内），请到室外开阔处再试。");
+    }
+    /** Square loop: 80 m north, east, south, then back to the start. */
+    static RoutePlan demoRoute(Location start) {
+        double lat=start.getLatitude(),lon=start.getLongitude();
+        double dLat=80/111320.0,dLon=80/(111320.0*Math.cos(Math.toRadians(lat)));
+        return new RoutePlan(Arrays.asList(new RoutePlan.Point(lat,lon),new RoutePlan.Point(lat+dLat,lon),
+                new RoutePlan.Point(lat+dLat,lon+dLon),new RoutePlan.Point(lat,lon+dLon),new RoutePlan.Point(lat,lon)));
+    }
+    private void syncOnlineWeather() {
+        if(busy)return;
+        if(!link.isReady()){weatherStatus.setText("请先连接手表，再同步天气。");return;}
+        weatherStatus.setText("正在联网获取当地天气…");
+        runJobOn(ioWorker,"正在同步天气…",epoch->{
+            try {
+                Location here=weatherLocation();
+                String city="";
+                try {
+                    List<Address> found=new Geocoder(this,Locale.CHINA).getFromLocation(here.getLatitude(),here.getLongitude(),1);
+                    if(found!=null&&!found.isEmpty()){Address a=found.get(0);city=a.getLocality()!=null?a.getLocality():a.getSubAdminArea()!=null?a.getSubAdminArea():"";}
+                } catch(Exception ignored) {}
+                WeatherData data=OnlineWeather.fetch(here.getLatitude(),here.getLongitude(),city);
+                JSONObject command=json("phone_weather").put("city",data.city).put("description",data.description)
+                        .put("temperature_deci",data.temperatureDeci).put("published_epoch",data.publishedEpoch);
+                Future<JSONObject> request=worker.submit(()->ask(epoch,command,"phone_weather"));
+                try {request.get(20,TimeUnit.SECONDS);}
+                catch(ExecutionException failed){Throwable cause=failed.getCause();if(cause instanceof Exception)throw (Exception)cause;throw failed;}
+                catch(TimeoutException timedOut){request.cancel(true);throw new IOException("天气同步超时，请重新连接后重试。",timedOut);}
+                main.post(()->{if(epoch==session)weatherStatus.setText(String.format(Locale.ROOT,"已同步到手表 · %s %.1f°C %s · 2 小时内有效",data.city,data.temperatureDeci/10.0,data.description));});
+            } catch(Exception error) {
+                final String text=error instanceof BleLink.DeviceError&&"unknown_cmd".equals(error.getMessage())?"手表需升级后显示手机天气。":readable(error);
+                main.post(()->{if(epoch==session)weatherStatus.setText(text);});throw error;
+            }
+        });
     }
     private void syncSystemWeather() {
         if(busy)return;
@@ -402,12 +640,34 @@ public final class MainActivity extends Activity {
             }
         });
     }
-    @Override protected void onResume(){super.onResume();renderBridgeStatus();}
+    @Override protected void onResume(){super.onResume();renderBridgeStatus();main.removeCallbacks(liveTick);main.post(liveTick);}
+    @Override protected void onPause(){main.removeCallbacks(liveTick);super.onPause();}
+    private static RideLive rideLive(JSONObject s) {
+        return new RideLive(s.optBoolean("active"),s.optBoolean("paused"),s.optInt("motion"),s.optLong("elapsed_s"),
+                s.optLong("moving_s"),s.optLong("still_s"),s.optInt("impacts"),s.optInt("pause_count"),s.optInt("rest_count"),
+                s.optBoolean("phone_valid"),s.optDouble("speed_kmh",0),s.optDouble("distance_km",0),s.optLong("ride_distance_m"),
+                s.optBoolean("safety_pending"),s.optInt("safety_remaining_s"),SystemClock.elapsedRealtime());
+    }
+    private void renderLive() {
+        if(liveHead==null)return;
+        long now=SystemClock.elapsedRealtime();
+        if(link==null||!link.isReady()){
+            liveHead.setText("连接手表后显示");liveHead.setTextColor(MUTED);
+            liveDetail.setText(liveRide!=null&&liveRide.active?"连接已中断，最后一次读取："+liveRide.headline(liveRide.receivedMs):"");
+            liveSafety.setText("");return;
+        }
+        if(liveRide==null){liveHead.setText("正在读取…");liveHead.setTextColor(MUTED);liveDetail.setText("");liveSafety.setText("");return;}
+        liveHead.setText(liveRide.headline(now));
+        liveHead.setTextColor(liveRide.active&&!liveRide.paused&&!liveRide.stale(now)?GREEN:INK);
+        liveDetail.setText(liveRide.detail(now));liveSafety.setText(liveRide.safety());
+    }
     private void connectionChanged(boolean ready, String reason) {
-        if (!ready) { session++; busy = false; gpsSupported = false; stopGps(false); }
+        if (!ready) { session++; busy = false; gpsSupported = false; }
         else routeSupported = true;
         state.setText(reason); state.setTextColor(ready ? GREEN : MUTED);
         renderBridgeStatus();
+        if (ready) liveRide = null;
+        renderLive();
         updateButtons();
         if (ready) runJob("正在同步设备…", epoch -> {
             boolean supported = WatchHandshake.prepare((command, expected) -> ask(epoch, json(command), expected));
@@ -422,6 +682,7 @@ public final class MainActivity extends Activity {
             try { readHistory(epoch); } catch (BleLink.DeviceError error) {
                 if (!"no_saved_ride".equals(error.getMessage())) throw error;
             }
+            main.postDelayed(() -> { if (epoch == session) syncOnlineWeather(); }, 3000);
         });
     }
     private void updateButtons() {
@@ -430,7 +691,7 @@ public final class MainActivity extends Activity {
         search.setEnabled(!busy); sync.setEnabled(ready && !busy); refresh.setEnabled(ready && !busy);
         clock.setEnabled(ready && !busy); saveNote.setEnabled(ready && !busy && latest != null);
         syncArchive.setEnabled(ready && !busy);
-        gps.setEnabled(ready && gpsSupported && (!busy || gpsRunning));
+        gps.setEnabled(gpsRunning || (ready && gpsSupported && !busy));
         for (Button action : new Button[]{search, sync, refresh, clock, saveNote, gps, syncArchive})
             action.setAlpha(action.isEnabled() ? 1f : .38f);
     }
@@ -466,6 +727,7 @@ public final class MainActivity extends Activity {
     }
     private void readStatus(long epoch) throws Exception {
         JSONObject response = ask(epoch, json("ride_status"), "ride_status");
+        phoneSession.publish(response);
         String summary = response.optBoolean("active") ?
                 (response.optBoolean("paused") ? "骑行暂停中" : "正在骑行") + " · " + time(response.optLong("elapsed_s")) : "手表待机中 · 时间已同步";
         if (response.optBoolean("safety_pending")) summary += "\n手表正在等待安全确认，请在腕上处理。";
@@ -700,10 +962,11 @@ public final class MainActivity extends Activity {
     private void configureReviewEndpoint(RideHistory.Entry entry) {
         EditText input = new EditText(this); input.setSingleLine(true);
         input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
-        input.setText(store.getString("review_endpoint", ""));
+        input.setText(store.getString("review_endpoint", "http://127.0.0.1:4173/api/ride/review"));
         input.setHint("https://你的服务/api/ride/review");
-        new AlertDialog.Builder(this).setTitle("复盘服务 HTTPS 地址")
-                .setMessage("仅主动请求时发送这条骑行的统计摘要。AI 凭据在服务端配置，App 不保存模型 Key。")
+        new AlertDialog.Builder(this).setTitle("复盘服务地址")
+                .setMessage("仅主动请求时发送这条骑行的统计摘要。AI 凭据在服务端配置，App 不保存模型 Key。"
+                        + "\n电脑网关可用 adb reverse tcp:4173 tcp:4173 经 USB 转到 http://127.0.0.1:4173。")
                 .setView(input).setPositiveButton("保存", (dialog, which) -> {
                     try {
                         String value = input.getText().toString().trim();
@@ -1007,6 +1270,104 @@ public final class MainActivity extends Activity {
         }
     };
 
+    private void refreshTrack() {
+        if (trackView == null) return;
+        trackView.setRoute(route == null ? null : route.points());
+        ParkingSpot spot = ParkingStore.load(this);
+        trackView.setParking(spot == null ? null : new double[]{spot.lat, spot.lon});
+        trackInfo.setText(String.format(Locale.ROOT, "走过的路线：%d 米 · 绿线是你走的，虚线是路线，P 是停车点",
+                Math.round(TrackView.length())));
+    }
+    private void renderParking() {
+        refreshTrack();
+        if(carStatus==null)return;
+        ParkingSpot spot=ParkingStore.load(this);
+        String failure=ParkingStore.status(this);
+        if(spot==null){
+            carStatus.setText(failure.isEmpty()?"还没有停车点。在手表上结束骑行时会自动记录，也可以手动记录。":failure);
+            if(carFinding)stopCarFinder();
+        } else {
+            carStatus.setText((spot.auto?"结束骑行时自动记录":"手动记录")+" · "
+                    +DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(new Date(spot.savedMs))
+                    +" · 精度约 "+Math.round(spot.accuracy)+" 米"+(failure.isEmpty()?"":"\n"+failure));
+        }
+        carFind.setEnabled(spot!=null);carFind.setAlpha(spot!=null?1f:.38f);
+        renderCar();
+    }
+    private Location freshFix() {
+        for(Location candidate:new Location[]{carFix,gpsRunning?lastLocation:null}) {
+            if(candidate==null||!candidate.hasAccuracy()||candidate.getAccuracy()>ParkingStore.MAX_ACCURACY)continue;
+            if(SystemClock.elapsedRealtimeNanos()-candidate.getElapsedRealtimeNanos()<GpsTracker.MAX_AGE_NS)return candidate;
+        }
+        return null;
+    }
+    private void startCarFinder() {
+        if(ParkingStore.load(this)==null||carFinding)return;
+        if(!granted(Manifest.permission.ACCESS_FINE_LOCATION)){
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},CAR_PERMISSION);return;
+        }
+        if(locationManager==null||!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+            message.setText("请先开启系统定位。");startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));return;
+        }
+        try{locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,1000,0,carListener,Looper.getMainLooper());}
+        catch(RuntimeException error){message.setText("定位启动失败，请检查权限与系统设置。");return;}
+        carFinding=true;carFix=null;compassHeading=Double.NaN;
+        Sensor rotation=sensors==null?null:sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        if(rotation!=null)sensors.registerListener(compass,rotation,SensorManager.SENSOR_DELAY_UI);
+        carFind.setText("停止寻车");renderCar();
+    }
+    private void stopCarFinder() {
+        if(!carFinding)return;
+        carFinding=false;
+        try{locationManager.removeUpdates(carListener);}catch(RuntimeException ignored){}
+        if(sensors!=null)sensors.unregisterListener(compass);
+        if(carFind!=null)carFind.setText("开始寻车");
+        renderCar();
+    }
+    private long lastCarDraw;
+    private void renderCar() {
+        if(carArrow==null)return;
+        ParkingSpot spot=ParkingStore.load(this);
+        if(!carFinding||spot==null){carArrow.setText("");carArrow.setRotation(0);carGuide.setText("");return;}
+        Location here=freshFix();
+        if(here==null){
+            carArrow.setText("…");carArrow.setRotation(0);
+            carGuide.setText(carFix==null?"正在定位，请到开阔处…":"定位信号已过期，正在重新定位…");return;
+        }
+        ParkingSpot.Guide guide=spot.guide(here.getLatitude(),here.getLongitude(),here.getAccuracy(),compassHeading);
+        if(guide.arrived()){carArrow.setText("✓");carArrow.setRotation(0);}
+        else if(guide.direction==ParkingSpot.UNKNOWN){carArrow.setText("◎");carArrow.setRotation(0);}
+        else{carArrow.setText("↑");carArrow.setRotation((float)guide.relative);}
+        carGuide.setText(guide.text()+"\n手机定位精度约 "+Math.round(here.getAccuracy())+" 米"
+                +(guide.direction==ParkingSpot.UNKNOWN?" · 手机无指南针，按方位行走":""));
+    }
+    private final LocationListener carListener=new LocationListener(){
+        @Override public void onLocationChanged(Location location){
+            if(!carFinding||!location.hasAccuracy())return;
+            carFix=new Location(location);
+            declination=new GeomagneticField((float)location.getLatitude(),(float)location.getLongitude(),
+                    (float)location.getAltitude(),System.currentTimeMillis()).getDeclination();
+            renderCar();
+        }
+        @Override public void onProviderDisabled(String provider){stopCarFinder();message.setText("系统定位已关闭，寻车已停止。");}
+        @Override public void onProviderEnabled(String provider){}
+        @Override public void onStatusChanged(String provider,int status,Bundle extras){}
+    };
+    private final SensorEventListener compass=new SensorEventListener(){
+        private final float[] matrix=new float[9],angles=new float[3];
+        @Override public void onSensorChanged(SensorEvent event){
+            if(!carFinding)return;
+            // Some ROMs report accuracy 0 on fused rotation vectors; trust the vector, smooth jitter.
+            SensorManager.getRotationMatrixFromVector(matrix,event.values);SensorManager.getOrientation(matrix,angles);
+            double heading=(Math.toDegrees(angles[0])+declination+360)%360;
+            if(Double.isNaN(compassHeading))compassHeading=heading;
+            else{double step=((heading-compassHeading)%360+540)%360-180;compassHeading=(compassHeading+step*.25+360)%360;}
+            long now=SystemClock.elapsedRealtime();
+            if(now-lastCarDraw>=100){lastCarDraw=now;renderCar();}
+        }
+        @Override public void onAccuracyChanged(Sensor sensor,int accuracy){}
+    };
+
     private void startGps() {
         if (!link.isReady() || !gpsSupported) return;
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -1055,7 +1416,13 @@ public final class MainActivity extends Activity {
     };
     private final LocationListener locationListener = new LocationListener() {
         @Override public void onLocationChanged(Location location) {
-            if (!gpsRunning || !link.isReady() || !location.hasAccuracy()) return;
+            if (gpsRunning && location.hasAccuracy() && location.getAccuracy() <= 30) {
+                TrackView.add(location.getLatitude(), location.getLongitude()); refreshTrack();
+            }
+            if (!gpsRunning || !link.isReady() || !location.hasAccuracy()) {
+                if (gpsRunning && !link.isReady()) gpsStatus.setText("手表蓝牙已断开 · 轨迹继续记录，重连后恢复同步");
+                return;
+            }
             double delta = lastLocation == null ? 0 : location.distanceTo(lastLocation);
             GpsTracker.Sample sample = gpsTracker.accept(SystemClock.elapsedRealtimeNanos(), location.getElapsedRealtimeNanos(),
                     location.getAccuracy(), delta, location.hasSpeed(), location.getSpeed());
@@ -1118,19 +1485,23 @@ public final class MainActivity extends Activity {
         }
         if(code==CONNECTION_NOTIFICATION_PERMISSION)renderBridgeStatus();
         if(code==EMERGENCY_PERMISSION)renderEmergency();
+        if(code==CAR_PERMISSION){if(granted(Manifest.permission.ACCESS_FINE_LOCATION))startCarFinder();else message.setText("寻车需要精确位置权限。");}
     }
     @Override protected void onStop() {
         stopVoice();
         stopScan();
         if (scanDialog != null && scanDialog.isShowing()) scanDialog.dismiss();
-        stopGps(true); super.onStop();
+        stopGps(true); stopCarFinder(); super.onStop();
     }
     @Override protected void onDestroy() {
         stopVoice();
         session++; stopScan(); stopGps(false);
         if(phoneSession!=null)phoneSession.remove(connectionListener);
         if(emergency!=null)emergency.remove(emergencyListener);
+        if(phoneSession!=null)phoneSession.removeStatus(statusListener);
+        ParkingStore.remove(parkingListener);
         ioWorker.shutdownNow();
+        if(coachWeb!=null)coachWeb.destroy();
         super.onDestroy();
     }
     @Override protected void onSaveInstanceState(Bundle saved) {

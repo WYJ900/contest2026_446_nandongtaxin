@@ -42,6 +42,10 @@
 #define STILL_ENTER_SCORE 4
 #define ACCEL_MOVE_DELTA 45
 #define GYRO_MOVE_SUM 5000
+#define GYRO_BIAS_SHIFT 4           /* bias kept in 1/16 mdps */
+#define GYRO_BIAS_TRACK_SHIFT 4     /* ~4 s time constant at 4 Hz */
+#define GYRO_BIAS_LIMIT 8000        /* mdps per axis; larger is motion */
+#define GYRO_BIAS_RESCUE 8          /* calm samples before relearning anyway */
 #define ACCEL_IMPACT_DELTA 650
 #define IMPACT_STILL_SECONDS 3
 #define IMPACT_WINDOW_SECONDS 10
@@ -57,6 +61,11 @@ struct ride_session_s
   int16_t last_x;
   int16_t last_y;
   int16_t last_z;
+  int32_t gyro_bias[3];
+  int32_t dbg_accel_delta;
+  int32_t dbg_gyro_raw;
+  int32_t dbg_gyro_sum;
+  uint8_t calm_samples;
   uint8_t warmup_samples;
   uint8_t moving_score;
   uint8_t still_score;
@@ -101,6 +110,15 @@ static struct velaride_nav_s g_nav;
 static uint64_t g_nav_updated;
 static bool g_nav_valid;
 static pthread_mutex_t g_history_lock = PTHREAD_MUTEX_INITIALIZER;
+
+/* RAM copy of the history slots, newest first.  Guarded by g_history_lock.
+ * Probing the 17 KVDB keys costs ~0.6 s with empty slots, so the scan runs
+ * once and again only after a save; readers never touch flash. */
+
+static bool g_history_cached;
+static int g_history_count;
+static unsigned int g_history_bad;
+static struct velaride_ride_record_s g_history_records[VELARIDE_HISTORY_CAPACITY];
 static struct velaride_ride_prefs_s g_ride_prefs = {.rest_min = 45};
 
 struct ride_prefs_disk_s
@@ -324,7 +342,12 @@ static void ride_increment(uint16_t *value)
   if (*value < UINT16_MAX) (*value)++;
 }
 
-static int ride_open_sensor(void)
+/* The lsm6dsl driver does not serialize callers; the UI thread (ride and
+ * raise-to-wake) and the device worker (low-activity reminder) share it. */
+
+static pthread_mutex_t g_sensor_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static int ride_open_sensor_locked(void)
 {
   int ret;
 
@@ -350,6 +373,32 @@ static int ride_open_sensor(void)
     }
 
   return 0;
+}
+
+static int ride_open_sensor(void)
+{
+  int ret;
+
+  pthread_mutex_lock(&g_sensor_lock);
+  ret = ride_open_sensor_locked();
+  pthread_mutex_unlock(&g_sensor_lock);
+  return ret;
+}
+
+static int ride_sensor_read(struct lsm6dsl_sensor_data_s *data)
+{
+  int ret;
+
+  pthread_mutex_lock(&g_sensor_lock);
+  ret = ride_open_sensor_locked();
+  if (ret == 0 && ioctl(g_ride.sensor_fd, SNIOC_LSM6DSLSENSORREAD,
+                        (unsigned long)data) < 0)
+    {
+      ret = -errno;
+    }
+
+  pthread_mutex_unlock(&g_sensor_lock);
+  return ret;
 }
 
 int velaride_ride_session_init(void)
@@ -394,13 +443,7 @@ int velaride_ride_session_probe_sensor(void)
       return g_ride.state.sensor_ready ? 0 : -EIO;
     }
 
-  ret = ride_open_sensor();
-  if (ret == 0 && ioctl(g_ride.sensor_fd, SNIOC_LSM6DSLSENSORREAD,
-                        (unsigned long)&data) < 0)
-    {
-      ret = -errno;
-    }
-
+  ret = ride_sensor_read(&data);
   g_ride.state.sensor_ready = ret == 0;
   return ret;
 }
@@ -408,17 +451,11 @@ int velaride_ride_session_probe_sensor(void)
 int velaride_ride_session_read_accel(int16_t *x, int16_t *y, int16_t *z)
 {
   struct lsm6dsl_sensor_data_s data;
-  int ret = ride_open_sensor();
+  int ret = ride_sensor_read(&data);
 
   if (ret < 0)
     {
       return ret;
-    }
-
-  if (ioctl(g_ride.sensor_fd, SNIOC_LSM6DSLSENSORREAD,
-            (unsigned long)&data) < 0)
-    {
-      return -errno;
     }
 
   *x = data.x_data;
@@ -514,6 +551,55 @@ void velaride_ride_session_set_paused(bool paused)
          paused ? "pause" : "resume", g_ride.state.pause_count);
 }
 
+/* shift 0 replaces the offset; otherwise move 1/2^shift toward the sample */
+
+static void ride_gyro_learn(const struct lsm6dsl_sensor_data_s *data,
+                            int shift)
+{
+  const int16_t sample[3] =
+  {
+    data->g_x_data, data->g_y_data, data->g_z_data
+  };
+
+  int i;
+
+  for (i = 0; i < 3; i++)
+    {
+      int32_t target = sample[i];
+
+      if (target > GYRO_BIAS_LIMIT || target < -GYRO_BIAS_LIMIT)
+        {
+          continue;
+        }
+
+      target *= 1 << GYRO_BIAS_SHIFT;
+      g_ride.gyro_bias[i] += (target - g_ride.gyro_bias[i]) / (1 << shift);
+    }
+}
+
+static int ride_gyro_deviation(const struct lsm6dsl_sensor_data_s *data)
+{
+  return abs(data->g_x_data - (g_ride.gyro_bias[0] >> GYRO_BIAS_SHIFT)) +
+         abs(data->g_y_data - (g_ride.gyro_bias[1] >> GYRO_BIAS_SHIFT)) +
+         abs(data->g_z_data - (g_ride.gyro_bias[2] >> GYRO_BIAS_SHIFT));
+}
+
+void velaride_ride_session_motion_debug(int32_t *accel_delta,
+                                        int32_t *gyro_raw,
+                                        int32_t *gyro_sum,
+                                        int32_t bias[3])
+{
+  int i;
+
+  *accel_delta = g_ride.dbg_accel_delta;
+  *gyro_raw = g_ride.dbg_gyro_raw;
+  *gyro_sum = g_ride.dbg_gyro_sum;
+  for (i = 0; i < 3; i++)
+    {
+      bias[i] = g_ride.gyro_bias[i] >> GYRO_BIAS_SHIFT;
+    }
+}
+
 void velaride_ride_session_sensor_tick(void)
 {
   struct lsm6dsl_sensor_data_s data;
@@ -528,8 +614,7 @@ void velaride_ride_session_sensor_tick(void)
       return;
     }
 
-  ret = ioctl(g_ride.sensor_fd, SNIOC_LSM6DSLSENSORREAD,
-              (unsigned long)&data);
+  ret = ride_sensor_read(&data);
   if (ret < 0)
     {
       g_ride.state.sensor_ready = false;
@@ -544,6 +629,7 @@ void velaride_ride_session_sensor_tick(void)
 
   if (g_ride.warmup_samples < SENSOR_WARMUP_SAMPLES)
     {
+      ride_gyro_learn(&data, g_ride.warmup_samples == 0 ? 0 : 1);
       g_ride.last_x = data.x_data;
       g_ride.last_y = data.y_data;
       g_ride.last_z = data.z_data;
@@ -558,7 +644,34 @@ void velaride_ride_session_sensor_tick(void)
   accel_delta = abs(data.x_data - g_ride.last_x) +
                 abs(data.y_data - g_ride.last_y) +
                 abs(data.z_data - g_ride.last_z);
-  gyro_sum = abs(data.g_x_data) + abs(data.g_y_data) + abs(data.g_z_data);
+  gyro_sum = ride_gyro_deviation(&data);
+  g_ride.dbg_accel_delta = accel_delta;
+  g_ride.dbg_gyro_raw = abs(data.g_x_data) + abs(data.g_y_data) +
+                        abs(data.g_z_data);
+  g_ride.dbg_gyro_sum = gyro_sum;
+
+  /* Learn only from samples that already look still, so tumbling with a
+   * momentarily steady accelerometer cannot drag the offset; after two calm
+   * seconds learn anyway, which recovers from a warm-up taken in motion. */
+
+  if (accel_delta < ACCEL_MOVE_DELTA)
+    {
+      if (g_ride.calm_samples < UINT8_MAX)
+        {
+          g_ride.calm_samples++;
+        }
+
+      if (gyro_sum < GYRO_MOVE_SUM ||
+          g_ride.calm_samples >= GYRO_BIAS_RESCUE)
+        {
+          ride_gyro_learn(&data, GYRO_BIAS_TRACK_SHIFT);
+        }
+    }
+  else
+    {
+      g_ride.calm_samples = 0;
+    }
+
   impact_sample = accel_delta >= ACCEL_IMPACT_DELTA;
   moving_sample = accel_delta >= ACCEL_MOVE_DELTA || gyro_sum >= GYRO_MOVE_SUM;
 
@@ -566,14 +679,18 @@ void velaride_ride_session_sensor_tick(void)
   g_ride.last_y = data.y_data;
   g_ride.last_z = data.z_data;
 
-  if (impact_sample && !g_ride.state.paused && !g_ride.impact_pending)
+  if (impact_sample && !g_ride.state.paused)
     {
+      if (!g_ride.impact_pending)
+        {
+          g_ride.state.impact_count++;
+          printf("VELARIDE_RIDE: impact delta=%d gyro=%d count=%u\n",
+                 accel_delta, gyro_sum, g_ride.state.impact_count);
+        }
+
       g_ride.impact_pending = true;
       g_ride.impact_age_s = 0;
       g_ride.post_impact_still_s = 0;
-      g_ride.state.impact_count++;
-      printf("VELARIDE_RIDE: impact delta=%d gyro=%d count=%u\n",
-             accel_delta, gyro_sum, g_ride.state.impact_count);
     }
 
   if (moving_sample)
@@ -1047,7 +1164,7 @@ static bool ride_sequence_after(uint32_t a, uint32_t b)
  * The primary legacy key remains a read-only fallback until an actual save. */
 
 static int ride_history_scan(uint32_t *sequences, unsigned int *corrupt,
-                             struct velaride_ride_record_s *latest)
+                             struct velaride_ride_record_s *records)
 {
   struct velaride_ride_record_s record;
   char key[40];
@@ -1079,53 +1196,80 @@ static int ride_history_scan(uint32_t *sequences, unsigned int *corrupt,
       for (i = 0; i < count &&
            !ride_sequence_after(record.sequence, sequences[i]); i++);
       if (i >= VELARIDE_HISTORY_CAPACITY) continue;
-      if (i == 0 && latest != NULL) *latest = record;
       if (count < VELARIDE_HISTORY_CAPACITY) count++;
-      for (j = count - 1; j > i; j--) sequences[j] = sequences[j - 1];
+      for (j = count - 1; j > i; j--)
+        {
+          sequences[j] = sequences[j - 1];
+          records[j] = records[j - 1];
+        }
       sequences[i] = record.sequence;
+      records[i] = record;
     }
   if (corrupt != NULL) *corrupt = bad;
   return count;
 }
 
+/* Caller holds g_history_lock. */
+
+static void ride_history_ensure(void)
+{
+  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
+
+  if (g_history_cached) return;
+  g_history_count = ride_history_scan(sequences, &g_history_bad,
+                                      g_history_records);
+  g_history_cached = true;
+}
+
 int velaride_ride_history_list(uint32_t *sequences, size_t capacity,
                                unsigned int *corrupt)
 {
+  int i;
   int ret;
   if (sequences == NULL || capacity < VELARIDE_HISTORY_CAPACITY) return -EINVAL;
   pthread_mutex_lock(&g_history_lock);
-  ret = ride_history_scan(sequences, corrupt, NULL);
+  ride_history_ensure();
+  for (i = 0; i < g_history_count; i++)
+    sequences[i] = g_history_records[i].sequence;
+  if (corrupt != NULL) *corrupt = g_history_bad;
+  ret = g_history_count;
   pthread_mutex_unlock(&g_history_lock);
   return ret;
 }
 
 int velaride_ride_session_load_latest(struct velaride_ride_record_s *record)
 {
-  uint32_t sequences[VELARIDE_HISTORY_CAPACITY];
-  unsigned int corrupt;
-  int count;
+  int ret;
+  if (record == NULL) return -EINVAL;
   pthread_mutex_lock(&g_history_lock);
-  count = ride_history_scan(sequences, &corrupt, record);
+  ride_history_ensure();
+  if (g_history_count > 0)
+    {
+      *record = g_history_records[0];
+      ret = 0;
+    }
+  else ret = g_history_bad > 0 ? -EBADMSG : -ENOENT;
   pthread_mutex_unlock(&g_history_lock);
-  return count > 0 ? 0 : corrupt > 0 ? -EBADMSG : -ENOENT;
+  return ret;
 }
 
 int velaride_ride_history_get(uint32_t sequence,
                               struct velaride_ride_record_s *record)
 {
-  struct velaride_ride_record_s found;
-  char key[40];
-  int ret;
+  int i;
+  int ret = -ENOENT;
   if (record == NULL) return -EINVAL;
   pthread_mutex_lock(&g_history_lock);
-  ride_history_key(key, sizeof(key), sequence % VELARIDE_HISTORY_CAPACITY);
-  ret = ride_load_key(key, &found);
-  if (ret < 0 || found.sequence != sequence)
+  ride_history_ensure();
+  for (i = 0; i < g_history_count; i++)
     {
-      ret = ride_load_key(RIDE_RECORD_KEY, &found);
+      if (g_history_records[i].sequence == sequence)
+        {
+          *record = g_history_records[i];
+          ret = 0;
+          break;
+        }
     }
-  if (ret == 0 && found.sequence == sequence) *record = found;
-  else ret = -ENOENT;
   pthread_mutex_unlock(&g_history_lock);
   return ret;
 }
@@ -1157,6 +1301,8 @@ int velaride_ride_session_save_record(
   ret = ride_store_key(key, record);
   if (ret == 0) ret = ride_store_key(RIDE_RECORD_KEY, record);
 out:
+  /* Flash may hold a partial update after a failure: rescan once. */
+  g_history_cached = false;
   pthread_mutex_unlock(&g_history_lock);
   return ret;
 }

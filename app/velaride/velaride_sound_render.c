@@ -34,6 +34,11 @@ int velaride_sound_render(enum velaride_sound_cue_e cue,
       return -EINVAL;
     }
 
+  if (cue == VR_SOUND_SAFETY)
+    {
+      cue = VR_SOUND_ALARM;
+    }
+
   if (cue == VR_SOUND_ALARM || cue == VR_SOUND_COUNTDOWN)
     {
       count = cue == VR_SOUND_ALARM ? 32000 : 14400;

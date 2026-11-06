@@ -1,0 +1,28 @@
+--- ai_agent/src/tools/mcp_client.c.orig	2026-11-06 18:30:51.442380403 +0800
++++ ai_agent/src/tools/mcp_client.c	2026-11-06 18:31:00.477227175 +0800
+@@ -397,8 +397,9 @@
+         mcp_remote_tool_t* t = &out_tools[added];
+         memset(t, 0, sizeof(*t));
+ 
+-        /* FIX #6: prefix tool name with "server_name." to avoid collision */
+-        snprintf(t->name, sizeof(t->name), "%s.%s",
++        /* FIX #6: prefix tool name with "server_name__" to avoid collision.
++         * OpenAI-compatible APIs only accept [a-zA-Z0-9_-] in tool names. */
++        snprintf(t->name, sizeof(t->name), "%s__%s",
+             srv->name, name->valuestring);
+         snprintf(t->description, sizeof(t->description), "[%s] %s",
+             srv->name,
+@@ -671,8 +672,11 @@
+     /* Step 2: build request and do network call WITHOUT lock */
+ 
+     /* Extract the original tool name (strip server prefix for remote call) */
+-    const char* dot = strchr(name, '.');
+-    const char* remote_name = dot ? dot + 1 : name;
++    size_t prefix_len = strlen(srv_local.name);
++    const char* remote_name = name;
++    if (strncmp(name, srv_local.name, prefix_len) == 0
++        && strncmp(name + prefix_len, "__", 2) == 0)
++        remote_name = name + prefix_len + 2;
+ 
+     cJSON* params = cJSON_CreateObject();
+     if (!params)

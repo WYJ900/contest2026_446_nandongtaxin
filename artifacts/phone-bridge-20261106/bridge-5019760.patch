@@ -1,0 +1,289 @@
+commit 5019760f4baa7ff4af45ecd5aaaea8eab0b128ab
+Author: WYJ900 <3425662699@qq.com>
+Date:   Wed Nov 4 21:31:48 2026 +0800
+
+    feat: add phone notification weather bridge and retained BLE service
+
+diff --git a/app/velaride/CMakeLists.txt b/app/velaride/CMakeLists.txt
+index 230d9b7..39c08f9 100644
+--- a/app/velaride/CMakeLists.txt
++++ b/app/velaride/CMakeLists.txt
+@@ -41,6 +41,7 @@ if(CONFIG_EXAMPLES_VELARIDE)
+     velaride_ride_session.c
+     velaride_memo.c
+     velaride_activity.c
++    velaride_phone.c
+     velaride_timekeeper.c
+     velaride_device.c
+     velaride_compass.c
+diff --git a/app/velaride/velaride_ble.c b/app/velaride/velaride_ble.c
+index 140f70f..181b32e 100644
+--- a/app/velaride/velaride_ble.c
++++ b/app/velaride/velaride_ble.c
+@@ -39,6 +39,7 @@
+ 
+ #include "velaride_ride_session.h"
+ #include "velaride_memo.h"
++#include "velaride_phone.h"
+ #include "velaride_timekeeper.h"
+ 
+ #define VELARIDE_RX_MAX 768
+@@ -305,6 +306,33 @@ static void velaride_handle_json(struct bt_conn *conn, const char *json)
+       velaride_nav_clear();
+       velaride_notify_json(conn, "{\"ok\":true,\"event\":\"nav_clear\"}");
+     }
++  else if (strcmp(cmd,"phone_note")==0)
++    {
++      char id[33],source[49],title[73],body[161];
++      if(json_get_string(json,"id",id,sizeof(id))<0 || json_get_string(json,"source",source,sizeof(source))<0 ||
++         json_get_string(json,"title",title,sizeof(title))<0 || json_get_string(json,"body",body,sizeof(body))<0 ||
++         velaride_phone_note(id,source,title,body)<0)
++        velaride_notify_json(conn,"{\"ok\":false,\"error\":\"bad_phone_note\"}");
++      else velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_note\"}");
++    }
++  else if(strcmp(cmd,"phone_notes_clear")==0)
++    {
++      velaride_phone_notes_clear();velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_notes_clear\"}");
++    }
++  else if(strcmp(cmd,"phone_weather_clear")==0)
++    {
++      velaride_weather_clear();velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_weather_clear\"}");
++    }
++  else if (strcmp(cmd,"phone_weather")==0)
++    {
++      char city[49],description[65];double temperature,published;
++      if(json_get_string(json,"city",city,sizeof(city))<0 || json_get_string(json,"description",description,sizeof(description))<0 ||
++         json_get_number(json,"temperature_deci",&temperature)<0 || temperature< -1000 || temperature>1000 || temperature!=(int)temperature ||
++         json_get_number(json,"published_epoch",&published)<0 || published<1704067200 || published>4102444800.0 || published!=(int64_t)published ||
++         velaride_weather_set(city,description,temperature,published)<0)
++        velaride_notify_json(conn,"{\"ok\":false,\"error\":\"bad_phone_weather\"}");
++      else velaride_notify_json(conn,"{\"ok\":true,\"event\":\"phone_weather\"}");
++    }
+   else if (strcmp(cmd, "ride_status") == 0)
+     {
+       phone_speed = 0;
+diff --git a/app/velaride/velaride_shell.c b/app/velaride/velaride_shell.c
+index c1cdc07..b476ad1 100644
+--- a/app/velaride/velaride_shell.c
++++ b/app/velaride/velaride_shell.c
+@@ -33,6 +33,10 @@
+ #include <nuttx/lcd/lcd_dev.h>
+ #include <nuttx/mtd/configdata.h>
+ #include <nuttx/mtd/mtd.h>
++#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
++#include <nuttx/spi/spi_transfer.h>
++#include <sys/statfs.h>
++#endif
+ #include <lvgl/lvgl.h>
+ 
+ #include "velaride_sport_ui.h"
+@@ -40,6 +44,8 @@
+ #include "velaride_timekeeper.h"
+ #include "velaride_device.h"
+ #include "velaride_activity.h"
++#include "velaride_phone.h"
++#include "velaride_memo.h"
+ #include "velaride_icons.h"
+ #include "velaride_compass.h"
+ #include "velaride_theme.h"
+@@ -340,6 +346,7 @@ enum note_kind_e
+   NOTE_LINK_UP,
+   NOTE_LINK_DOWN,
+   NOTE_ACTIVITY,
++  NOTE_PHONE,
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   NOTE_COUNTDOWN,
+ #endif
+@@ -3251,6 +3258,7 @@ static const struct
+                       VR_ICON_BLUETOOTH, 0x6e6e73, APP_CONNECT},
+   [NOTE_ACTIVITY] = {"起来活动一下", "手腕活动较少，起身动一动",
+                      VR_ICON_PULSE, 0x6ec6ff, -1},
++  [NOTE_PHONE] = {"手机新消息", "点击查看手机摘要",VR_ICON_BLUETOOTH,0x6ec6ff,-1},
+ #ifdef CONFIG_EXAMPLES_VELARIDE_COUNTDOWN
+   [NOTE_COUNTDOWN] = {"倒计时结束", "时间到，点击查看",
+                       VR_ICON_TIMER, 0xc98536, APP_COUNTDOWN},
+@@ -3369,10 +3377,10 @@ static void note_tap(lv_point_t point)
+     }
+ 
+   app = g_note_kinds[g_notes.items[index].kind].app;
+-  if(g_notes.items[index].kind==NOTE_ACTIVITY&&!velaride_sport_ui_active())
++  if((g_notes.items[index].kind==NOTE_ACTIVITY||g_notes.items[index].kind==NOTE_PHONE)&&!velaride_sport_ui_active())
+     {
+       if(g_menu.active)menu_hide();
+-      velaride_sport_ui_show_info(VELARIDE_INFO_ACTIVITY);
++      velaride_sport_ui_show_info(g_notes.items[index].kind==NOTE_ACTIVITY?VELARIDE_INFO_ACTIVITY:VELARIDE_INFO_PHONE);
+       return;
+     }
+   if (app >= 0)
+@@ -3427,10 +3435,10 @@ static void banner_tap_cb(lv_event_t *event)
+ #endif
+   lv_timer_pause(g_notes.banner_timer);
+   lv_obj_add_flag(g_notes.banner, LV_OBJ_FLAG_HIDDEN);
+-  if(kind==NOTE_ACTIVITY&&!velaride_sport_ui_active())
++  if((kind==NOTE_ACTIVITY||kind==NOTE_PHONE)&&!velaride_sport_ui_active())
+     {
+       if(g_menu.active)menu_hide();
+-      velaride_sport_ui_show_info(VELARIDE_INFO_ACTIVITY);
++      velaride_sport_ui_show_info(kind==NOTE_ACTIVITY?VELARIDE_INFO_ACTIVITY:VELARIDE_INFO_PHONE);
+       return;
+     }
+   if (g_note_kinds[kind].app >= 0 && !velaride_sport_ui_active())
+@@ -3567,6 +3575,8 @@ static void note_watch(void)
+   velaride_ride_session_get(&ride);
+   if(!ride.active&&!g_nav.dragging&&!g_nav.transition_active&&velaride_activity_take_due())
+     note_post(NOTE_ACTIVITY);
++  if(ride.alert==VELARIDE_ALERT_NONE&&!g_nav.dragging&&!g_nav.transition_active&&velaride_phone_take_event())
++    note_post(NOTE_PHONE);
+   if (ride.alert == VELARIDE_ALERT_REST && !g_notes.rest_posted)
+     {
+       g_notes.rest_posted = true;
+@@ -4373,8 +4383,40 @@ static int velaride_decode_hex(const char *hex, char *output, size_t size)
+   return hex_len / 2;
+ }
+ 
++#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
++static int tf_spi_probe(void)
++{
++  struct velaride_ride_snapshot_s ride;
++  struct velaride_memo_s memo;
++  struct statfs fs;
++  uint8_t tx[32],rx[32];
++  velaride_ride_session_get(&ride);velaride_memo_get(&memo);
++  if(ride.active||memo.state==VELARIDE_MEMO_RECORDING||
++     (statfs("/data/tf",&fs)==0&&fs.f_type==MSDOS_SUPER_MAGIC)) {
++    printf("TF_SPI_PROBE: refused active ride/recording/mounted card\n");return EXIT_FAILURE;
++  }
++  int fd=open("/dev/spi1",O_RDWR|O_CLOEXEC);
++  if(fd<0){printf("TF_SPI_PROBE: open errno=%d\n",errno);return EXIT_FAILURE;}
++  memset(tx,0xff,sizeof(tx));memset(rx,0xa5,sizeof(rx));
++  /* Same CMD0 reset/CRC packet as the in-tree mmcsd SPI initializer.
++   * No sector data, erase, write or filesystem operation is issued. */
++  tx[8]=0x40;tx[9]=tx[10]=tx[11]=tx[12]=0;tx[13]=0x95;
++  struct spi_trans_s trans={.deselect=true,.nwords=sizeof(tx),.txbuffer=tx,.rxbuffer=rx};
++  struct spi_sequence_s sequence={.dev=SPIDEV_MMCSD(0),.mode=SPIDEV_MODE0,.nbits=8,.ntrans=1,.frequency=400000,.trans=&trans};
++  int ret=ioctl(fd,SPIIOC_TRANSFER,(unsigned long)&sequence);int saved_errno=errno;close(fd);
++  int r1=-1;
++  for(unsigned int i=14;i<sizeof(rx);i++)if((rx[i]&0x80)==0){r1=rx[i];break;}
++  printf("TF_SPI_PROBE: ioctl=%d errno=%d CMD0_r1=%d rx=",ret,ret<0?saved_errno:0,r1);
++  for(unsigned int i=0;i<sizeof(rx);i++)printf("%02x",rx[i]);
++  printf("\n");return ret==0&&r1==1?EXIT_SUCCESS:EXIT_FAILURE;
++}
++#endif
++
+ int main(int argc, FAR char *argv[])
+ {
++#if defined(CONFIG_SPI_DRIVER) && defined(CONFIG_SPI_EXCHANGE)
++  if(argc==2&&strcmp(argv[1],"tf-probe")==0)return tf_spi_probe();
++#endif
+   lv_nuttx_dsc_t info;
+   lv_nuttx_result_t result;
+ #ifdef CONFIG_LV_USE_NUTTX_LIBUV
+diff --git a/app/velaride/velaride_sport_ui.c b/app/velaride/velaride_sport_ui.c
+index aec6503..2980fe3 100644
+--- a/app/velaride/velaride_sport_ui.c
++++ b/app/velaride/velaride_sport_ui.c
+@@ -19,6 +19,7 @@
+ #include "velaride_memo.h"
+ #include "velaride_device.h"
+ #include "velaride_activity.h"
++#include "velaride_phone.h"
+ #include "velaride_compass.h"
+ #include "velaride_icons.h"
+ #include "velaride_theme.h"
+@@ -2788,6 +2789,25 @@ static void build_night(void)
+ 
+ static void update_info(void)
+ {
++  if(g_sport.info==VELARIDE_INFO_PHONE)
++    {
++      struct velaride_weather_s weather;
++      struct velaride_phone_note_s notes[VELARIDE_PHONE_NOTES];
++      char text[3200];size_t used;
++      if(velaride_weather_get(&weather)) {
++        snprintf(text,sizeof(text),"手机天气 · %s\n%.1f C · %s\n\n",weather.city,
++                 weather.temperature_deci/10.0,weather.description);
++      } else snprintf(text,sizeof(text),"手机天气 --\n尚未同步、接口不可用或已过期\n\n");
++      used=strlen(text);
++      int count=velaride_phone_notes_get(notes,VELARIDE_PHONE_NOTES);
++      if(count==0)snprintf(text+used,sizeof(text)-used,"没有手机消息\n请在手机 App 选择应用并授权通知读取。");
++      for(int i=0;i<count;i++) {
++        int written=snprintf(text+used,sizeof(text)-used,"%s\n%s\n%s\n\n",notes[i].source,notes[i].title,notes[i].body);
++        if(written<0||(size_t)written>=sizeof(text)-used)break;
++        used+=written;
++      }
++      set_label(g_sport.body,text);return;
++    }
+   if(g_sport.info==VELARIDE_INFO_ACTIVITY)
+     {
+       struct velaride_activity_s state;char text[512];
+@@ -3651,6 +3671,11 @@ static void build_activity(void)
+   }
+ }
+ 
++static void phone_clear_cb(lv_event_t *event)
++{
++  LV_UNUSED(event);velaride_phone_notes_clear();update_info();
++}
++
+ static void display_set_cb(lv_event_t *event)
+ {
+   uintptr_t value = (uintptr_t)lv_event_get_user_data(event);
+@@ -3681,6 +3706,7 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
+      , "夜骑模式"
+ #endif
+      , "久坐提醒"
++     , "手机与天气"
+     };
+ 
+   if (g_sport.root == NULL || g_sport.session_started ||
+@@ -3730,6 +3756,11 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
+     {
+       build_activity();
+     }
++  else if(info==VELARIDE_INFO_PHONE)
++    {
++      g_sport.body=scroll_body("",110,258);
++      button("清除手机消息",BTN_SECONDARY,70,392,250,44,phone_clear_cb,0);
++    }
+   else if (info == VELARIDE_INFO_DEVICE)
+     {
+       lv_obj_t *list = setting_list();
+@@ -3760,15 +3791,23 @@ void velaride_sport_ui_show_info(enum velaride_info_e info)
+                   8);
+ #else
+                   7);
++#endif
++      setting_row(list,"手机与天气",VR_ICON_BLUETOOTH,VELARIDE_INFO_PHONE,
++#if defined(CONFIG_EXAMPLES_VELARIDE_SOUND) && defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
++                  10);
++#elif defined(CONFIG_EXAMPLES_VELARIDE_SOUND) || defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
++                  9);
++#else
++                  8);
+ #endif
+       g_sport.body = label(list, "", MUTED_COLOR, &velaride_font_cn_20,
+                            18,
+ #if defined(CONFIG_EXAMPLES_VELARIDE_SOUND) && defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
+-                           10 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
++                           11 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+ #elif defined(CONFIG_EXAMPLES_VELARIDE_SOUND) || defined(CONFIG_EXAMPLES_VELARIDE_NIGHT)
+-                           9 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
++                           10 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+ #else
+-                           8 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
++                           9 * (SETTING_ROW_H + SETTING_ROW_GAP) + 6,
+ #endif
+                            354);
+     }
+diff --git a/app/velaride/velaride_sport_ui.h b/app/velaride/velaride_sport_ui.h
+index 61bc30a..2443000 100644
+--- a/app/velaride/velaride_sport_ui.h
++++ b/app/velaride/velaride_sport_ui.h
+@@ -39,6 +39,7 @@ enum velaride_info_e
+   VELARIDE_INFO_NIGHT,
+ #endif
+   VELARIDE_INFO_ACTIVITY,
++  VELARIDE_INFO_PHONE,
+ };
+ 
+ void velaride_sport_ui_init(lv_obj_t *screen,

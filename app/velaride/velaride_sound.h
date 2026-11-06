@@ -24,6 +24,7 @@ enum velaride_sound_cue_e
   VR_SOUND_ALARM_MODE,
   VR_SOUND_COUNTDOWN_MODE,
   VR_SOUND_STOPWATCH_MODE,
+  VR_SOUND_SAFETY,            /* Fall check: rings through DND and mute. */
   VR_SOUND_CUE_COUNT
 };
 

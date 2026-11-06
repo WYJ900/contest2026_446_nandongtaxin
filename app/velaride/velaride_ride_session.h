@@ -155,6 +155,10 @@ void velaride_ride_session_set_connected(bool connected);
 bool velaride_ride_session_connected(void);
 void velaride_ride_session_set_paused(bool paused);
 void velaride_ride_session_sensor_tick(void);
+void velaride_ride_session_motion_debug(int32_t *accel_delta,
+                                        int32_t *gyro_raw,
+                                        int32_t *gyro_sum,
+                                        int32_t bias[3]);
 void velaride_ride_session_second_tick(void);
 int velaride_ride_session_finish(struct velaride_ride_record_s *record);
 void velaride_ride_session_get(struct velaride_ride_snapshot_s *snapshot);

@@ -1,12 +1,14 @@
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
-import { readFile, stat } from 'node:fs/promises';
+import { appendFile, readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { validateRide } from './public/ride-data.js';
 import { resolveConfig, publicConfig, requestReview, clipUtf8 } from './ai-provider.mjs';
 import { WATCH_FONT_CHARACTERS } from './watch-font.mjs';
+import { createWatchLink, handleMcp } from './watch-mcp.mjs';
+import { createFeed } from './agent-feed.mjs';
 
 const root = fileURLToPath(new URL('./public/', import.meta.url));
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -14,6 +16,8 @@ const execFileAsync = promisify(execFile);
 const port = Number(process.env.PORT || 4173);
 const maxBody = 32 * 1024;
 const watchCjk = new Set(WATCH_FONT_CHARACTERS);
+let watchLink;
+let agentFeed;
 
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
@@ -204,6 +208,55 @@ async function handleApi(req, res, url) {
     return true;
   }
 
+  if (req.method === 'POST' && url.pathname === '/mcp') {
+    if (process.env.VELARIDE_MCP !== '1' || !process.env.VELARIDE_SERIAL_CMD || !process.env.VELARIDE_SERIAL_LOG) {
+      json(res, 403, { ok: false, error: '手表 MCP 接口未启用' });
+      return true;
+    }
+    try {
+      const message = await readJson(req);
+      watchLink ??= createWatchLink({ cmdFile: process.env.VELARIDE_SERIAL_CMD, logFile: process.env.VELARIDE_SERIAL_LOG });
+      const response = await handleMcp(watchLink, message, (line) => console.log(`[mcp] ${line}`));
+      if (response === null) { res.writeHead(202).end(); return true; }
+      console.log(`[mcp] ${message.method}${message.params?.name ? ' ' + message.params.name : ''}`);
+      if (message.method === 'tools/call' && response.result) {
+        agentFeed?.recordToolCall(message.params?.name, message.params?.arguments, response.result);
+      }
+      json(res, 200, response);
+    } catch (error) {
+      json(res, 400, { jsonrpc: '2.0', id: null, error: { code: -32700, message: error.message } });
+    }
+    return true;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/agent/feed') {
+    if (!agentFeed) {
+      json(res, 403, { ok: false, error: 'Agent 看板未启用（需要 VELARIDE_MCP=1）' });
+      return true;
+    }
+    json(res, 200, { ok: true, ...agentFeed.snapshot(Number(url.searchParams.get('since')) || 0) });
+    return true;
+  }
+
+  // Lets the phone app answer the Agent: the text goes to agent_console.py's
+  // command file as one "ask", exactly like typing at the vela> prompt.
+  if (req.method === 'POST' && url.pathname === '/api/agent/ask') {
+    const cmdFile = process.env.VELARIDE_AGENT_CMD;
+    if (!agentFeed || !cmdFile) {
+      json(res, 403, { ok: false, error: 'Agent 回复接口未启用' });
+      return true;
+    }
+    try {
+      const text = String((await readJson(req)).text || '').replace(/\s+/g, ' ').trim();
+      if (!text || text.length > 200) throw new Error('回复为空或过长');
+      await appendFile(cmdFile, `ask ${text}\n`, 'utf8');
+      json(res, 200, { ok: true });
+    } catch (error) {
+      json(res, 400, { ok: false, error: error.message });
+    }
+    return true;
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/device') {
     if (process.env.VELARIDE_ENABLE_DEVICE_BRIDGE !== '1') {
       json(res, 403, { ok: false, error: '当前模式已停用 USB 设备接口' });
@@ -260,6 +313,15 @@ export function createAppServer() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (process.env.VELARIDE_MCP === '1' && process.env.VELARIDE_SERIAL_LOG) {
+    agentFeed = createFeed({
+      agentLog: process.env.VELARIDE_AGENT_LOG,
+      emuLog: process.env.VELARIDE_EMU_LOG,
+      watchLog: process.env.VELARIDE_SERIAL_LOG,
+      historyLogs: (process.env.VELARIDE_RIDE_HISTORY || '').split(';').filter(Boolean),
+    });
+    await agentFeed.start();
+  }
   createAppServer().listen(port, '127.0.0.1', () => {
     console.log(`VelaRide Web 网关：http://127.0.0.1:${port}`);
     console.log('AI 配置状态请查看 /api/health（不会返回 Key）');

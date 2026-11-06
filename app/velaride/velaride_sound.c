@@ -25,6 +25,7 @@ struct sound_play_s
   uint32_t epoch;
   uint64_t deadline;
   bool voice;
+  bool safety;
 };
 
 static pthread_mutex_t g_sound_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -67,14 +68,26 @@ static uint64_t sound_now(void)
   return (uint64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
 }
 
+#define SOUND_SAFETY_MIN_VOLUME 70
+
 static bool sound_voice(int cue)
 {
   return cue > VR_SOUND_NONE && cue < VR_SOUND_CUE_COUNT &&
-         cue != VR_SOUND_ALARM && cue != VR_SOUND_COUNTDOWN;
+         cue != VR_SOUND_ALARM && cue != VR_SOUND_COUNTDOWN &&
+         cue != VR_SOUND_SAFETY;
+}
+
+/* Settings and DND never silence the fall check. */
+
+static bool sound_muted_locked(int cue)
+{
+  if (cue == VR_SOUND_SAFETY) return false;
+  return !g_sound.enabled || g_sound.volume == 0 || g_sound.dnd;
 }
 
 static int sound_priority(int cue)
 {
+  if (cue == VR_SOUND_SAFETY) return 120;
   if (cue == VR_SOUND_ALARM) return 100;
   if (cue == VR_SOUND_COUNTDOWN) return 80;
   if (cue >= VR_SOUND_THREE && cue <= VR_SOUND_GO) return 50;
@@ -143,6 +156,11 @@ static int sound_live_gain(void *arg)
   uint8_t volume;
   pthread_mutex_lock(&g_sound_lock);
   volume = g_sound.volume;
+  if (play->safety && volume < SOUND_SAFETY_MIN_VOLUME)
+    {
+      volume = SOUND_SAFETY_MIN_VOLUME;
+    }
+
   pthread_mutex_unlock(&g_sound_lock);
   return velaride_sound_gain(volume, play->voice);
 }
@@ -205,15 +223,17 @@ static void *sound_worker(void *arg)
         }
       cue = g_sound.pending;
       g_sound.pending = VR_SOUND_NONE;
-      if (!g_sound.enabled || g_sound.volume == 0 || g_sound.dnd ||
-          sound_now() > g_sound_expires)
+      if (sound_muted_locked(cue) || sound_now() > g_sound_expires)
         {
           g_sound.skipped++;
           continue;
         }
       play.epoch = g_sound_epoch;
-      play.deadline = sound_now() + (cue == VR_SOUND_ALARM ? 10000 : 3000);
+      play.deadline = sound_now() +
+                      (cue == VR_SOUND_ALARM || cue == VR_SOUND_SAFETY ?
+                       10000 : 3000);
       play.voice = sound_voice(cue);
+      play.safety = cue == VR_SOUND_SAFETY;
       g_sound.active = cue;
       pthread_mutex_unlock(&g_sound_lock);
       if (packed == NULL)
@@ -223,7 +243,7 @@ static void *sound_worker(void *arg)
       ret = packed == NULL ? -ENOMEM :
             velaride_sound_render(cue, packed, VELARIDE_SOUND_WORDS,
                                   &samples, &words);
-      repeat = cue == VR_SOUND_ALARM ? 4 : 1;
+      repeat = cue == VR_SOUND_ALARM || cue == VR_SOUND_SAFETY ? 4 : 1;
       for (i = 0; ret == 0 && i < repeat; i++)
         {
           if (sound_cancelled(&play))
@@ -345,8 +365,9 @@ int velaride_sound_request(enum velaride_sound_cue_e cue)
   if (priority == 0) return -EINVAL;
   pthread_mutex_lock(&g_sound_lock);
   sound_load_locked();
-  if (!g_sound.enabled || g_sound.volume == 0 || g_sound.dnd ||
-      (sound_voice(cue) ? !g_sound.voice : !g_sound.rings))
+  if (cue != VR_SOUND_SAFETY &&
+      (sound_muted_locked(cue) ||
+       (sound_voice(cue) ? !g_sound.voice : !g_sound.rings)))
     {
       g_sound.skipped++;
       goto out;

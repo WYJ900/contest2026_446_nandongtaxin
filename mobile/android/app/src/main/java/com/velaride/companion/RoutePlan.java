@@ -75,6 +75,7 @@ public final class RoutePlan {
     }
     public void restart() { next=0;started=false;arrived=false; }
     public int size() { return points.size(); }
+    public List<Point> points() { return points; }
     public Hint update(double lat,double lon,double accuracy) {
         Point current=new Point(lat,lon);
         if(!Double.isFinite(accuracy)||accuracy<0||accuracy>50) throw new IllegalArgumentException("定位精度不足");

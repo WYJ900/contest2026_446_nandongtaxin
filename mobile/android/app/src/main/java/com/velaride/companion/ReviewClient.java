@@ -4,7 +4,11 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 
-/** User-triggered HTTPS connection to a configured VelaRide review gateway. */
+/**
+ * User-triggered connection to a configured VelaRide review gateway. HTTPS,
+ * or plain HTTP only to the phone's own loopback (gateway reached through
+ * `adb reverse` over USB, so the ride summary never crosses a network).
+ */
 public final class ReviewClient {
     interface Connections { HttpURLConnection open(URL url) throws IOException; }
     private final Connections connections;
@@ -12,10 +16,12 @@ public final class ReviewClient {
     ReviewClient(Connections connections) { this.connections = connections; }
     public static URL endpoint(String value) throws IOException {
         URL url = new URL(value.trim());
-        if (!"https".equalsIgnoreCase(url.getProtocol()) || url.getHost().isEmpty()
+        boolean loopback = "http".equalsIgnoreCase(url.getProtocol())
+                && ("127.0.0.1".equals(url.getHost()) || "localhost".equalsIgnoreCase(url.getHost()));
+        if (!("https".equalsIgnoreCase(url.getProtocol()) || loopback) || url.getHost().isEmpty()
                 || url.getUserInfo() != null || url.getRef() != null || url.getQuery() != null
                 || !url.getPath().endsWith("/api/ride/review"))
-            throw new IOException("请输入完整 HTTPS 复盘地址，以 /api/ride/review 结尾，不包含凭据或参数。");
+            throw new IOException("请输入 HTTPS（或经 USB 转发的 http://127.0.0.1）复盘地址，以 /api/ride/review 结尾，不包含凭据或参数。");
         return url;
     }
     public String post(String address, String payload) throws IOException {

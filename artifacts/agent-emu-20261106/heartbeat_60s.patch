@@ -1,0 +1,11 @@
+--- /tmp/agent_config.h.orig	2026-11-06 17:33:04.654467527 +0800
++++ /home/wyj/velaride_agent_emu/packages/ai_agent/include/agent_config.h	2026-11-06 17:33:04.655756517 +0800
+@@ -177,7 +177,7 @@
+ #define AGENT_CRON_STACK (8 * 1024)
+ #define AGENT_CRON_PRIO 40
+ #define AGENT_HEARTBEAT_FILE AGENT_DATA_DIR "/HEARTBEAT.md"
+-#define AGENT_HEARTBEAT_INTERVAL_MS (30 * 60 * 1000)
++#define AGENT_HEARTBEAT_INTERVAL_MS (60 * 1000) /* VelaRide demo: emulator build only */
+ 
+ /* ── Skills ─────────────────────────────────────────────────── */
+ #define AGENT_SKILLS_DIR AGENT_DATA_DIR "/skills/"

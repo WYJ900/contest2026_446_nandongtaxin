@@ -18,6 +18,8 @@ final class PhoneLinkSession {
     final ExecutorService worker=Executors.newSingleThreadExecutor();
     private final Context context;
     private final CopyOnWriteArrayList<BleLink.Listener> listeners=new CopyOnWriteArrayList<>();
+    interface StatusListener{void status(JSONObject reply);}
+    private final CopyOnWriteArrayList<StatusListener> statusListeners=new CopyOnWriteArrayList<>();
     private volatile long generation;
     volatile boolean keepAlive;
     private volatile BluetoothDevice lastDevice;
@@ -33,6 +35,10 @@ final class PhoneLinkSession {
     }
     void add(BleLink.Listener listener){listeners.addIfAbsent(listener);}
     void remove(BleLink.Listener listener){listeners.remove(listener);}
+    void addStatus(StatusListener listener){statusListeners.addIfAbsent(listener);}
+    void removeStatus(StatusListener listener){statusListeners.remove(listener);}
+    /** Each ride_status reply, from the service poll or a UI refresh; called on the BLE worker. */
+    void publish(JSONObject reply){for(StatusListener listener:statusListeners)listener.status(reply);}
     void connect(BluetoothDevice device) {
         try {
             keepAlive=true;lastDevice=device;holdUntil=0;
@@ -66,20 +72,23 @@ final class PhoneLinkSession {
     }
     void relay(NotificationPolicy.Envelope note) {
         final long epoch=generation,created=SystemClock.elapsedRealtime();
-        if(!link.isReady()||!notesSupported)return;
+        if(!link.isReady()||!notesSupported){android.util.Log.i("VelaRideNote","relay skip ready="+link.isReady()+" supported="+notesSupported);return;}
         if(pendingNotes.incrementAndGet()>8){pendingNotes.decrementAndGet();return;}
         worker.execute(()->{
             try {
                 if(epoch!=generation||!link.isReady()||!notesSupported||SystemClock.elapsedRealtime()-created>60000)return;
                 JSONObject reply=link.request(new JSONObject().put("cmd","phone_note").put("id",note.id)
                         .put("source",note.source).put("title",note.title).put("body",note.body),"phone_note");
+                android.util.Log.i("VelaRideNote","watch reply "+reply);
                 context.getSharedPreferences("phone-bridge",Context.MODE_PRIVATE).edit()
                         .putString("relay_status",reply.optBoolean("ok")?"手机消息通道正常":"手机消息发送未完成").apply();
             } catch(BleLink.DeviceError error) {
+                android.util.Log.i("VelaRideNote","watch error "+error.getMessage());
                 if("unknown_cmd".equals(error.getMessage()))notesSupported=false;
                 context.getSharedPreferences("phone-bridge",Context.MODE_PRIVATE).edit()
                         .putString("relay_status",notesSupported?"消息未发出，请检查连接":"手表需升级后支持手机消息").apply();
             } catch(Exception error) {
+                android.util.Log.i("VelaRideNote","relay failed "+error);
                 context.getSharedPreferences("phone-bridge",Context.MODE_PRIVATE).edit()
                         .putString("relay_status","手机消息连接中断，重连后接收新消息").apply();
             } finally {pendingNotes.decrementAndGet();}

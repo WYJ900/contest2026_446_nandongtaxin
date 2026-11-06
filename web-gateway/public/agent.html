@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>家庭骑行中枢</title>
+    <link rel="stylesheet" href="/agent.css" />
+  </head>
+  <body>
+    <main class="deck">
+      <header class="top">
+        <div>
+          <p class="eyebrow">OPENVELA AI_AGENT · 主动 + 执行</p>
+          <h1>家庭骑行中枢</h1>
+          <p class="sub">途中安全靠手表本地；<b>回家插上充电线</b>，家里的 openvela 设备上的 Agent 主动复盘、跨次对比、安全跟进，并在<b>真手表</b>上执行</p>
+        </div>
+        <div class="pills">
+          <span class="pill" id="link">手表 · 检测中</span>
+          <span class="pill" id="beat">心跳 · 等待中</span>
+          <span class="pill" id="count">骑行记录 · 0 条</span>
+        </div>
+      </header>
+
+      <section class="pipeline" aria-label="执行链路">
+        <div class="node" id="n-llm"><small>大模型</small><strong>gpt-6-sol</strong><em>推理 · 写复盘</em></div>
+        <div class="link duplex" id="l-llm"><span class="dot"></span><label>HTTPS</label></div>
+        <div class="node main" id="n-agent"><small>家庭 openvela 设备（官方模拟器）</small><strong>ai_agent</strong><em>Skill ride-coach · 心跳 · 记忆</em></div>
+        <div class="link" id="l-mcp"><span class="dot"></span><label>MCP</label></div>
+        <div class="node" id="n-gw"><small>电脑</small><strong>MCP 网关</strong><em>6 个手表工具</em></div>
+        <div class="link" id="l-usb"><span class="dot"></span><label>USB 充电线</label></div>
+        <div class="node watch" id="n-watch"><small>真机</small><strong>黄山派手表</strong><em id="watch-act">待命</em></div>
+      </section>
+
+      <section class="grid">
+        <article class="card timeline">
+          <h2>Agent 时间线</h2>
+          <ol id="events"></ol>
+          <form id="reply" autocomplete="off">
+            <input id="reply-text" maxlength="200" placeholder="回复 Agent，例如：我没事，车也检查了" />
+            <button type="submit">发送</button>
+          </form>
+        </article>
+
+        <article class="card compare">
+          <h2>跨次对比 <span class="tag">手表真实记录</span></h2>
+          <div class="deltas" id="deltas"></div>
+          <svg id="chart" viewBox="0 0 560 250" role="img" aria-label="历次骑行对比"></svg>
+          <p class="legend"><i class="sw moving"></i>运动 <i class="sw still"></i>静止 <i class="sw impact"></i>冲击次数</p>
+        </article>
+
+        <article class="card review">
+          <h2>写回手表的复盘</h2>
+          <div class="watchface">
+            <div class="face">
+              <span class="face-title" id="review-seq">复盘</span>
+              <p id="review-text">等待 Agent 写入…</p>
+            </div>
+          </div>
+          <div class="safety" id="safety" hidden>
+            <h3>安全跟进</h3>
+            <p id="safety-text"></p>
+          </div>
+          <p class="note">摔倒检测与呼救由手表本地规则 + 手机 App 处理，离线、确定性，不经过大模型。</p>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="/agent.js"></script>
+  </body>
+</html>

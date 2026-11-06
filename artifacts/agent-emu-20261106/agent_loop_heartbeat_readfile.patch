@@ -1,0 +1,89 @@
+--- ai_agent/src/core/agent_loop.c.orig	2026-11-06 18:39:29.629738925 +0800
++++ ai_agent/src/core/agent_loop.c	2026-11-06 19:04:51.161066930 +0800
+@@ -1047,8 +1047,12 @@
+     agent_trace_begin(&trace, msg->chat_id, msg->channel);
+     trace.backend_idx = router_idx;
+ 
++    /* Heartbeat always sends the same fixed prompt, but the answer depends
++     * on live state (HEARTBEAT.md, MCP tools), so it must never be cached. */
++    bool is_heartbeat = strcmp(msg->chat_id, "heartbeat") == 0;
++
+     /* Cache check: for simple queries, try cache before LLM call */
+-    if (msg->content && complexity == LLM_COMPLEXITY_SIMPLE) {
++    if (msg->content && complexity == LLM_COMPLEXITY_SIMPLE && !is_heartbeat) {
+         char* cached = llm_cache_get(msg->content, strlen(msg->content));
+         if (cached) {
+             syslog(LOG_INFO, "[%s] Cache hit, skipping LLM call\n", TAG);
+@@ -1258,59 +1262,10 @@
+         add_tool_result_messages(messages, &resp, tool_output,
+             tool_size, msg->channel, msg->chat_id);
+ 
+-        /* Local tool shortcut: if the single tool in this round is a
+-         * local file op, skip the next LLM round and use the tool
+-         * output directly as the reply. Saves ~2s.
+-         * Restricted to call_count == 1: the parallel path does not
+-         * write into tool_output, so multi-call rounds must go through
+-         * the LLM to aggregate results (and tool_output would be stale
+-         * from a prior iteration if we allowed call_count > 1 here). */
+-        if (resp.call_count == 1) {
+-            bool all_local = true;
+-            for (int i = 0; i < resp.call_count; i++) {
+-                if (strcmp(resp.calls[i].name, "read_file") != 0
+-                    && strcmp(resp.calls[i].name, "write_file") != 0
+-                    && strcmp(resp.calls[i].name, "edit_file") != 0
+-                    && strcmp(resp.calls[i].name, "list_dir") != 0) {
+-                    all_local = false;
+-                    break;
+-                }
+-            }
+-            if (all_local && tool_output[0]) {
+-                /* Don't shortcut if the tool read a skill file
+-                 * from AGENT_SKILLS_DIR — the LLM needs to process
+-                 * the skill content and generate a proper user-facing
+-                 * response instead of dumping raw markdown to the user. */
+-                bool is_skill_read = false;
+-                if (strcmp(resp.calls[0].name, "read_file") == 0
+-                    && resp.calls[0].input != NULL) {
+-                    cJSON *input_obj = cJSON_Parse(resp.calls[0].input);
+-                    if (input_obj) {
+-                        cJSON *path_obj = cJSON_GetObjectItem(input_obj, "path");
+-                        if (path_obj && cJSON_IsString(path_obj)
+-                            && strncmp(path_obj->valuestring,
+-                                AGENT_SKILLS_DIR,
+-                                strlen(AGENT_SKILLS_DIR)) == 0) {
+-                            is_skill_read = true;
+-                        }
+-                        cJSON_Delete(input_obj);
+-                    }
+-                }
+-
+-                if (!is_skill_read) {
+-                    syslog(LOG_INFO,
+-                        "[%s] Local tool shortcut: skip LLM round\n",
+-                        TAG);
+-                    final_text = strdup(tool_output);
+-                    llm_response_free(&resp);
+-                    break;
+-                }
+-
+-                syslog(LOG_INFO,
+-                    "[%s] Skill file read — no shortcut, LLM will process\n",
+-                    TAG);
+-            }
+-        }
++        /* The "local tool shortcut" (reply with raw read/write_file output
++         * and skip the next LLM round) is disabled: file ops are almost
++         * always intermediate steps (HEARTBEAT.md, skills, MEMORY.md), and
++         * the shortcut replaced the user-facing reply with tool output. */
+ 
+         /* TASK_COMPLETE detection */
+         if (resp.call_count == 1 && tool_output[0]
+@@ -1345,7 +1300,7 @@
+ 
+ send_reply:
+     /* Cache store: save simple query responses for future reuse */
+-    if (final_text && msg->content
++    if (final_text && msg->content && !is_heartbeat
+         && complexity == LLM_COMPLEXITY_SIMPLE) {
+         llm_cache_put(msg->content, strlen(msg->content), final_text);
+         if (last_total_tokens > 0) {

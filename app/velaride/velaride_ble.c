@@ -55,10 +55,6 @@ static size_t g_rx_length;
 static bool g_rx_discard;
 static bool g_started;
 static bool g_restart_adv;
-static bool g_radio_ready;
-static bool g_radio_connected;
-static bool g_adv_paused;
-static int g_adv_request;
 static char *g_pending_json;
 static struct bt_conn *g_pending_conn;
 static sem_t g_command_ready;
@@ -603,9 +599,6 @@ static void velaride_connected(struct bt_conn *conn, uint8_t err)
     }
 
   printf("VELARIDE_BLE: connected\n");
-  pthread_mutex_lock(&g_command_lock);
-  g_radio_connected = true;
-  pthread_mutex_unlock(&g_command_lock);
   velaride_ride_session_set_connected(true);
 }
 
@@ -617,7 +610,6 @@ static void velaride_disconnected(struct bt_conn *conn, uint8_t reason)
   g_rx_length = 0;
   g_rx_discard = false;
   pthread_mutex_lock(&g_command_lock);
-  g_radio_connected = false;
   g_restart_adv = true;
   pthread_mutex_unlock(&g_command_lock);
   sem_post(&g_command_ready);
@@ -676,9 +668,6 @@ static void velaride_bt_ready(uint8_t dev_id, int err)
                         g_adv_data, ARRAY_SIZE(g_adv_data),
                         g_scan_response, ARRAY_SIZE(g_scan_response));
   printf("VELARIDE_BLE: advertising ret=%d\n", ret);
-  pthread_mutex_lock(&g_command_lock);
-  g_radio_ready = true;
-  pthread_mutex_unlock(&g_command_lock);
 }
 
 int main(int argc, char *argv[])
@@ -686,54 +675,10 @@ int main(int argc, char *argv[])
   struct bt_conn *conn;
   char command[VELARIDE_RX_MAX];
   bool restart_adv;
-  bool radio_ready;
-  bool radio_connected;
-  bool adv_paused;
-  bool was_paused;
-  bool pause;
-  bool status;
-  int adv_request;
   int ret;
 
-  if (argc > 1)
-    {
-      status = strcmp(argv[1], "radio-status") == 0;
-      pause = strcmp(argv[1], "adv-off") == 0;
-      if (argc != 2 || (!status && !pause &&
-                       strcmp(argv[1], "adv-on") != 0))
-        {
-          printf("Usage: velaride_ble [radio-status|adv-off|adv-on]\n");
-          return 1;
-        }
-
-      pthread_mutex_lock(&g_command_lock);
-      radio_ready = g_radio_ready;
-      radio_connected = g_radio_connected;
-      adv_paused = g_adv_paused;
-      if (!status && radio_ready && (!pause || !radio_connected))
-        {
-          g_adv_request = pause ? 1 : -1;
-        }
-
-      pthread_mutex_unlock(&g_command_lock);
-      if (status)
-        {
-          printf("VELARIDE_BLE: ready=%d connected=%d adv_paused=%d\n",
-                 radio_ready, radio_connected, adv_paused);
-          return 0;
-        }
-
-      if (!radio_ready || (pause && radio_connected))
-        {
-          printf("VELARIDE_BLE: radio not ready or connection active\n");
-          return 1;
-        }
-
-      sem_post(&g_command_ready);
-      printf("VELARIDE_BLE: advertising %s requested\n",
-             pause ? "pause" : "resume");
-      return 0;
-    }
+  (void)argc;
+  (void)argv;
 
   if (g_started)
     {
@@ -790,34 +735,8 @@ int main(int argc, char *argv[])
       g_pending_conn = NULL;
       restart_adv = g_restart_adv;
       g_restart_adv = false;
-      adv_request = g_adv_request;
-      g_adv_request = 0;
-      was_paused = g_adv_paused;
-      if (adv_request != 0)
-        {
-          g_adv_paused = adv_request > 0;
-        }
-
-      adv_paused = g_adv_paused;
       pthread_mutex_unlock(&g_command_lock);
-      if (adv_request > 0)
-        {
-          ret = bt_le_adv_stop();
-          printf("VELARIDE_BLE: advertising pause ret=%d\n", ret);
-          if (ret < 0)
-            {
-              pthread_mutex_lock(&g_command_lock);
-              g_adv_paused = was_paused;
-              pthread_mutex_unlock(&g_command_lock);
-            }
-        }
-
-      if (adv_request < 0)
-        {
-          restart_adv = true;
-        }
-
-      if (restart_adv && !adv_paused)
+      if (restart_adv)
         {
           ret = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1,
                                g_adv_data, ARRAY_SIZE(g_adv_data),

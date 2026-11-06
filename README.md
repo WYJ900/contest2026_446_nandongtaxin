@@ -4,6 +4,12 @@ VelaRide AI 是运行在 openvela 黄山派上的骑行安全原型。手表端�
 运动检测、本地安全规则和骑行记录；Web 网关通过 BLE 读取真实骑行数据，调用
 MiMo 或兼容 OpenAI / Anthropic 的服务与中转站，生成中文复盘并回传。
 
+**决赛版（2026-11-06）先读：[工程总览](docs/PROJECT_GUIDE_20261106.md)**——系统拓扑、当前固件/App 版本与哈希、功能验证状态、代码地图、演示启动顺序和视频脚本都在这一页。
+
+当前真机：手表 `424e7a2c`（`artifacts/phone-bridge-20261106/`）、真我手机 App 0.3.6、openvela 模拟器 ai_agent + 自定义 Skill `agent_skills/ride-coach.md` 经 MCP 操作真手表。
+
+以下为早期（2026-10）说明，保留作历史记录。
+
 **继续开发先读：[当前成果与接续说明](docs/CURRENT_STATE.md)（2026-10-10）。**
 最新接续：[2026-10-10 系统计时修复](docs/TIMER_STABILITY_20261010.md)，解决约 71 分钟后的微秒换算回绕。[手表设置与硬件功能](docs/WATCH_PRODUCT_20261010.md)继续保留，指南针实物方向验证尚待完成。
 其中固定了最后安装的固件校验值、已验证范围、黑屏恢复边界、源码位置和下一步顺序。
@@ -41,7 +47,7 @@ Web 网关已经完成：
 - 自定义中转站地址、模型名、Bearer / x-api-key 鉴权，保留旧 MiMo 配置；
 - 无 Key、超时或接口失败时明确标记本地规则降级；
 - BLE 校时、实时状态、最近记录读取、复盘回传确认，以及手工录入；
-- 29 项 Node 自动测试，覆盖协议、数据校验、字库一致性和失败处理。
+- 41 项 Node 自动测试（2026-11-06），覆盖协议、MCP 手表工具、Agent 看板数据流、数据校验、字库一致性和失败处理。
 
 已完成真实验证的演示链路：
 
@@ -61,7 +67,8 @@ USB 网页网关仍默认关闭。
 
 ```text
 app/velaride/                 原生 NuttX/LVGL 应用和编译资源
-agent_skills/ride-safety.md   VelaRide AI Agent Skill
+agent_skills/                 ai_agent Skill：ride-coach.md（决赛版）、HEARTBEAT.md、ride-safety.md
+mobile/android/               真我/安卓手机 App（摔倒呼救、消息天气、轨迹路线、AI 教练）
 web-gateway/                  本地网页、Node 服务和自动测试
 patches/                      apps、nuttx、ai_agent、vendor/sifli 修改
 overlays/                     公共仓新增的 libuv 与 EPIC 文件

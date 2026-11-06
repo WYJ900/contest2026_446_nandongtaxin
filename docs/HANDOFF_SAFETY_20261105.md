@@ -1,6 +1,6 @@
 # 摔倒检测修复与手机联动交接（2026-11-05 晚）
 
-**新对话先读本页。** 接续 [稳定版交接](HANDOFF_STABLE_20261105.md)。决赛 11 月 7–8 日。
+**已被 [ai_agent 骑行教练交接](HANDOFF_AGENT_20261106.md) 取代，新对话先读那页。** 接续 [稳定版交接](HANDOFF_STABLE_20261105.md)。决赛 11 月 7–8 日。
 本轮在用户确认的稳定版 `661393da` 上修好了摔倒检测和“结束骑行卡死”，下一步做手机 App。
 
 ## 1. 手表当前固件
@@ -64,7 +64,13 @@
 
 - 用户反映“按键有时点一下没反应”：位置（哪个页面、触摸还是侧键）和是否在 661393da 上也有，都未查明。第 4 节第 4 项只修了熄屏自动亮屏这一种情况。侧键有 0.4 秒防连按（原有设计）。
 - IRQ58（LCPU2HCPU，BT 邮箱）0x60、IRQ56（DMAC1_CH7）0x00 仍高于默认，由 BT/ROM 代码设置，未改。
-- 手机重启强断 BLE 后，手表曾停止广播（19:16），新版未复现。
+- 手机重启强断 BLE 后，手表曾停止广播（19:16）。**11-06 在真我上复现并查明**（日志 `backup/phone-realme-20261106/watch_serial.log` 16:37）：
+  手机熄屏约 60 s 后，手表的一次 `ride_status` 回复只发出 13/20 个通知包，控制器随后不再返回完成事件；`velaride_ble` 主线程卡在 `velaride_notify_json()` 里（`ps` 两次采样都是 `Waiting Signal`）。
+  手机等 12 s 超时后断开（reason=19）。由于“断开后重新广播”也在同一个线程里执行，手表从此不再广播，只能复位恢复；复位后熄屏状态下 10 s 内自动重连。
+  真我系统没有冻结 App（无 Hans freeze 记录）。链路为何停滞仍未查明；要根治需要改固件（发送不能无限阻塞，重新广播不能依赖命令线程）。
+  **16:43 第二次复现**（复位后约 1 分钟，手机熄屏）：最后一条 `rx_ind size=69 pending=1 running=1` 之后再没有 `ipc_rx`，手机断开后手表也收不到断开事件（`ps` 显示 `velaride_ble` 在正常等命令）。
+  NVIC 读回 IRQ58 已使能、未挂起、未活动，所以卡住的是 `sf32lb52_bt_rx_worker`（vendor-sifli.patch），很可能阻塞在 `notify_host()` 里，而不是邮箱中断。两次都是手机熄屏 1 分钟左右。
+  用户决定**固件不动**，只在手机端规避：0.3.4 手表失联 60 s 后弹出高优先级通知（`watch_lost` 渠道，16:48:10 重连后自动撤销，系统日志可查）。恢复办法是插拔或复位手表。
 - 复位后手表时钟回退（RTC 不保持），需手机连接校时。
 - TF 卡挂载仍未解决（与本轮无关）。
 - 未做真实户外骑行，颠簸路面误报率未知。
@@ -83,6 +89,17 @@
   - `PhoneLinkSession.reconnect()/holdReconnect()`，手动搜索时暂停自动重连 30 s。
 - adb：`D:/desktop/VelaRide_AI/.local-tools/android-sdk/platform-tools/adb.exe`；手机已开“USB 调试（安全设置）”，重启手机后模拟点击才生效。Git Bash 下 `adb shell` 路径需 `MSYS_NO_PATHCONV=1`。
 - 编译：`mobile/android/build.ps1 -SdkRoot <VelaRide_AI>/.local-tools/android-sdk -JavaHome E:/AppDownload/Android_Studio/jbr`。
+
+- **0.3.2 已编译未安装、未提交**（`exports/mobile/VelaRide-0.3.2-debug.apk`，`E34D9E00…`，versionCode 15），只改手机，主机测试全部通过：
+  - 骑行实时看板：后台服务每 2 s 的 `ride_status` 经 `PhoneLinkSession.publish()` 推给界面；两次读取之间本地走秒，超过 10 s 没更新就停表并提示（`RideLive`，`RideLiveTest`）。
+  - 寻车：服务在 60 s 内先看到 `active=true`、再看到 `false` 时，自动记录一次 GPS 停车点（`ParkingStore`，精度不低于 100 m）；也可手动记录。找车时用手机旋转矢量指南针（已做磁偏角修正）显示箭头和直线距离（`ParkingSpot`，`ParkingSpotTest`）。
+  - 寻车**不往手表发** `nav_hint`：手表只在骑行中的指南针页显示路线提示，结束骑行后看不到；固件冻结，没有改。坐标为 WGS-84 原始 GPS，没有接国内地图。
+
+- **11-06 换手机：真我 GT Neo6 SE**（realme RMX3850，realme UI 7.0 / ColorOS 16，Android 16 SDK 36，SM7675，1264×2780 @560dpi，adb 序列号 `79a6b144`，USB VID 22D9）。
+  已全新安装 **0.3.3**（`exports/mobile/VelaRide-0.3.3-debug.apk`，`EBF0B4F5…`，versionCode 16），未提交。adb 远程点击直接可用。
+  0.3.3 新增 `PhoneVendor`：按品牌切换文字和包名；真我不显示“同步系统天气”（`com.coloros.weather2` 的 provider 不对第三方开放）；健康应用依次尝试欢太健康、华为运动健康；新增“关闭电池优化”（`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`，系统弹窗已实测出现）。
+  realme 的耗电管理/自启动页面需要 `oplus.permission.OPLUS_COMPONENT_SAFE`，第三方 App 打不开，只能跳应用详情页并给出文字提示。
+  新机上还没做：授权短信/电话/定位/通知、添加紧急联系人、连接手表、各项联动测试；ColorOS 发短信前是否弹窗确认也未验证。
 
 ## 8. 下一步
 

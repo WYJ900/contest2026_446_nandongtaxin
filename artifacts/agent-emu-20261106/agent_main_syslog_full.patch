@@ -1,0 +1,11 @@
+--- ai_agent/src/agent_main.c.orig	2026-11-06 19:39:52.985878075 +0800
++++ ai_agent/src/agent_main.c	2026-11-06 19:41:49.212284149 +0800
+@@ -424,7 +424,7 @@
+             weixin_channel_send(uid, ctx, msg.content);
+ #endif
+         } else if (strcmp(msg.channel, AGENT_CHAN_SYSTEM) == 0) {
+-            syslog(LOG_INFO, "[%s] System message [%s]: %.128s\n", TAG, msg.chat_id, msg.content);
++            syslog(LOG_INFO, "[%s] System message [%s]: %s\n", TAG, msg.chat_id, msg.content);
+ #ifdef CONFIG_FEATURE_SYSTEM_VELACLAW
+         } else if (strcmp(msg.channel, AGENT_CHAN_QUICKAPP) == 0) {
+             quickapp_mq_dispatch(msg.chat_id, msg.content);
