@@ -1,0 +1,37 @@
+[
+  {
+    "event": "found",
+    "name": "VelaRide",
+    "cycle": 1
+  },
+  {
+    "event": "connected",
+    "mtu": 253
+  },
+  {
+    "command": "time_sync",
+    "reply": {
+      "ok": true,
+      "event": "time_sync",
+      "epoch": 1794030415
+    }
+  },
+  {
+    "command": "phone_weather",
+    "reply": {
+      "ok": true,
+      "event": "phone_weather"
+    }
+  },
+  {
+    "command": "phone_note",
+    "reply": {
+      "ok": true,
+      "event": "phone_note"
+    }
+  },
+  {
+    "event": "disconnected",
+    "cycle": 1
+  }
+]

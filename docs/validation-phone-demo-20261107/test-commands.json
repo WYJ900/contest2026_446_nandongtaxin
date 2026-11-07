@@ -1,0 +1,16 @@
+[
+    {
+        "cmd":  "phone_weather",
+        "city":  "演示",
+        "description":  "晴",
+        "temperature_deci":  230,
+        "published_epoch":  1794030412
+    },
+    {
+        "cmd":  "phone_note",
+        "id":  "20261107000000000000000000000001",
+        "source":  "微信",
+        "title":  "骑行群",
+        "body":  "我到公园门口了，路上注意安全。"
+    }
+]

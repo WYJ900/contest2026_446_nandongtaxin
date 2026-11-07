@@ -1,0 +1,7 @@
+diff --git a/python/tflite_micro/signal/ops/__init__.py b/python/tflite_micro/signal/ops/__init__.py
+index b7e12b3a190ffb01b9652f6221b92154b99f95e6..a0cbc6129a90829d1db81102ea2b1269bde84ff2 100644
+--- a/python/tflite_micro/signal/ops/__init__.py
++++ b/python/tflite_micro/signal/ops/__init__.py
+@@ -1 +1 @@
+-# Empty file required by setuptools.find_packages to recognize this as a package
++# Empty file required by setuptools.find_packages to recognize this as a package

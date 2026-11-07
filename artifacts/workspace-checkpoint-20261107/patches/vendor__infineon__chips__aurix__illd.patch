@@ -1,0 +1,7 @@
+diff --git a/tc4x/Libraries b/tc4x/Libraries
+index b4b3735c9cb65ec6554f263c34a49a6602c2aef7..aa7925cc07a88baacdc2967a72b40d22cce7156a 160000
+--- a/tc4x/Libraries
++++ b/tc4x/Libraries
+@@ -1 +1 @@
+-Subproject commit b4b3735c9cb65ec6554f263c34a49a6602c2aef7
++Subproject commit aa7925cc07a88baacdc2967a72b40d22cce7156a

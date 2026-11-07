@@ -1,0 +1,22 @@
+[
+  {
+    "event": "found",
+    "name": "VelaRide",
+    "cycle": 1
+  },
+  {
+    "event": "connected",
+    "mtu": 253
+  },
+  {
+    "command": "ping",
+    "reply": {
+      "ok": true,
+      "event": "pong"
+    }
+  },
+  {
+    "event": "disconnected",
+    "cycle": 1
+  }
+]

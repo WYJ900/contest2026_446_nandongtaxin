@@ -1,0 +1,21 @@
+{
+  "manifest.json": "f1af51858a387b802285975ee68ccbf01e4a9ae3dc1354d542805ea208ddb521",
+  "README.md": "70627a746e15d49ed7c6176909cc92b2949848e762b9df34ea28fbcc206ab589",
+  "unidentified-gps-candidate-21eca243.bin": "21eca2436cec6d3e3f80394f57a96ccc167c2fcb19bbe80a287d60c286f9395d",
+  "workspace-source.zip": "f2ea7995c2060e8d38eb7fb34955d2ac761fd1205906a323b4e10f714fda2160",
+  "patches/apps.patch": "136abb1844c5c488b9e5c8a8248b7f0721c7b2de4889148742efeba5374e938b",
+  "patches/apps__graphics__lvgl__lvgl.patch": "b0613be512067f668e58eebe5defdebb1e85c18d7bba4f3af35e5756657d50db",
+  "patches/apps__mlearning__tflite-micro__tflite-micro.patch": "aa8e16efc60f08c0095c5941c7e8dd746ddf9544c4c1b72bfab7d6b856d9523d",
+  "patches/apps__netutils__connectedhomeip__connectedhomeip.patch": "a980153abb17de593b8b04010f903e27a088c307bc51d1a97d90e1a839d1aeae",
+  "patches/apps__system__argtable3__argtable3.patch": "2f092c728c43f1e531a81580d7e52e52e85df6df360130aed53e6e0240b2ec27",
+  "patches/external.patch": "c595773e33550f2db62b221cd62b08859163a70974c24752b7a36ba0ef434539",
+  "patches/external__freetype__freetype.patch": "5d5ad642bfee12961e8bad5dd934c6c176ea78209ca3a7793c7058b0ebb5463a",
+  "patches/external__tinyxml2__tinyxml2.patch": "5942c0669f004c988db1ef54399f24c81f236fd21cae668d1b25e84e6f52c433",
+  "patches/external__zblue__zblue.patch": "559f0bf668b8c1dd20a7df892f0af5f2be52ee5a5da62608728a3fecb63a664c",
+  "patches/frameworks__connectivity__bluetooth.patch": "429ec9fe248dc74da5a0ff0ce1479ea3ab0eb0308535d213acd23707caa3138d",
+  "patches/frameworks__system__utils.patch": "428d83bbc283ad0603f4d804832d71ee9bf9778be10b7b25efb5b54099c30ec7",
+  "patches/nuttx.patch": "58da4df5997bb9729da8ce0da878f0a5abfe880de250c5c3c270eb14c5ee5225",
+  "patches/packages__ai_agent.patch": "353872c2e7e6afaa3a45563462beeb5b9334b5dc775070a233ba168285a31cc3",
+  "patches/vendor__infineon__chips__aurix__illd.patch": "3bb1da3541a9bee0869c2f4b8cdbf69ab263b19cffb7cdb013f18081bfaddec9",
+  "patches/vendor__sifli.patch": "d05ed1f1ce3fe330fa250c291220843c44b944d5028ffc515b722bfaed7bb2e4"
+}

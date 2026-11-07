@@ -1,0 +1,3936 @@
+{
+  "created_local": "2026-11-07T17:46:47",
+  "purpose": "Source preservation, not a newly verified firmware baseline.",
+  "accepted_release": {
+    "firmware": "artifacts/phone-bridge-20261106/firmware.bin",
+    "sha256": "424e7a2c41fe57dbd581e1c313bfe8793067415e0af449166700f501d3c1a734"
+  },
+  "repositories": [
+    {
+      "repository": ".claude",
+      "head": "fa2ead7db669912bce49fb04e9876505b5455853",
+      "changed": [],
+      "untracked": [
+        "scheduled_tasks.lock"
+      ]
+    },
+    {
+      "repository": "apps",
+      "head": "dcc6a95c3b323e533c98fde8fb209f99e24f0fdd",
+      "changed": [
+        "graphics/lvgl/CMakeLists.txt",
+        "system/libuv/CMakeLists.txt"
+      ],
+      "untracked": [
+        "examples/epicbench/CMakeLists.txt",
+        "examples/epicbench/Kconfig",
+        "examples/epicbench/epicbench.c",
+        "examples/velaclock/CMakeLists.txt",
+        "examples/velaclock/Kconfig",
+        "examples/velaclock/velaclock.c",
+        "examples/velaride/CMakeLists.txt",
+        "examples/velaride/Kconfig",
+        "examples/velaride/OFL-Outfit.txt",
+        "examples/velaride/transition_previews/scene_0.png",
+        "examples/velaride/transition_previews/scene_1.png",
+        "examples/velaride/transition_previews/scene_2.png",
+        "examples/velaride/transition_previews/scene_3.png",
+        "examples/velaride/transition_previews/scene_4.png",
+        "examples/velaride/transition_previews/scene_5.png",
+        "examples/velaride/transition_previews/scene_6.png",
+        "examples/velaride/velaride.c",
+        "examples/velaride/velaride_ble.c",
+        "examples/velaride/velaride_compass.c",
+        "examples/velaride/velaride_compass.h",
+        "examples/velaride/velaride_device.c",
+        "examples/velaride/velaride_device.h",
+        "examples/velaride/velaride_dial_390.png",
+        "examples/velaride/velaride_dial_png.inc",
+        "examples/velaride/velaride_dial_rgb565.bin",
+        "examples/velaride/velaride_dial_rgb565.inc",
+        "examples/velaride/velaride_font_cn_20.c",
+        "examples/velaride/velaride_font_cn_24.c",
+        "examples/velaride/velaride_font_cn_28.c",
+        "examples/velaride/velaride_icons.h",
+        "examples/velaride/velaride_mickey_390.png",
+        "examples/velaride/velaride_mickey_rgb565.inc",
+        "examples/velaride/velaride_num_136.c",
+        "examples/velaride/velaride_num_24.c",
+        "examples/velaride/velaride_num_30.c",
+        "examples/velaride/velaride_num_44.c",
+        "examples/velaride/velaride_num_60.c",
+        "examples/velaride/velaride_num_92.c",
+        "examples/velaride/velaride_ride_session.c",
+        "examples/velaride/velaride_ride_session.h",
+        "examples/velaride/velaride_shell.c",
+        "examples/velaride/velaride_sport_face_390.png",
+        "examples/velaride/velaride_sport_face_rgb565.bin",
+        "examples/velaride/velaride_sport_face_rgb565.inc",
+        "examples/velaride/velaride_sport_ui.c",
+        "examples/velaride/velaride_sport_ui.h",
+        "examples/velaride/velaride_theme.h",
+        "examples/velaride/velaride_timekeeper.c",
+        "examples/velaride/velaride_timekeeper.h",
+        "examples/velaride/velaride_transition_previews.inc",
+        "system/libuv/nuttx_threadpool.c",
+        "testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/001_bug_report.yml",
+        "testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/002_feature_request.yml",
+        "testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/003_help.yml",
+        "testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/config.yml",
+        "testing/drivers/nist-sts/.gitee/PULL_REQUEST_TEMPLATE.md",
+        "testing/drivers/nist-sts/.github/CODEOWNERS",
+        "testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/001_bug_report.yml",
+        "testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/002_feature_request.yml",
+        "testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/003_help.yml",
+        "testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/config.yml",
+        "testing/drivers/nist-sts/.github/PULL_REQUEST_TEMPLATE.md",
+        "testing/drivers/nist-sts/.github/workflows/checkpatch.yml",
+        "testing/drivers/nist-sts/.github/workflows/ci.yml",
+        "testing/drivers/nist-sts/.github/workflows/stale.yml",
+        "testing/drivers/nist-sts/sts/data/BBS.dat",
+        "testing/drivers/nist-sts/sts/data/data.bad_rng",
+        "testing/drivers/nist-sts/sts/data/data.e",
+        "testing/drivers/nist-sts/sts/data/data.pi",
+        "testing/drivers/nist-sts/sts/data/data.sha1",
+        "testing/drivers/nist-sts/sts/data/data.sqrt2",
+        "testing/drivers/nist-sts/sts/data/data.sqrt3",
+        "testing/drivers/nist-sts/sts/experiments/create-dir-script",
+        "testing/drivers/nist-sts/sts/include/cephes.h",
+        "testing/drivers/nist-sts/sts/include/config.h",
+        "testing/drivers/nist-sts/sts/include/decls.h",
+        "testing/drivers/nist-sts/sts/include/defs.h",
+        "testing/drivers/nist-sts/sts/include/externs.h",
+        "testing/drivers/nist-sts/sts/include/generators.h",
+        "testing/drivers/nist-sts/sts/include/genutils.h",
+        "testing/drivers/nist-sts/sts/include/matrix.h",
+        "testing/drivers/nist-sts/sts/include/stat_fncs.h",
+        "testing/drivers/nist-sts/sts/include/utilities.h",
+        "testing/drivers/nist-sts/sts/makefile",
+        "testing/drivers/nist-sts/sts/src/approximateEntropy.c",
+        "testing/drivers/nist-sts/sts/src/assess.c",
+        "testing/drivers/nist-sts/sts/src/blockFrequency.c",
+        "testing/drivers/nist-sts/sts/src/cephes.c",
+        "testing/drivers/nist-sts/sts/src/cusum.c",
+        "testing/drivers/nist-sts/sts/src/dfft.c",
+        "testing/drivers/nist-sts/sts/src/discreteFourierTransform.c",
+        "testing/drivers/nist-sts/sts/src/frequency.c",
+        "testing/drivers/nist-sts/sts/src/generators.c",
+        "testing/drivers/nist-sts/sts/src/genutils.c",
+        "testing/drivers/nist-sts/sts/src/linearComplexity.c",
+        "testing/drivers/nist-sts/sts/src/longestRunOfOnes.c",
+        "testing/drivers/nist-sts/sts/src/matrix.c",
+        "testing/drivers/nist-sts/sts/src/nonOverlappingTemplateMatchings.c",
+        "testing/drivers/nist-sts/sts/src/overlappingTemplateMatchings.c",
+        "testing/drivers/nist-sts/sts/src/randomExcursions.c",
+        "testing/drivers/nist-sts/sts/src/randomExcursionsVariant.c",
+        "testing/drivers/nist-sts/sts/src/rank.c",
+        "testing/drivers/nist-sts/sts/src/runs.c",
+        "testing/drivers/nist-sts/sts/src/serial.c",
+        "testing/drivers/nist-sts/sts/src/universal.c",
+        "testing/drivers/nist-sts/sts/src/utilities.c",
+        "testing/drivers/nist-sts/sts/templates/dataInfo",
+        "testing/drivers/nist-sts/sts/templates/template10",
+        "testing/drivers/nist-sts/sts/templates/template11",
+        "testing/drivers/nist-sts/sts/templates/template12",
+        "testing/drivers/nist-sts/sts/templates/template13",
+        "testing/drivers/nist-sts/sts/templates/template14",
+        "testing/drivers/nist-sts/sts/templates/template15",
+        "testing/drivers/nist-sts/sts/templates/template16",
+        "testing/drivers/nist-sts/sts/templates/template17.Z",
+        "testing/drivers/nist-sts/sts/templates/template18.Z",
+        "testing/drivers/nist-sts/sts/templates/template19.Z",
+        "testing/drivers/nist-sts/sts/templates/template2",
+        "testing/drivers/nist-sts/sts/templates/template20.Z",
+        "testing/drivers/nist-sts/sts/templates/template21.Z",
+        "testing/drivers/nist-sts/sts/templates/template3",
+        "testing/drivers/nist-sts/sts/templates/template4",
+        "testing/drivers/nist-sts/sts/templates/template5",
+        "testing/drivers/nist-sts/sts/templates/template6",
+        "testing/drivers/nist-sts/sts/templates/template7",
+        "testing/drivers/nist-sts/sts/templates/template8",
+        "testing/drivers/nist-sts/sts/templates/template9"
+      ]
+    },
+    {
+      "repository": "apps/graphics/lvgl/lvgl",
+      "head": "0f2a49f588505a00e8b46e25a34581c87291a62a",
+      "changed": [
+        "Kconfig",
+        "src/draw/sw/lv_draw_sw_arc.c",
+        "src/drivers/nuttx/lv_nuttx_lcd.c",
+        "src/drivers/nuttx/lv_nuttx_libuv.c",
+        "src/lv_init.c",
+        "tests/Makefile"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "apps/mlearning/tflite-micro/tflite-micro",
+      "head": "e2ebfbfe176f422628b85ab5579df3b862d99fca",
+      "changed": [
+        "python/tflite_micro/signal/ops/__init__.py"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "apps/netutils/connectedhomeip/connectedhomeip",
+      "head": "e88637b3d1db14f3dc307f1db46791f8cf6fca1f",
+      "changed": [
+        "scripts/flashing/stm32_firmware_utils.py"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "apps/system/argtable3/argtable3",
+      "head": "be1e2569d43a0abcb21e065afc2723ea92601ef8",
+      "changed": [
+        "docs/conf.py"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "apps/testing/drivers/nist-sts",
+      "head": "e1dd7691c86fb320d9dc3b66976203a1559a9f5a",
+      "changed": [],
+      "untracked": [
+        ".gitignore",
+        "0001-Solve-the-memory-out-of-bounds-problem-in-sts.patch",
+        "0002-Fix-bug-that-crash-in-running-a-single-test-after-ru.patch",
+        "CMakeLists.txt",
+        "Kconfig",
+        "Make.defs",
+        "Makefile"
+      ]
+    },
+    {
+      "repository": "build",
+      "head": "305cea66a8efc749a958d8410f736e640c49496b",
+      "changed": [],
+      "untracked": [
+        "epic_official/add_toggle.sh",
+        "epic_official/apps121.tar",
+        "epic_official/bench_capture.py",
+        "epic_official/build_nsh.log",
+        "epic_official/build_nsh_cpu.log",
+        "epic_official/build_one.sh",
+        "epic_official/fix_docs.py",
+        "epic_official/lcd_dev.h",
+        "epic_official/lvgl41.tar",
+        "epic_official/out/bench_ab_off.log",
+        "epic_official/out/bench_ab_on.log",
+        "epic_official/out/bench_cpu_run1.log",
+        "epic_official/out/bench_epic_run1.log",
+        "epic_official/out/official_nsh.bin",
+        "epic_official/out/official_nsh_cpu.bin",
+        "epic_official/setup_tree.sh",
+        "epic_official/symcheck.sh",
+        "epic_official/vendor31.tar",
+        "migrate/a2l.sh",
+        "migrate/bench_mode.sh",
+        "migrate/build1.txt",
+        "migrate/build2.txt",
+        "migrate/build3.txt",
+        "migrate/build4.txt",
+        "migrate/build_mig.sh",
+        "migrate/cfgdiff.sh",
+        "migrate/cfgdiff2.sh",
+        "migrate/chk_ramfunc.sh",
+        "migrate/cmp.sh",
+        "migrate/cmp2.sh",
+        "migrate/final_rcs.sh",
+        "migrate/inc.sh",
+        "migrate/iris_inv_check.py",
+        "migrate/layout.sh",
+        "migrate/lv_optlevel.sh",
+        "migrate/lvgl/",
+        "migrate/nsh_cmd.py",
+        "migrate/out/bench_console.txt",
+        "migrate/out/bench_console_a.txt",
+        "migrate/out/bench_mig75_a.log",
+        "migrate/out/bench_mig75_b.log",
+        "migrate/out/bench_mig75_c.log",
+        "migrate/out/drv_lcd_fb.c.rc11.bak",
+        "migrate/out/flash_a.log",
+        "migrate/out/flash_mig75.log",
+        "migrate/out/guard_boot.log",
+        "migrate/out/keepopen_boot.log",
+        "migrate/out/lv_lcd.c.rc11.bak",
+        "migrate/out/lv_lcd.c.rc12.bak",
+        "migrate/out/lv_lcd.c.rc14.bak",
+        "migrate/out/mig75_bench.bin",
+        "migrate/out/mig75_bench.config",
+        "migrate/out/mig75_bench_a.bin",
+        "migrate/out/mig75_bench_a.config",
+        "migrate/out/mig75_bench_b.bin",
+        "migrate/out/mig75_bench_b.config",
+        "migrate/out/mig75_guard.bin",
+        "migrate/out/mig75_guard.config",
+        "migrate/out/mig75_keepopen.bin",
+        "migrate/out/mig75_keepopen.config",
+        "migrate/out/mig75_prod.bin",
+        "migrate/out/mig75_prod.config",
+        "migrate/out/mig75_prod_order.bin",
+        "migrate/out/mig75_prod_order.config",
+        "migrate/out/mig75_ramclk.bin",
+        "migrate/out/mig75_ramclk.config",
+        "migrate/out/mig75_rc1.bin",
+        "migrate/out/mig75_rc1.config",
+        "migrate/out/mig75_rc10.bin",
+        "migrate/out/mig75_rc10.config",
+        "migrate/out/mig75_rc11.bin",
+        "migrate/out/mig75_rc11.config",
+        "migrate/out/mig75_rc12.bin",
+        "migrate/out/mig75_rc12.config",
+        "migrate/out/mig75_rc13.bin",
+        "migrate/out/mig75_rc13.config",
+        "migrate/out/mig75_rc14.bin",
+        "migrate/out/mig75_rc14.config",
+        "migrate/out/mig75_rc15.bin",
+        "migrate/out/mig75_rc15.config",
+        "migrate/out/mig75_rc16.bin",
+        "migrate/out/mig75_rc16.config",
+        "migrate/out/mig75_rc17.bin",
+        "migrate/out/mig75_rc17.config",
+        "migrate/out/mig75_rc2.bin",
+        "migrate/out/mig75_rc2.config",
+        "migrate/out/mig75_rc3.bin",
+        "migrate/out/mig75_rc3.config",
+        "migrate/out/mig75_rc4.bin",
+        "migrate/out/mig75_rc4.config",
+        "migrate/out/mig75_rc5te.bin",
+        "migrate/out/mig75_rc5te.config",
+        "migrate/out/mig75_rc6chk.bin",
+        "migrate/out/mig75_rc6chk.config",
+        "migrate/out/mig75_rc7.bin",
+        "migrate/out/mig75_rc7.config",
+        "migrate/out/mig75_rc8.bin",
+        "migrate/out/mig75_rc8.config",
+        "migrate/out/mig75_rc9.bin",
+        "migrate/out/mig75_rc9.config",
+        "migrate/out/mig_try1.bin",
+        "migrate/out/mig_try1.config",
+        "migrate/out/phone_companion_20261026_v17.bin",
+        "migrate/out/phone_companion_20261026_v17.config",
+        "migrate/out/phone_companion_20261026_v18.bin",
+        "migrate/out/phone_companion_20261026_v18.config",
+        "migrate/out/phone_display_20261026_v19.bin",
+        "migrate/out/phone_display_20261026_v19.config",
+        "migrate/out/prod_boot.log",
+        "migrate/out/prod_boot2.log",
+        "migrate/out/prod_boot3.log",
+        "migrate/out/prod_ps.log",
+        "migrate/out/ramclk_boot.log",
+        "migrate/out/ramclk_diag.log",
+        "migrate/out/rc12_crash.log",
+        "migrate/out/rc14_test.log",
+        "migrate/out/rc15_uibench.log",
+        "migrate/out/rc16_uibench.log",
+        "migrate/out/rc17_test.log",
+        "migrate/out/rc1_boot.log",
+        "migrate/out/rc1_crash.log",
+        "migrate/out/rc1_hang.log",
+        "migrate/out/rc2_soak.log",
+        "migrate/out/rc3_boot.log",
+        "migrate/out/rc4_boot.log",
+        "migrate/out/rc4_epicoff.log",
+        "migrate/out/rc4_full.log",
+        "migrate/out/rc6_boot.log",
+        "migrate/out/rc6_check.log",
+        "migrate/out/rc7_boot.log",
+        "migrate/out/rc7_fullwin.log",
+        "migrate/out/rc8_boot.log",
+        "migrate/out/rc8_test.log",
+        "migrate/out/rc9_test.log",
+        "migrate/out/rc9_test2.log",
+        "migrate/out/speaker_audiofix_20261025_v9.bin",
+        "migrate/out/speaker_audiofix_20261025_v9.config",
+        "migrate/out/speaker_cache_20261025_v12.bin",
+        "migrate/out/speaker_cache_20261025_v12.config",
+        "migrate/out/speaker_format_20261020_v7.bin",
+        "migrate/out/speaker_format_20261020_v7.config",
+        "migrate/out/speaker_gain_20261025_v8.bin",
+        "migrate/out/speaker_gain_20261025_v8.config",
+        "migrate/out/speaker_internal_20261025_v10.bin",
+        "migrate/out/speaker_internal_20261025_v10.config",
+        "migrate/out/speaker_mic_20261025_v14.bin",
+        "migrate/out/speaker_mic_20261025_v14.config",
+        "migrate/out/speaker_music_20261020_v5.bin",
+        "migrate/out/speaker_music_20261020_v5.config",
+        "migrate/out/speaker_noise_20261020_v6.bin",
+        "migrate/out/speaker_noise_20261020_v6.config",
+        "migrate/out/speaker_steady_20261025_v11.bin",
+        "migrate/out/speaker_steady_20261025_v11.config",
+        "migrate/out/speaker_test_20261020.bin",
+        "migrate/out/speaker_test_20261020.config",
+        "migrate/out/speaker_test_20261020_v2.bin",
+        "migrate/out/speaker_test_20261020_v2.config",
+        "migrate/out/speaker_test_20261020_v3.bin",
+        "migrate/out/speaker_test_20261020_v3.config",
+        "migrate/out/speaker_test_20261020_v4.bin",
+        "migrate/out/speaker_test_20261020_v4.config",
+        "migrate/out/speaker_usb_20261025_v13.bin",
+        "migrate/out/speaker_usb_20261025_v13.config",
+        "migrate/out/velaride_shell.c.rc14.bak",
+        "migrate/out/velaride_shell.rc13.c.bak",
+        "migrate/out/velaride_shell.rc15.c.bak",
+        "migrate/out/velaride_shell.rc16.c.bak",
+        "migrate/out/velaride_shell.rc8.c.bak",
+        "migrate/out/velaride_sport_ui.c.rc14.bak",
+        "migrate/out/voice_loopback_20261026_v15.bin",
+        "migrate/out/voice_loopback_20261026_v15.config",
+        "migrate/out/voice_transfer_20261026_v16.bin",
+        "migrate/out/voice_transfer_20261026_v16.config",
+        "migrate/pi.sh",
+        "migrate/port_bench_wake.py",
+        "migrate/port_drv_lcd.py",
+        "migrate/port_epic_policy.py",
+        "migrate/port_guard.py",
+        "migrate/port_guard_rest.py",
+        "migrate/port_iris_fix.py",
+        "migrate/port_list_bench.py",
+        "migrate/port_lv_prof.py",
+        "migrate/port_lv_prof2.py",
+        "migrate/port_reveal_cover.py",
+        "migrate/port_ui_bench.py",
+        "migrate/port_uv_time.py",
+        "migrate/port_uv_time2.py",
+        "migrate/pr_drv_lcd.c",
+        "migrate/pr_lv_lcd.c",
+        "migrate/probe.sh",
+        "migrate/rcs.sh",
+        "migrate/rcs_order.sh",
+        "migrate/rebuild75.sh",
+        "migrate/rebuild_prod.sh",
+        "migrate/serial_log.py",
+        "migrate/setup_mig.sh",
+        "migrate/sram.sh",
+        "migrate/sym.sh",
+        "migrate/te_sfconfig.patch",
+        "migrate/velaride/velaride_ble.c",
+        "migrate/velaride/velaride_ride_session.c",
+        "migrate/velaride/velaride_shell.c",
+        "migrate/velaride/velaride_sport_ui.c",
+        "migrate/vendor_sifli/",
+        "ourbench/build.sh",
+        "ourbench/diffcfg.sh",
+        "ourbench/out/bench_console.txt",
+        "ourbench/out/bench_ours_run1.log",
+        "ourbench/out/build_result.txt",
+        "ourbench/out/flash.log",
+        "ourbench/out/flash_u7.log",
+        "ourbench/out/ourbench.bin",
+        "ourbench/out/readback_config.bin",
+        "ourbench/out/readback_u7.bin",
+        "ourbench/out/u7_boot.log",
+        "ourbench/out/u7_lcd.log",
+        "ourbench/out/u7_readback.log",
+        "ourbench/patch_doc.py",
+        "ourbench/setup_tree.sh",
+        "stages/countdown/baseline/velaride/CMakeLists.txt",
+        "stages/countdown/baseline/velaride/Kconfig",
+        "stages/countdown/baseline/velaride/OFL-Outfit.txt",
+        "stages/countdown/baseline/velaride/transition_previews/scene_0.png",
+        "stages/countdown/baseline/velaride/transition_previews/scene_1.png",
+        "stages/countdown/baseline/velaride/transition_previews/scene_2.png",
+        "stages/countdown/baseline/velaride/transition_previews/scene_3.png",
+        "stages/countdown/baseline/velaride/transition_previews/scene_4.png",
+        "stages/countdown/baseline/velaride/transition_previews/scene_5.png",
+        "stages/countdown/baseline/velaride/transition_previews/scene_6.png",
+        "stages/countdown/baseline/velaride/velaride.c",
+        "stages/countdown/baseline/velaride/velaride_ble.c",
+        "stages/countdown/baseline/velaride/velaride_compass.c",
+        "stages/countdown/baseline/velaride/velaride_compass.h",
+        "stages/countdown/baseline/velaride/velaride_device.c",
+        "stages/countdown/baseline/velaride/velaride_device.h",
+        "stages/countdown/baseline/velaride/velaride_dial_390.png",
+        "stages/countdown/baseline/velaride/velaride_dial_png.inc",
+        "stages/countdown/baseline/velaride/velaride_dial_rgb565.bin",
+        "stages/countdown/baseline/velaride/velaride_dial_rgb565.inc",
+        "stages/countdown/baseline/velaride/velaride_font_cn_20.c",
+        "stages/countdown/baseline/velaride/velaride_font_cn_24.c",
+        "stages/countdown/baseline/velaride/velaride_font_cn_28.c",
+        "stages/countdown/baseline/velaride/velaride_icons.h",
+        "stages/countdown/baseline/velaride/velaride_mickey_390.png",
+        "stages/countdown/baseline/velaride/velaride_mickey_rgb565.inc",
+        "stages/countdown/baseline/velaride/velaride_num_136.c",
+        "stages/countdown/baseline/velaride/velaride_num_24.c",
+        "stages/countdown/baseline/velaride/velaride_num_30.c",
+        "stages/countdown/baseline/velaride/velaride_num_44.c",
+        "stages/countdown/baseline/velaride/velaride_num_60.c",
+        "stages/countdown/baseline/velaride/velaride_num_92.c",
+        "stages/countdown/baseline/velaride/velaride_ride_session.c",
+        "stages/countdown/baseline/velaride/velaride_ride_session.h",
+        "stages/countdown/baseline/velaride/velaride_shell.c",
+        "stages/countdown/baseline/velaride/velaride_sport_face_390.png",
+        "stages/countdown/baseline/velaride/velaride_sport_face_rgb565.bin",
+        "stages/countdown/baseline/velaride/velaride_sport_face_rgb565.inc",
+        "stages/countdown/baseline/velaride/velaride_sport_ui.c",
+        "stages/countdown/baseline/velaride/velaride_sport_ui.h",
+        "stages/countdown/baseline/velaride/velaride_theme.h",
+        "stages/countdown/baseline/velaride/velaride_timekeeper.c",
+        "stages/countdown/baseline/velaride/velaride_timekeeper.h",
+        "stages/countdown/baseline/velaride/velaride_transition_previews.inc",
+        "stages/countdown/countdown.patch",
+        "stages/microphone-only/audio_test.h",
+        "stages/microphone-only/audio_test_lock.c",
+        "stages/microphone-only/mic_test.c",
+        "stages/sound/assets/alarm_mode-normalized.wav",
+        "stages/sound/assets/alarm_mode.wav",
+        "stages/sound/assets/countdown_mode-normalized.wav",
+        "stages/sound/assets/countdown_mode.wav",
+        "stages/sound/assets/go-normalized.wav",
+        "stages/sound/assets/go.wav",
+        "stages/sound/assets/one-normalized.wav",
+        "stages/sound/assets/one.wav",
+        "stages/sound/assets/prompts.json",
+        "stages/sound/assets/ride_mode-normalized.wav",
+        "stages/sound/assets/ride_mode.wav",
+        "stages/sound/assets/stopwatch_mode-normalized.wav",
+        "stages/sound/assets/stopwatch_mode.wav",
+        "stages/sound/assets/three-normalized.wav",
+        "stages/sound/assets/three.wav",
+        "stages/sound/assets/two-normalized.wav",
+        "stages/sound/assets/two.wav",
+        "stages/speaker/host_test_voice.c",
+        "stages/speaker/run_host_test.sh",
+        "stages/speaker/speaker_test.c",
+        "stages/speaker/speaker_test.v16-original.c",
+        "stages/speaker/voice_test_dsp.h",
+        "tfcheck/cfg.sh",
+        "tfcheck/check.sh",
+        "tfcheck/size.sh",
+        "velaride-font/NotoSansSC-SemiBold-600.ttf"
+      ]
+    },
+    {
+      "repository": "contest2026_446_nandongtaxin",
+      "head": "cdd21d7e8a239395a72266d00e1d121d04202aef",
+      "changed": [],
+      "untracked": [
+        "quickapp/velaride_ai/package.json",
+        "quickapp/velaride_ai/src/app.ux",
+        "quickapp/velaride_ai/src/manifest.json",
+        "quickapp/velaride_ai/src/pages/alert/index.ux",
+        "quickapp/velaride_ai/src/pages/home/index.ux",
+        "quickapp/velaride_ai/src/pages/review/index.ux",
+        "quickapp/velaride_ai/src/pages/ride/index.ux"
+      ]
+    },
+    {
+      "repository": "external",
+      "head": "9ae61d24354f0da52245f3103aa52bffaaeb21a3",
+      "changed": [
+        "zblue/CMakeLists.default.txt"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "external/freetype/freetype",
+      "head": "54b2004daffa73238555d16e541e0e4ca7887e33",
+      "changed": [
+        "subprojects/dlg"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "external/tinyxml2/tinyxml2",
+      "head": "9a03449e33faa2366b3db555a995510661e01177",
+      "changed": [
+        "setversion.py"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "external/zblue/zblue",
+      "head": "2e5bddcc5284534aaca189346570d32f1a5509f3",
+      "changed": [
+        "port/Kconfig",
+        "port/drivers/bluetooth/hci/h4.c",
+        "port/include/zephyr/devicetree_generated.h",
+        "port/kernel/init.c",
+        "port/kernel/thread.c",
+        "port/sections/defines.c",
+        "subsys/bluetooth/host/hci_core.c",
+        "subsys/bluetooth/host/id.c"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "frameworks/connectivity/bluetooth",
+      "head": "028b4ba7e39328acdf23fed0921b7c65aba2001a",
+      "changed": [
+        "CMakeLists.txt",
+        "framework/include/callbacks_list.h"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "frameworks/system/utils",
+      "head": "aae0efd0c89224c3b34e439f419d6a8736113430",
+      "changed": [
+        "kvdb/direct.c"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "nuttx",
+      "head": "dd92bcf425738734d1b8aed09c2bd4dbe3f2e438",
+      "changed": [
+        "drivers/mtd/mtd_config_nvs.c",
+        "drivers/sensors/CMakeLists.txt",
+        "drivers/sensors/Kconfig",
+        "drivers/sensors/Make.defs",
+        "drivers/timers/arch_timer.c",
+        "include/nuttx/lcd/lcd_dev.h",
+        "tools/ci/testrun/utils/data_model.py"
+      ],
+      "untracked": [
+        "drivers/sensors/ltr303.c",
+        "drivers/sensors/mmc5603.c",
+        "include/nuttx/sensors/ltr303.h",
+        "include/nuttx/sensors/mmc5603.h"
+      ]
+    },
+    {
+      "repository": "packages/ai_agent",
+      "head": "31faed70f683a6f5e690437c5507891360f0814a",
+      "changed": [
+        "src/tools/skill_loader.c",
+        "src/tools/tool_shell.c"
+      ],
+      "untracked": [
+        "agent_skills/ride-safety.md"
+      ]
+    },
+    {
+      "repository": "packages/apps",
+      "head": "334f0930712cf2c7919dc8638399ad339283e11c",
+      "changed": [],
+      "untracked": [
+        "contest2026_446_hello_quickapp"
+      ]
+    },
+    {
+      "repository": "packages/demos",
+      "head": "08b94dd9cdf6e5bf7aad855c6ba43afd75bc5d2d",
+      "changed": [],
+      "untracked": [
+        "contest2026_446_hello_app"
+      ]
+    },
+    {
+      "repository": "vendor/infineon/chips/aurix/illd",
+      "head": "537d7f70f5430d26c3ba13eca8b7622728d14d2c",
+      "changed": [
+        "tc4x/Libraries"
+      ],
+      "untracked": []
+    },
+    {
+      "repository": "vendor/openvela",
+      "head": "f3526176a855b53c081673d5247be418a3624326",
+      "changed": [],
+      "untracked": [
+        "boards/contest2026_446_board"
+      ]
+    },
+    {
+      "repository": "vendor/sifli",
+      "head": "af6f365eaa04a674af0467aa1a803bc4c77691ba",
+      "changed": [
+        "boards/sf32lb52/drivers/input/ft6146.c",
+        "boards/sf32lb52/drivers/lcd/co5300.c",
+        "boards/sf32lb52/drivers/lcd/sf32lb_lcd.c",
+        "boards/sf32lb52/drivers/lcd/sf32lb_lcd.h",
+        "boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig",
+        "boards/sf32lb52/lckfb_huangshan_pi/scripts/ld.script",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/manifest.json",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/sifli_ap.c",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/sifli_gpio.c",
+        "chips/drivers/hal/bf0_hal.c",
+        "chips/sf32lb52/CMakeLists.txt",
+        "chips/sf32lb52/sf32lb52_bt_adapter.c",
+        "chips/sf32lb52/sf32lb52_bth4.c",
+        "chips/sf32lb52/sf32lb52_lcpu_boot.c",
+        "chips/sf32lb52/sf32lb_adc.c",
+        "chips/sf32lb52/sf32lb_adc.h",
+        "chips/sf32lb52/sf32lb_flash.c",
+        "chips/sf32lb52/sf32lb_rtc.c",
+        "chips/sf32lb52/sifli_allocateheap.c",
+        "chips/sf32lb52/sifli_i2c.c"
+      ],
+      "untracked": [
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/META-INF/CERT",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/common/logo.png",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/common/nav.png",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/META-INF/CERT",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/META-INF/build.txt",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/app.js",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/common/logo.png",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/config-watch.json",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/i18n/defaults.json",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/i18n/zh-CN.json",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/manifest-watch.json",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/manifest.json",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/pages/cards/index.js",
+        "boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/font/MiSans-Demibold.ttf",
+        "chips/drivers/epic/drv_epic.c",
+        "chips/drivers/epic/drv_epic.h",
+        "chips/drivers/epic/drv_epic_priv.h"
+      ]
+    },
+    {
+      "repository": "my-contest-repo",
+      "head": "713633080795ab34e3b8ca08670a0706bc8e3e0b",
+      "changed": [],
+      "untracked": [
+        "artifacts/_tmp_gps_fresh/firmware.bin"
+      ]
+    }
+  ],
+  "files": {
+    "AGENTS.md": {
+      "bytes": 2278,
+      "sha256": "9db9096ac6ddefd1e72c430f5eb61e26febe25ed34bccbfd27bae2b8b25de7f6"
+    },
+    "PROJECT_PLAN.md": {
+      "bytes": 13644,
+      "sha256": "3f87e07f906e72b179f9bcba0eb53ba374a5d7d945c403bbe01c618f4a5127b7"
+    },
+    "apps/examples/epicbench/CMakeLists.txt": {
+      "bytes": 1648,
+      "sha256": "4c408652e7caf0c370f4294f6c55253391052430c0ddc665f255a15f8b2094f0"
+    },
+    "apps/examples/epicbench/Kconfig": {
+      "bytes": 1008,
+      "sha256": "c2763645db9d42739aea04416f5e2e1269c2bd7073223e881b0141f1d692c881"
+    },
+    "apps/examples/epicbench/epicbench.c": {
+      "bytes": 16642,
+      "sha256": "86358c8845efc235cfb9b29e1f4ec9508ce75b06345ac01677bbb0079c595936"
+    },
+    "apps/examples/velaclock/CMakeLists.txt": {
+      "bytes": 720,
+      "sha256": "6029c2fe00b5d6a1470d69b52fb14946cd0ed6ffe0825380293cfd4484218129"
+    },
+    "apps/examples/velaclock/Kconfig": {
+      "bytes": 843,
+      "sha256": "0a07cd8f358e6ce243b2f33af8fb40d71cfc430f13f5cdf354c9602e213bad1d"
+    },
+    "apps/examples/velaclock/velaclock.c": {
+      "bytes": 4874,
+      "sha256": "516746de479d7a2fb635c4ae760976e26f84e0b1058a901fe6ea080c61506580"
+    },
+    "apps/examples/velaride/CMakeLists.txt": {
+      "bytes": 1443,
+      "sha256": "9794efe47e04155cd33a2b6fe3e11860a84de490b213305e92f7c30ea0830490"
+    },
+    "apps/examples/velaride/Kconfig": {
+      "bytes": 1191,
+      "sha256": "bbed4b6645cc2cb2a62f78126be733420bae0716212a051df5915d1a99b40a2b"
+    },
+    "apps/examples/velaride/OFL-Outfit.txt": {
+      "bytes": 4389,
+      "sha256": "c676351bf8576b9aba743cd5eaa8c0e7ee0d51f805d720447b4df4ddb6a2e416"
+    },
+    "apps/examples/velaride/transition_previews/scene_0.png": {
+      "bytes": 10202,
+      "sha256": "8cc476f76e895a803d597877186d1a5ea716416339b3f94d35d529a927139a4a"
+    },
+    "apps/examples/velaride/transition_previews/scene_1.png": {
+      "bytes": 6640,
+      "sha256": "4b260f87c7ff25925a306b0138300a19896161d28a56ddd8691b5d1d36240a4a"
+    },
+    "apps/examples/velaride/transition_previews/scene_2.png": {
+      "bytes": 184211,
+      "sha256": "c4e77114da6a24d617954beae379dd0239ef5ebdd2d3cdc07eccb6eef174d316"
+    },
+    "apps/examples/velaride/transition_previews/scene_3.png": {
+      "bytes": 12149,
+      "sha256": "bdc32e043c856e3ae5cf900bfa6dc5f622a880224a0b88329d30b156cc83d4df"
+    },
+    "apps/examples/velaride/transition_previews/scene_4.png": {
+      "bytes": 8417,
+      "sha256": "5c7659cf00310eccbc77867196ce0bc600fa2fb39f0ab162dc09feef939bb484"
+    },
+    "apps/examples/velaride/transition_previews/scene_5.png": {
+      "bytes": 7126,
+      "sha256": "c6d90db3314cd3cce50d87be391faa294bcdd892f551da2f7d019f862e9e2557"
+    },
+    "apps/examples/velaride/transition_previews/scene_6.png": {
+      "bytes": 10950,
+      "sha256": "03984bdeeb7cc8d52a1228c5ea49b949d2db4e24dac8b2a10df29f6307277ab5"
+    },
+    "apps/examples/velaride/velaride.c": {
+      "bytes": 40715,
+      "sha256": "9c705afb456677bf3fe1299bea3d2a2c7e303486ba59aad52a64c8f02e99136c"
+    },
+    "apps/examples/velaride/velaride_ble.c": {
+      "bytes": 18924,
+      "sha256": "9b58a84d4d62cb248db1d0cec6328ec0170defd67812f0b6ec559f131cde17fe"
+    },
+    "apps/examples/velaride/velaride_compass.c": {
+      "bytes": 7501,
+      "sha256": "f6dcc898cff4f8ff8e6c46a1f0b7ff3a606a8bf59a2bd1c8910927d1cdbd4bf3"
+    },
+    "apps/examples/velaride/velaride_compass.h": {
+      "bytes": 931,
+      "sha256": "2c627a3b0535b482cf37b62baa94849f3ac177a842b9f949624c7800b8a569fb"
+    },
+    "apps/examples/velaride/velaride_device.c": {
+      "bytes": 18447,
+      "sha256": "3db09354ee1529c9d06d868ec657fed00e55bcc14f276aeeb120e14c87b4b7e3"
+    },
+    "apps/examples/velaride/velaride_device.h": {
+      "bytes": 2676,
+      "sha256": "8b34bf696a43551669726188743b75475ba988f4ea751625cf3e4a9e6d33e4ec"
+    },
+    "apps/examples/velaride/velaride_dial_390.png": {
+      "bytes": 181733,
+      "sha256": "96a5ae66d6153ff37e3aaa5d5424587a6755869debdc2d179e2a2a8ef889e100"
+    },
+    "apps/examples/velaride/velaride_dial_png.inc": {
+      "bytes": 1636257,
+      "sha256": "ece5c05bbe1657da6a709425ac48aa7b9125f0f09bb61dd18d582995e65ff1c4"
+    },
+    "apps/examples/velaride/velaride_dial_rgb565.bin": {
+      "bytes": 304200,
+      "sha256": "cb452a556ff04f56e55129d94f5aa918123e6c15a14faea59389e48039cc3b13"
+    },
+    "apps/examples/velaride/velaride_dial_rgb565.inc": {
+      "bytes": 1863576,
+      "sha256": "02004bcbfba71d9db4d544062bbfaa6f214625047d90b5b30baab981eddc7db3"
+    },
+    "apps/examples/velaride/velaride_font_cn_20.c": {
+      "bytes": 2520011,
+      "sha256": "3487b9b6c1b73e17a43c5e1ef0aac93096163b5c593cbd8500e20eca0454e389"
+    },
+    "apps/examples/velaride/velaride_font_cn_24.c": {
+      "bytes": 240228,
+      "sha256": "52bd61cb3c033d4a4541c8da7c8b5a5fb0199d9a8604f2cdf0539c772cd19ed3"
+    },
+    "apps/examples/velaride/velaride_font_cn_28.c": {
+      "bytes": 909955,
+      "sha256": "5cfefde6571bc784fa14b15de22814e596c314a6fb2c96d08c63ebb050d87259"
+    },
+    "apps/examples/velaride/velaride_icons.h": {
+      "bytes": 7858,
+      "sha256": "a78c37142b07cecec4de55e7314e6e9cea7f757c97db15ee55b0a369d742a46c"
+    },
+    "apps/examples/velaride/velaride_num_136.c": {
+      "bytes": 209625,
+      "sha256": "ee468d405901963a15b9b943888eab2a07a7af3f7cbfd522b8ade650bc609b33"
+    },
+    "apps/examples/velaride/velaride_num_24.c": {
+      "bytes": 14506,
+      "sha256": "82f18d6a514ebcf5e3200e22b413ecaa273325dd986f252c9d66ab61a298104a"
+    },
+    "apps/examples/velaride/velaride_num_30.c": {
+      "bytes": 18838,
+      "sha256": "0a0d605d221199773743f62f002bd8e6d4feb688adb6bd3ccc2e7133930ba58a"
+    },
+    "apps/examples/velaride/velaride_num_44.c": {
+      "bytes": 30256,
+      "sha256": "89bcd4283729544a063f2f3b6584554ddfcc5edc20d89453a4770afde7be05ae"
+    },
+    "apps/examples/velaride/velaride_num_60.c": {
+      "bytes": 53290,
+      "sha256": "5f819839f1051a0f2ed6d0172317e4064589c5361b1e3ae5d712a23b15c7d218"
+    },
+    "apps/examples/velaride/velaride_num_92.c": {
+      "bytes": 103373,
+      "sha256": "722fb865810fd70c1732f617555ea970a4b66c9c15c069c6815881fcf0a8fd6a"
+    },
+    "apps/examples/velaride/velaride_ride_session.c": {
+      "bytes": 19066,
+      "sha256": "1e2374d842b1871a309b3f375266ae2400aa291e2cc3de857bf79937fb4a3e09"
+    },
+    "apps/examples/velaride/velaride_ride_session.h": {
+      "bytes": 2959,
+      "sha256": "1c3143e2c64b0361d4bb95889406ec672925f6877b2e41e41e3116b6f916e017"
+    },
+    "apps/examples/velaride/velaride_shell.c": {
+      "bytes": 140330,
+      "sha256": "974b40a00fd9bc61778f096377a3b2e34448f341f8e0b24f0caac9d04c60ac88"
+    },
+    "apps/examples/velaride/velaride_sport_face_390.png": {
+      "bytes": 38531,
+      "sha256": "52619706a167c946d8da1f4aa109d068dfb0511cf2f65734639999405f5f4dca"
+    },
+    "apps/examples/velaride/velaride_sport_face_rgb565.bin": {
+      "bytes": 351000,
+      "sha256": "058a1c954c511e26b7045f1588008e9f8cc8c66f155f229f4c687a375d129c04"
+    },
+    "apps/examples/velaride/velaride_sport_face_rgb565.inc": {
+      "bytes": 2150157,
+      "sha256": "dc2cb51d23ce4eb5055e260030f7be6ee2a1631b9ae0cb2eee42a704221d7c63"
+    },
+    "apps/examples/velaride/velaride_sport_ui.c": {
+      "bytes": 87645,
+      "sha256": "77269a0adc0834f43e2bb6bf934b142407776563d5d4a5abb7f7a7e8c140a321"
+    },
+    "apps/examples/velaride/velaride_sport_ui.h": {
+      "bytes": 1369,
+      "sha256": "ee1ecfe432f081de9e212235bed6b16e190cde41904f183e419f14f4e5536621"
+    },
+    "apps/examples/velaride/velaride_theme.h": {
+      "bytes": 2194,
+      "sha256": "e2b53d04d1415ba388fc0e132f990bd41d2dfa7e0cdeaaa274aa97a881b9b754"
+    },
+    "apps/examples/velaride/velaride_timekeeper.c": {
+      "bytes": 3598,
+      "sha256": "2c19f02a59bf21cd196a05d1031f1f380b48c7d4837fa416b3d5b2d260c59666"
+    },
+    "apps/examples/velaride/velaride_timekeeper.h": {
+      "bytes": 580,
+      "sha256": "a94a2ef83f876d68e6f44f348ddc2fb77f10b653ee4133ad503fe59a60ebfeef"
+    },
+    "apps/examples/velaride/velaride_transition_previews.inc": {
+      "bytes": 15049316,
+      "sha256": "d4268a12681cd836578f809851d8693787b98b130b11430c2597b2ddfd1554fd"
+    },
+    "apps/graphics/lvgl/CMakeLists.txt": {
+      "bytes": 8498,
+      "sha256": "d6047f5c895f8649cbc1d7dd41897151f41acb11c04adc5c3a2584cd942aeb20"
+    },
+    "apps/graphics/lvgl/lvgl/Kconfig": {
+      "bytes": 59989,
+      "sha256": "0330615f7ea6dcdd6be08bb4de869a592f1dd2de27c949732885a2e5b3ee4508"
+    },
+    "apps/graphics/lvgl/lvgl/src/draw/sw/lv_draw_sw_arc.c": {
+      "bytes": 10217,
+      "sha256": "1c68c7df3a8c4c033b63fe4a67657bb95da6bfbde3637c783cf7a2151fe65db5"
+    },
+    "apps/graphics/lvgl/lvgl/src/drivers/nuttx/lv_nuttx_lcd.c": {
+      "bytes": 8792,
+      "sha256": "40d0646550284f99f4627c62971e21cbbb27be8ba2db39fca2c3188263b0a3d1"
+    },
+    "apps/graphics/lvgl/lvgl/src/drivers/nuttx/lv_nuttx_libuv.c": {
+      "bytes": 21200,
+      "sha256": "3cdc34ee695ab676447780f9aad21b1d6b447a56c7ffbd536919d1aff9d769bf"
+    },
+    "apps/graphics/lvgl/lvgl/src/lv_init.c": {
+      "bytes": 10254,
+      "sha256": "2309e34912bbabf2d62818d5b2a5bbaeee827056c9d226ab588dc2d539b44bc8"
+    },
+    "apps/mlearning/tflite-micro/tflite-micro/python/tflite_micro/signal/ops/__init__.py": {
+      "bytes": 81,
+      "sha256": "46d4c9f7403c0924375cbfb8080230f0bb2966d25718d9407628f3151578b6a1"
+    },
+    "apps/netutils/connectedhomeip/connectedhomeip/scripts/flashing/stm32_firmware_utils.py": {
+      "bytes": 3794,
+      "sha256": "57e32e25d65d7a6e731ff1804c1c06655c5d95f8229f00d85b0d3e199accfe90"
+    },
+    "apps/system/argtable3/argtable3/docs/conf.py": {
+      "bytes": 2557,
+      "sha256": "571ec4b01f708151205c3d81f115e9f9f7a3aacfd024aa98c52ce36313de9c3d"
+    },
+    "apps/system/libuv/CMakeLists.txt": {
+      "bytes": 8834,
+      "sha256": "f8ba77f380db92bac0f45f9d8130c0b493de7f32709b6257f6dce48344e9cead"
+    },
+    "apps/system/libuv/nuttx_threadpool.c": {
+      "bytes": 843,
+      "sha256": "2c4a27ac1c10c38ffb136c55a9a2119d6bcc9bce533dbeef2881a4bd581f07fb"
+    },
+    "apps/testing/drivers/nist-sts/.gitignore": {
+      "bytes": 11,
+      "sha256": "ae366c6ff290bce098ca0893efab18915f4e4bf82443ab52151174792f6dc3d1"
+    },
+    "apps/testing/drivers/nist-sts/0001-Solve-the-memory-out-of-bounds-problem-in-sts.patch": {
+      "bytes": 973,
+      "sha256": "8cd1ec3bf0156d584ea9664dd6425adda7ea62f5c767b4c5fbd37349dfd67f08"
+    },
+    "apps/testing/drivers/nist-sts/0002-Fix-bug-that-crash-in-running-a-single-test-after-ru.patch": {
+      "bytes": 1137,
+      "sha256": "28ada05a2667cc5ec9e5a59ecc76d011887948c86f8d694cfd1a6f9963110a9b"
+    },
+    "apps/testing/drivers/nist-sts/CMakeLists.txt": {
+      "bytes": 2695,
+      "sha256": "9430f67adcb59673a70c45c03ce7a0105729f81109122a916859449f79e65a46"
+    },
+    "apps/testing/drivers/nist-sts/Kconfig": {
+      "bytes": 668,
+      "sha256": "0f4417b9f1bb1e2c47c20c3626b200234cf17265e0e5022796fd51d709e31e86"
+    },
+    "apps/testing/drivers/nist-sts/Make.defs": {
+      "bytes": 1101,
+      "sha256": "aaeed8d817795c075fbf9c0936fcb825bbd990357a295eaf04e6bf9c8e518ba5"
+    },
+    "apps/testing/drivers/nist-sts/Makefile": {
+      "bytes": 2608,
+      "sha256": "fae670ae8d2a2e28258e855478d117f1b0657bf1222f9200f3737e18b2005994"
+    },
+    "audit_watch_v4.py": {
+      "bytes": 2062,
+      "sha256": "1ff8bffb7e95f9e7e5117c9f3a5c155d8d769689f26c5982b963e823eb14c989"
+    },
+    "backup/phone-demo-20261107/archive_checkpoint.py": {
+      "bytes": 5753,
+      "sha256": "01679f343ab6732c14bfff5dca7bcd877e7e2e7642696853ddbe0aafdc6e7a28"
+    },
+    "backup/phone-demo-20261107/connect.json": {
+      "bytes": 289,
+      "sha256": "5ff3c771c13b3fa44b8f410778339cc43433576fb7bdd03ba4bc94334a5bef4a"
+    },
+    "backup/phone-demo-20261107/inventory_workspace.py": {
+      "bytes": 1673,
+      "sha256": "fe59e0b373af99bba39dafaf29e87452e8ae7cacf2955f4600ce3451179f815a"
+    },
+    "backup/phone-demo-20261107/scan.json": {
+      "bytes": 78,
+      "sha256": "37d76c78510d8a36b911830bc816239bbbbf8add7d30dbd429a8aa032524b6ee"
+    },
+    "backup/phone-demo-20261107/test-commands.json": {
+      "bytes": 413,
+      "sha256": "11ae7c0c5bee8a4ea5cb5445845168909eb34e920ea86b68587369039caf42d7"
+    },
+    "backup/phone-demo-20261107/test-result.json": {
+      "bytes": 557,
+      "sha256": "1d602b2e65d1c2cf6ceb31ab06aa784ced0dc29391ce43c363ddf74ea2bb93c5"
+    },
+    "build.sh": {
+      "bytes": 7941,
+      "sha256": "58c7727586c7ae498b38c5beff6794473cffa2812a500dcf7b6d8ae3d8cc3d37"
+    },
+    "build/epic_official/add_toggle.sh": {
+      "bytes": 770,
+      "sha256": "c3a5c5f6c6f7bee0e73f0e00e5abddad47687cb0bdc12a0806613d58f08ea40a"
+    },
+    "build/epic_official/bench_capture.py": {
+      "bytes": 2510,
+      "sha256": "909378d91b5e5f3e32cea7079b105887c17d24100dfd4fefb936b5f0e0595fde"
+    },
+    "build/epic_official/build_one.sh": {
+      "bytes": 861,
+      "sha256": "da53a72c362605c1e466f99b0e24ad23d6dda059dfab63d7a1fc9a7d1302ecd3"
+    },
+    "build/epic_official/fix_docs.py": {
+      "bytes": 5125,
+      "sha256": "4fec2c856bf2c52ec7ef85b70fbfb2df2b0d7f9873846309af7fce51f57ee19b"
+    },
+    "build/epic_official/lcd_dev.h": {
+      "bytes": 4380,
+      "sha256": "df271dc021d53698e0ef03f00bce34df90bce6e27720cfb5720a942da4999ba0"
+    },
+    "build/epic_official/setup_tree.sh": {
+      "bytes": 1490,
+      "sha256": "c01ee198ba37ce676d7e64e01b39e9beebf81275cfab6dc6ef643417064c757a"
+    },
+    "build/epic_official/symcheck.sh": {
+      "bytes": 242,
+      "sha256": "c9bdf834e8d1f2b1a428c4a8010cc1b0230681fa07bddfffcefc05e443c94a6d"
+    },
+    "build/migrate/a2l.sh": {
+      "bytes": 184,
+      "sha256": "7ec951d9c927c0145821dff2b8ec76531fb0c1acdb889c26516770140e8f4c51"
+    },
+    "build/migrate/bench_mode.sh": {
+      "bytes": 374,
+      "sha256": "b20e40dc691256e40a1255a8829b74ec46fe082d209994e7dc213ce8e10199d1"
+    },
+    "build/migrate/build1.txt": {
+      "bytes": 696,
+      "sha256": "847d10df26844853dbd9665f3a291841325124d647a787acf1ba5ffa091cac52"
+    },
+    "build/migrate/build2.txt": {
+      "bytes": 734,
+      "sha256": "b54405b1a2a52d338504c6a3030a3aaccfc569173dde66a8e2ac1afeada6df75"
+    },
+    "build/migrate/build3.txt": {
+      "bytes": 734,
+      "sha256": "6dcf6778a5c799b87828e5fb50a2f5b87771a50b882e935cc2ab1cb85fcb1042"
+    },
+    "build/migrate/build4.txt": {
+      "bytes": 800,
+      "sha256": "6944b2fce3770a70ab734e06b2a064432d1f7c04a87913f383fbec891e135bae"
+    },
+    "build/migrate/build_mig.sh": {
+      "bytes": 1554,
+      "sha256": "af6d96fb87c4dc60e8ed9d9031bf902d74b9ba74c2adf8871869ec032631076d"
+    },
+    "build/migrate/cfgdiff.sh": {
+      "bytes": 564,
+      "sha256": "18c05c858850703a9b7c966c91701fbc4a2f724d0168c8208f8c8facdce184ff"
+    },
+    "build/migrate/cfgdiff2.sh": {
+      "bytes": 574,
+      "sha256": "db23882f87f02e7d3457b0d6bb630f82f7251fca644364935a42cb8fb800bc0a"
+    },
+    "build/migrate/chk_ramfunc.sh": {
+      "bytes": 281,
+      "sha256": "219ec63a2acecf6cde9fcfe6929f67ff7bf6e15d24e6ea15baa1aa927699d564"
+    },
+    "build/migrate/cmp.sh": {
+      "bytes": 398,
+      "sha256": "bde09179c95e32a6ae099b6f2890cf408e5759218d0d6ce63ca6413aa319b8c2"
+    },
+    "build/migrate/cmp2.sh": {
+      "bytes": 875,
+      "sha256": "369b3df48589582be9e83eae7114c53466e0400272007542f00105bc56d7d793"
+    },
+    "build/migrate/final_rcs.sh": {
+      "bytes": 145,
+      "sha256": "71c8172e2ea3f13044db88edbcde887868dc1cda7fdba3c42ea6c47ed1e36d8c"
+    },
+    "build/migrate/inc.sh": {
+      "bytes": 561,
+      "sha256": "0514b8cb0d06a332c2292cd74e28307baa0ba97428a3e1ecefae3db843dc6c60"
+    },
+    "build/migrate/iris_inv_check.py": {
+      "bytes": 3436,
+      "sha256": "d9350dd88dbaf9db84496aa3c9b425fa3dc0b1aab8564c6d3eac277584db5d2b"
+    },
+    "build/migrate/layout.sh": {
+      "bytes": 512,
+      "sha256": "743795a4df820a8a29e05da8ec8e263189b5f0dc690e889fb0603872b123b341"
+    },
+    "build/migrate/lv_optlevel.sh": {
+      "bytes": 603,
+      "sha256": "3802d14120c600fd87723448f35a2af203ff819e7f4290798b2464ced3e045ea"
+    },
+    "build/migrate/nsh_cmd.py": {
+      "bytes": 875,
+      "sha256": "849035fbd2be2f34322b97fd00e8261f9f374c26ce7223be6d29f4b93fbdb2be"
+    },
+    "build/migrate/out/bench_console.txt": {
+      "bytes": 6307,
+      "sha256": "eb9da369f2985a6bea75f2bbb39908820ce4085d0a21722ec151887cc92e6247"
+    },
+    "build/migrate/out/bench_console_a.txt": {
+      "bytes": 3923360,
+      "sha256": "44e05219cf609e17325d4a1f2668c6a5b8efc5a9107a017aa99c1408fc2ac4ba"
+    },
+    "build/migrate/pi.sh": {
+      "bytes": 135,
+      "sha256": "36b4babd780b35e6bac65f288ae5f5615b14f1f9711b6bf62611325d1a5d079d"
+    },
+    "build/migrate/port_bench_wake.py": {
+      "bytes": 2040,
+      "sha256": "b473e6d3573267231cfbdbdf689820a0448f6833fdb11b488de5e7c7704a43e8"
+    },
+    "build/migrate/port_drv_lcd.py": {
+      "bytes": 8036,
+      "sha256": "9f38435ad8c809bcd5804cae6ec320066f9ea300702a6e7c47f1839a5761aa0b"
+    },
+    "build/migrate/port_epic_policy.py": {
+      "bytes": 3352,
+      "sha256": "b5984d8d5e2b64142aee6ce3d2bc35c1eb9b16684ef977ddfc7bd075245d46ee"
+    },
+    "build/migrate/port_guard.py": {
+      "bytes": 4856,
+      "sha256": "39c41e4d3421be385cba20d3cdc7db1317e1e903608a26a278aeb731453c7c70"
+    },
+    "build/migrate/port_guard_rest.py": {
+      "bytes": 2546,
+      "sha256": "6b0771e9e056e1053dfbf908b0690f328d38a9a3ec942d9392c058a3f00390bf"
+    },
+    "build/migrate/port_iris_fix.py": {
+      "bytes": 3093,
+      "sha256": "5e7800772d25ebc7cae00a55164a408793343e3535eea80232fbdbffeaae6b14"
+    },
+    "build/migrate/port_list_bench.py": {
+      "bytes": 2820,
+      "sha256": "56df69c823fc4ed4f89876163e6d04bc9c44c8008ab7fef7a964d043430fda79"
+    },
+    "build/migrate/port_lv_prof.py": {
+      "bytes": 7388,
+      "sha256": "72c4f635b972e4fc7b4ca63e651110f08b30f8d4d23ac74bf0f77da6fc6acd22"
+    },
+    "build/migrate/port_lv_prof2.py": {
+      "bytes": 5310,
+      "sha256": "35cd88038033cc6d4e3495332e9e5b17360afe334db130e82c1098f418c4d867"
+    },
+    "build/migrate/port_reveal_cover.py": {
+      "bytes": 2833,
+      "sha256": "170f617f1079456486ddc7a963afc8da0c52f8177648692f4e534168fcc72fa1"
+    },
+    "build/migrate/port_ui_bench.py": {
+      "bytes": 5286,
+      "sha256": "dd313e8726f0b7891f157ad8f8cf57ae104a0cc7629ebb125361c692633c99cb"
+    },
+    "build/migrate/port_uv_time.py": {
+      "bytes": 1115,
+      "sha256": "804bc5668162f89ccc9bdad7e5b313a9bb7e3ccddf36d63aaace6f455358db91"
+    },
+    "build/migrate/port_uv_time2.py": {
+      "bytes": 2180,
+      "sha256": "0a1580503040e1c64daae1f96a66d83fe96dcbf60953e593a9567a9704395df6"
+    },
+    "build/migrate/pr_drv_lcd.c": {
+      "bytes": 107585,
+      "sha256": "a9e73278f60543d8c67ddb663cf0125229fc7ce8ebd005e736d2118ffe019fea"
+    },
+    "build/migrate/pr_lv_lcd.c": {
+      "bytes": 19694,
+      "sha256": "a3f49c9ec844783c9d0a9c2f18b0d003c252fb82d1d513d24af9cad1dc65e53b"
+    },
+    "build/migrate/probe.sh": {
+      "bytes": 254,
+      "sha256": "ba8a761513bea7342ffd2ec439dc7fe9e77707116a9d09f09785964cf2f64fa2"
+    },
+    "build/migrate/rcs.sh": {
+      "bytes": 94,
+      "sha256": "3c862fd1ac39e5d35d1bb00d5861179b1a7e6c47f1cb009380a85489a00f905c"
+    },
+    "build/migrate/rcs_order.sh": {
+      "bytes": 265,
+      "sha256": "36ad47ff603b00ffce08219cb7a723d43279a91802dad5bbec11fa3f5cfdb2bf"
+    },
+    "build/migrate/rebuild75.sh": {
+      "bytes": 247,
+      "sha256": "c6c62d4f36e87dd960f7f9381a046565f178033b76434493a283808c131c9c0c"
+    },
+    "build/migrate/rebuild_prod.sh": {
+      "bytes": 269,
+      "sha256": "88fea578f022be1a597e3995a27fcf431fc9d0c13b523a162017b2de782d4aac"
+    },
+    "build/migrate/serial_log.py": {
+      "bytes": 1467,
+      "sha256": "1c69934518e204b6a94811178511d1e00d2a2d36bb3c9199f545e45e39f09b95"
+    },
+    "build/migrate/setup_mig.sh": {
+      "bytes": 2488,
+      "sha256": "96133ca3a93061e75445d436ca8a32b149582a9c6942cc908317552908ef984a"
+    },
+    "build/migrate/sram.sh": {
+      "bytes": 710,
+      "sha256": "c77af9b4c793ca77f127e4e107d0e4e8a790569af28fcaa8fcc7dc3e690523a6"
+    },
+    "build/migrate/sym.sh": {
+      "bytes": 265,
+      "sha256": "4a910936e8f840aba9ea98abfae6f6168a4063619e6b3236b00aefab3303d5e7"
+    },
+    "build/migrate/velaride/velaride_ble.c": {
+      "bytes": 18924,
+      "sha256": "9b58a84d4d62cb248db1d0cec6328ec0170defd67812f0b6ec559f131cde17fe"
+    },
+    "build/migrate/velaride/velaride_ride_session.c": {
+      "bytes": 19066,
+      "sha256": "1e2374d842b1871a309b3f375266ae2400aa291e2cc3de857bf79937fb4a3e09"
+    },
+    "build/migrate/velaride/velaride_shell.c": {
+      "bytes": 147537,
+      "sha256": "57cc026ae91ae6c90af7c381faae1ff3cf7397a9ec72d22b0ee5ecab0c2f8e04"
+    },
+    "build/migrate/velaride/velaride_sport_ui.c": {
+      "bytes": 88262,
+      "sha256": "8b4ae8cb59e7fb14c1325ddde1baa8f3170ebf4fbe5b8db77e2e212d4f2d9032"
+    },
+    "build/ourbench/build.sh": {
+      "bytes": 1182,
+      "sha256": "d62413a12eb62e2792129556d970d09dc1d64979ae17129e09df8ee1163a56f4"
+    },
+    "build/ourbench/diffcfg.sh": {
+      "bytes": 606,
+      "sha256": "2e61bad89241d3ac2f6bb184b0fcda4670107b9d33c5f5f4087bea4aa9cae0c1"
+    },
+    "build/ourbench/out/bench_console.txt": {
+      "bytes": 6962,
+      "sha256": "590f829c2bbd475f1dde38258d19141bb8f3eb191868ae1d6c4b17b532fd0751"
+    },
+    "build/ourbench/out/build_result.txt": {
+      "bytes": 516,
+      "sha256": "c9800647b7990f42418ead73b8fe15c0ce3fdc9d557f30f493841382da2d1c65"
+    },
+    "build/ourbench/patch_doc.py": {
+      "bytes": 3144,
+      "sha256": "d5d73be690e6468cfc1fbc1e8c1af84734bcf89e6e566918560c282264377d33"
+    },
+    "build/ourbench/setup_tree.sh": {
+      "bytes": 749,
+      "sha256": "0edd82f9f5b12046e304908b61ed8bfbaca2accc2d5804e5cdc22f07764e44e5"
+    },
+    "build/stages/countdown/baseline/velaride/CMakeLists.txt": {
+      "bytes": 1443,
+      "sha256": "9794efe47e04155cd33a2b6fe3e11860a84de490b213305e92f7c30ea0830490"
+    },
+    "build/stages/countdown/baseline/velaride/Kconfig": {
+      "bytes": 1191,
+      "sha256": "bbed4b6645cc2cb2a62f78126be733420bae0716212a051df5915d1a99b40a2b"
+    },
+    "build/stages/countdown/baseline/velaride/OFL-Outfit.txt": {
+      "bytes": 4389,
+      "sha256": "c676351bf8576b9aba743cd5eaa8c0e7ee0d51f805d720447b4df4ddb6a2e416"
+    },
+    "build/stages/countdown/baseline/velaride/velaride.c": {
+      "bytes": 40715,
+      "sha256": "9c705afb456677bf3fe1299bea3d2a2c7e303486ba59aad52a64c8f02e99136c"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_ble.c": {
+      "bytes": 15764,
+      "sha256": "33af589eade9337f0aa55cc63b4e756c16e3d2c219f50e5021845570fc2f51c5"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_compass.c": {
+      "bytes": 7501,
+      "sha256": "f6dcc898cff4f8ff8e6c46a1f0b7ff3a606a8bf59a2bd1c8910927d1cdbd4bf3"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_compass.h": {
+      "bytes": 931,
+      "sha256": "2c627a3b0535b482cf37b62baa94849f3ac177a842b9f949624c7800b8a569fb"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_device.c": {
+      "bytes": 18447,
+      "sha256": "3db09354ee1529c9d06d868ec657fed00e55bcc14f276aeeb120e14c87b4b7e3"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_device.h": {
+      "bytes": 2676,
+      "sha256": "8b34bf696a43551669726188743b75475ba988f4ea751625cf3e4a9e6d33e4ec"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_font_cn_20.c": {
+      "bytes": 2520011,
+      "sha256": "3487b9b6c1b73e17a43c5e1ef0aac93096163b5c593cbd8500e20eca0454e389"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_font_cn_24.c": {
+      "bytes": 240228,
+      "sha256": "52bd61cb3c033d4a4541c8da7c8b5a5fb0199d9a8604f2cdf0539c772cd19ed3"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_font_cn_28.c": {
+      "bytes": 909955,
+      "sha256": "5cfefde6571bc784fa14b15de22814e596c314a6fb2c96d08c63ebb050d87259"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_icons.h": {
+      "bytes": 7858,
+      "sha256": "a78c37142b07cecec4de55e7314e6e9cea7f757c97db15ee55b0a369d742a46c"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_num_136.c": {
+      "bytes": 209625,
+      "sha256": "ee468d405901963a15b9b943888eab2a07a7af3f7cbfd522b8ade650bc609b33"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_num_24.c": {
+      "bytes": 14506,
+      "sha256": "82f18d6a514ebcf5e3200e22b413ecaa273325dd986f252c9d66ab61a298104a"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_num_30.c": {
+      "bytes": 18838,
+      "sha256": "0a0d605d221199773743f62f002bd8e6d4feb688adb6bd3ccc2e7133930ba58a"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_num_44.c": {
+      "bytes": 30256,
+      "sha256": "89bcd4283729544a063f2f3b6584554ddfcc5edc20d89453a4770afde7be05ae"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_num_60.c": {
+      "bytes": 53290,
+      "sha256": "5f819839f1051a0f2ed6d0172317e4064589c5361b1e3ae5d712a23b15c7d218"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_num_92.c": {
+      "bytes": 103373,
+      "sha256": "722fb865810fd70c1732f617555ea970a4b66c9c15c069c6815881fcf0a8fd6a"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_ride_session.c": {
+      "bytes": 18392,
+      "sha256": "1be788fe822a40be57057f46f884a31df7445dfbb0bc7c9f118da35526a28673"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_ride_session.h": {
+      "bytes": 2959,
+      "sha256": "1c3143e2c64b0361d4bb95889406ec672925f6877b2e41e41e3116b6f916e017"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_shell.c": {
+      "bytes": 147036,
+      "sha256": "4076f1b64e937b760e8741c522f54f75639c386fe6abf5ec8cd9b686b056cd53"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_sport_ui.c": {
+      "bytes": 85292,
+      "sha256": "816dab59dc1bffdc8f57b2ba1f1d5373e5a9e40c3f5b5a32e1d3722e4a20bf1c"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_sport_ui.h": {
+      "bytes": 1369,
+      "sha256": "ee1ecfe432f081de9e212235bed6b16e190cde41904f183e419f14f4e5536621"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_theme.h": {
+      "bytes": 2194,
+      "sha256": "e2b53d04d1415ba388fc0e132f990bd41d2dfa7e0cdeaaa274aa97a881b9b754"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_timekeeper.c": {
+      "bytes": 3598,
+      "sha256": "2c19f02a59bf21cd196a05d1031f1f380b48c7d4837fa416b3d5b2d260c59666"
+    },
+    "build/stages/countdown/baseline/velaride/velaride_timekeeper.h": {
+      "bytes": 580,
+      "sha256": "a94a2ef83f876d68e6f44f348ddc2fb77f10b653ee4133ad503fe59a60ebfeef"
+    },
+    "build/stages/microphone-only/audio_test.h": {
+      "bytes": 385,
+      "sha256": "3977695ab9c5d66527a6add8cbee2acd1f34c76b5c071050c008f3a658e345a9"
+    },
+    "build/stages/microphone-only/audio_test_lock.c": {
+      "bytes": 1169,
+      "sha256": "060f1ad48ab814cc701b6b84dd8816380a4cd7e86786cd9014ebe60a682bdae8"
+    },
+    "build/stages/microphone-only/mic_test.c": {
+      "bytes": 9813,
+      "sha256": "10ca47120d24e28a5fb9823c59a75421e2c94a5584b83b0a8f0ae59686c94df6"
+    },
+    "build/stages/sound/assets/prompts.json": {
+      "bytes": 234,
+      "sha256": "e41f85ccb6edb0f8f35fc5192a2127f5d6784bc64882590213b0ffc6450699d3"
+    },
+    "build/stages/speaker/host_test_voice.c": {
+      "bytes": 2201,
+      "sha256": "b8bcecb49ccdd7acc207eb7e2531114870bc89a9c39117d33147068f8037c51d"
+    },
+    "build/stages/speaker/run_host_test.sh": {
+      "bytes": 484,
+      "sha256": "201b0ebe0009a569c6560f32a5d36b3c383b2476f44685377bb67df9439823c5"
+    },
+    "build/stages/speaker/speaker_test.c": {
+      "bytes": 35426,
+      "sha256": "1bc2461dabe00d984b2979e99abfd24a3563f67e961a2df7ac54c085efc22aff"
+    },
+    "build/stages/speaker/speaker_test.v16-original.c": {
+      "bytes": 35558,
+      "sha256": "a8d5ead8b8cdaac705858014718dfd8dd15cdc47df9c2a3ddffca662af77e8c1"
+    },
+    "build/stages/speaker/voice_test_dsp.h": {
+      "bytes": 4049,
+      "sha256": "9ffea7c7c5566a847324bd0418d1a246e3112af3b965f7c8ee61dbc6363f97e4"
+    },
+    "build/tfcheck/cfg.sh": {
+      "bytes": 270,
+      "sha256": "0896ce911d1097d33e9fe41a14f2b1b65b3e6a33fdb6aa599f6fdf612362ffa7"
+    },
+    "build/tfcheck/check.sh": {
+      "bytes": 288,
+      "sha256": "dd4c8f605054dfa719078545e65188bad33a4584796d6817a296b395371bf953"
+    },
+    "build/tfcheck/size.sh": {
+      "bytes": 346,
+      "sha256": "615995486db9eb8dab721e74c1dc01e59c88fffa05bea52d48d935aa7ad6848e"
+    },
+    "build_back_and_bar_v2.py": {
+      "bytes": 2569,
+      "sha256": "76f7396dc035257dfcd8756c4c8f5ff1319a87a56b73cdac0836a154d14159a6"
+    },
+    "build_watch_reinforcement.py": {
+      "bytes": 3913,
+      "sha256": "41d7ab57761e37b5717d9a34d49ce394d739700e4832cad4a15b155fbedd5278"
+    },
+    "build_watch_v4_trial.py": {
+      "bytes": 5896,
+      "sha256": "51d29446980468fae44e183c2abbf177d569f63f0c7891c9bc32914a4e1a9914"
+    },
+    "build_watch_wallfix_v2.py": {
+      "bytes": 5760,
+      "sha256": "d1670db84668b72abf1cf2f15b05dec0e838ce7519b9fb9f524f2d475ba2d85f"
+    },
+    "check_reinforcement_candidate.py": {
+      "bytes": 2779,
+      "sha256": "57a08b9b1bce1b3a833eed727bae3593115fa862080276010ffc52836c54d80b"
+    },
+    "check_watch_interfaces_v3.py": {
+      "bytes": 1935,
+      "sha256": "c499a7ed1f31ffd2d30a271c60daca59506c9b1638575b4e274f9f1b58ccbf69"
+    },
+    "clean_watch_v4_trial.py": {
+      "bytes": 1221,
+      "sha256": "0aea13c1378705a9759f30cb48288156e8adb3df04a40ef4953759b921878981"
+    },
+    "collapse_watch_short_edges.py": {
+      "bytes": 2267,
+      "sha256": "5df478122dca0a5c3eab751e481aeb7e0be54356f6cf2194249a7a1e64896dd2"
+    },
+    "constrain_main_wallfix.py": {
+      "bytes": 1691,
+      "sha256": "fa2d00c6cfe2be006ba5b406d0c5b846b61d74e3610c391fff4831ab35d8cf69"
+    },
+    "contest2026_446_nandongtaxin/quickapp/velaride_ai/package.json": {
+      "bytes": 342,
+      "sha256": "103d00a56a149a9ea59b362cb7b29aa6a44770d31cce8a061816917c0c3f85c8"
+    },
+    "contest2026_446_nandongtaxin/quickapp/velaride_ai/src/app.ux": {
+      "bytes": 225,
+      "sha256": "4c4c7951304f7a7fe56b75144cf23b0f2e1b02de4dad06af0e5cd8f39088e42f"
+    },
+    "contest2026_446_nandongtaxin/quickapp/velaride_ai/src/manifest.json": {
+      "bytes": 1007,
+      "sha256": "19e540d50472b33186affcfc1cea27105d0b2b21aafa0cc8f5cc67935f247319"
+    },
+    "contest2026_446_nandongtaxin/quickapp/velaride_ai/src/pages/alert/index.ux": {
+      "bytes": 5862,
+      "sha256": "6cefb1783e769ee774fea4282680aec8981fafbab9f5d3dfb9c40add8276c1b8"
+    },
+    "contest2026_446_nandongtaxin/quickapp/velaride_ai/src/pages/home/index.ux": {
+      "bytes": 5947,
+      "sha256": "bf6ab07ee2f7406175681d850b12f862795bbedd862d7417c9b0395246284129"
+    },
+    "contest2026_446_nandongtaxin/quickapp/velaride_ai/src/pages/review/index.ux": {
+      "bytes": 7750,
+      "sha256": "11b288d779856cf7cc2e27fa9c60b503518390650e89cd0b09bc458d8f6488d2"
+    },
+    "contest2026_446_nandongtaxin/quickapp/velaride_ai/src/pages/ride/index.ux": {
+      "bytes": 8584,
+      "sha256": "2371e6222122488f219d4694f2b5d8936e6dd893517eaabded3fdd2e171a8477"
+    },
+    "emulator.sh": {
+      "bytes": 3837,
+      "sha256": "4ab16fffe570f8f5cedec802731cec4fac5635be3be2ff42d17d51e8b024a161"
+    },
+    "external/tinyxml2/tinyxml2/setversion.py": {
+      "bytes": 3571,
+      "sha256": "13d2590a6011782fc0b5fd18c4f5bc2b24af0486a498b14a363eb1a7ca12d69b"
+    },
+    "external/zblue/CMakeLists.default.txt": {
+      "bytes": 28134,
+      "sha256": "72280906303c85cd0a2f466e2d66a05b966edc63bbf54979edebd97348e7dd50"
+    },
+    "external/zblue/zblue/port/Kconfig": {
+      "bytes": 5738,
+      "sha256": "5d9b36b394dd38a43b977976b0c247dc92c075c02aa5acaee04aea1f856cb760"
+    },
+    "external/zblue/zblue/port/drivers/bluetooth/hci/h4.c": {
+      "bytes": 13371,
+      "sha256": "33629d1b738f7e9fe4c985f913708a5e1f4c71c9c5e74aa033201ce5d5e670bf"
+    },
+    "external/zblue/zblue/port/include/zephyr/devicetree_generated.h": {
+      "bytes": 1386,
+      "sha256": "93143773c1e23657783ecced0f614a7de0b41da3bef67c126e32c4497f239c9c"
+    },
+    "external/zblue/zblue/port/kernel/init.c": {
+      "bytes": 1696,
+      "sha256": "9603b7b915018ed01760c963281c1f98fbec241093772c21eeeda9b3e700bf5f"
+    },
+    "external/zblue/zblue/port/kernel/thread.c": {
+      "bytes": 3894,
+      "sha256": "4bd2794f75f9da08d473ac66318d4f07cd58faa82b8e0c0b8f93910d9c4687d6"
+    },
+    "external/zblue/zblue/port/sections/defines.c": {
+      "bytes": 24489,
+      "sha256": "6b94e58b1c0f25d0164a7d6c4cfbd9e8ecd4a88499584d6684019bc76c91e8e3"
+    },
+    "external/zblue/zblue/subsys/bluetooth/host/hci_core.c": {
+      "bytes": 142908,
+      "sha256": "1854234f7269d23aeb48c9655c892a9dbfab31cc0abe77a9ca98402dae0a5faa"
+    },
+    "external/zblue/zblue/subsys/bluetooth/host/id.c": {
+      "bytes": 60162,
+      "sha256": "ab7eaa80f829c826c772aab9635fc962a8e9bf58f3c9c270fe34d0d6128cde2e"
+    },
+    "finish_watch_v4_rim.py": {
+      "bytes": 1311,
+      "sha256": "0ac86c546a84e824ca036c8080e06a6c9b9757ca0bae5cec0e6f121deebfb771"
+    },
+    "frameworks/connectivity/bluetooth/CMakeLists.txt": {
+      "bytes": 32735,
+      "sha256": "adf8ee04efa66063d2acb4bce2b8eac1ec270cb84a481cb85baa5df7d22d1d58"
+    },
+    "frameworks/connectivity/bluetooth/framework/include/callbacks_list.h": {
+      "bytes": 3740,
+      "sha256": "beaf3a7ad19b8a2f7f2f1f7dfbee5a26d56d880bab1059b622dfa454ed9304bd"
+    },
+    "frameworks/system/utils/kvdb/direct.c": {
+      "bytes": 6800,
+      "sha256": "8f12e83ea3bdde0aefa214ae0b2e87453d31394fafdb47dc569e03fd042bdfd3"
+    },
+    "freeze_tnum.py": {
+      "bytes": 730,
+      "sha256": "9dd5d9644ba0623b7b81a444de51874b096b01a3357c1ef660751152b858ff32"
+    },
+    "hardware-model/huangshan_pi/README.txt": {
+      "bytes": 3280,
+      "sha256": "c2827e84d2da17d3f2d984fa36e0ae46554e1ce1cf137647f7ac45abc6fb23c6"
+    },
+    "hardware-model/huangshan_pi/build_blender.py": {
+      "bytes": 19124,
+      "sha256": "d876e32b847d4fe4c529984c335ee61e012a5fccb737649c55d77c9057d3950a"
+    },
+    "hardware-model/huangshan_pi/extract_hardware.py": {
+      "bytes": 4956,
+      "sha256": "25757e6d27adc30d593eb8fe86ccd0e46541c7d4abb069cdaa85deb6f4cd7809"
+    },
+    "hardware-model/huangshan_pi/hardware_parameters.json": {
+      "bytes": 1398121,
+      "sha256": "1ca1a147a1f7a693d849ed17c5caac302909e75012caadca8e6f79dcfbc48bf2"
+    },
+    "hardware-model/huangshan_pi/render_and_verify.py": {
+      "bytes": 1951,
+      "sha256": "5053e52e9456b0d4df91a77756374979e921082ee3e5171117f012a5ba4bbf80"
+    },
+    "hardware-model/huangshan_pi/verification.json": {
+      "bytes": 1117,
+      "sha256": "f8e282c9bc6a56725bf5a36c2e7c8a50748eb5f2684a1c88b070991bed615f00"
+    },
+    "hardware-model/velaride_apple_slide/README.txt": {
+      "bytes": 5312,
+      "sha256": "6908013bc8f52e6aa4c72bf6899e85722c6648946322d4ff0744e487371fa2ed"
+    },
+    "hardware-model/velaride_apple_slide/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_apple_slide/build_apple_slide.py": {
+      "bytes": 22157,
+      "sha256": "3102080fb6294902998b4be807fc6914b248fc9b4426999d88a07d95b2cafb6b"
+    },
+    "hardware-model/velaride_apple_slide/case_parameters.json": {
+      "bytes": 1128,
+      "sha256": "1bef0fb512a5d486f19d0d99954de1908071290033614b9587be73fa0385af51"
+    },
+    "hardware-model/velaride_apple_slide/case_verification.json": {
+      "bytes": 6090,
+      "sha256": "f607bd0a31d3867d7f5db3e509ab7ea86b96f7541d30422bb211493896ff3122"
+    },
+    "hardware-model/velaride_apple_slide/export_quote_package.py": {
+      "bytes": 6275,
+      "sha256": "10b1c31cbe99e637d8938515f2a742aac60a22059a2046cf0d725908665269de"
+    },
+    "hardware-model/velaride_apple_slide/extract_apple_profile.py": {
+      "bytes": 1755,
+      "sha256": "3917db592fa229b1ed2b782b5fd14642733c8d7052766d9569281cea9b62787c"
+    },
+    "hardware-model/velaride_apple_slide/finish_quote_package.py": {
+      "bytes": 12510,
+      "sha256": "61aaf39623002461bc80e3d5e3c62da29787ea3b8971593b98e45cbe5afb51d8"
+    },
+    "hardware-model/velaride_apple_slide/inspect_lug.py": {
+      "bytes": 429,
+      "sha256": "dd98bcc6a32f46a412371348aed918fd6960e2d321decbade50615f75e06c20b"
+    },
+    "hardware-model/velaride_apple_slide/make_variant.py": {
+      "bytes": 3758,
+      "sha256": "efce27efb2860be6bdf530d4304c821d0c916bf437d69805e44939a8aa5fb478"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/README.txt": {
+      "bytes": 9791,
+      "sha256": "e98369952f4a7b8ddbe29e3e4531034eadbdd521eb93cd1641f0adb8586c6948"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/bd.c": {
+      "bytes": 4493,
+      "sha256": "c85ea35280f39a3584471a39433634e8664f331ecf51678cccc7d066fe905860"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/bits.c": {
+      "bytes": 6200,
+      "sha256": "5e30f162dcbc5320aaa82678e08228ab6fb0fc08485a9b9ecf3a2432bb649f64"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/dwg2svg2.c": {
+      "bytes": 15685,
+      "sha256": "3861a04bb5c7a0b1bfa3619369333b08096f0477d1e749e923e280d85e7527cb"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/dwgadd.c": {
+      "bytes": 82167,
+      "sha256": "6d547c85672ed1c9031f0483115a819452eb6fca8b0da12c561a7c51502e8922"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/dwgfuzz.c": {
+      "bytes": 27952,
+      "sha256": "c2e5b2500811f34304cb2f9f6565ea5efb7d5192a5e18997c6d6512f43a70f79"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/llvmfuzz.c": {
+      "bytes": 9620,
+      "sha256": "9c87b3b18202000d5abaf24e7c674a49df246944b9e8744ce130feeaa0caa149"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/load_dwg.c": {
+      "bytes": 6094,
+      "sha256": "9312fc560838c6db32b4080c5b23d7d885f6f605f4a79bef2d0e8625f384e07d"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/odaversion.c": {
+      "bytes": 2205,
+      "sha256": "ece6fa763560986425a4fc115ab5f38f05bf6485279309c9899c2b3805d0f0ba"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/rsdecode.c": {
+      "bytes": 251,
+      "sha256": "dc81311077eda050442c0d331bd63a98dcbd3c1b070a3cb846bf560cc39b7a7d"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/rsencode.c": {
+      "bytes": 499,
+      "sha256": "f3d202fa931c26bb31912dbe8ab9fb3c41398ecfa3f4e96508bcdcb37248dd3d"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/examples/unknown.c": {
+      "bytes": 55263,
+      "sha256": "54bb21aa072fdbdfba166c3f41da27dea2a6c3a8286aeef62a19caef7ed4f621"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/include/dwg.h": {
+      "bytes": 481036,
+      "sha256": "7ea181127d114fa32e2e0c512db54c3b36e83cda80e617792de4e10169b10955"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/include/dwg_api.h": {
+      "bytes": 599561,
+      "sha256": "873654d5f5a271bf2cce71b948ac1eaacd780b2f4269fdde4576cb25f0095f72"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/lib/python3.12/site-packages/LibreDWG.py": {
+      "bytes": 1252930,
+      "sha256": "887839cd1e71d558aa2b9045e5ac162424ae110c0853085bb342d5c9f1d499d2"
+    },
+    "hardware-model/velaride_apple_slide/references/libredwg/share/libredwg/load_dwg.py": {
+      "bytes": 866,
+      "sha256": "411a46cf8372c7820423679b94c2bafb0ceb75377f0bee9f5c0948688487751a"
+    },
+    "hardware-model/velaride_apple_slide/variant_sections.py": {
+      "bytes": 8589,
+      "sha256": "4930111eee750312614967e136c2ddba24d935eeb0f34560e3e56f6ef88e7928"
+    },
+    "hardware-model/velaride_apple_slide/verify_and_render.py": {
+      "bytes": 4093,
+      "sha256": "1f826385b6d84b0b5010fb8cc75af37e43fb52e19ac4c64fa2dd51df98fca559"
+    },
+    "hardware-model/velaride_contour_v9/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_contour_v9/build_v9.py": {
+      "bytes": 26714,
+      "sha256": "1e824ec719bcfb275bcd2c5fb05757461bdef0b10434fea7a19e3ffec0f5028d"
+    },
+    "hardware-model/velaride_contour_v9/case_parameters.json": {
+      "bytes": 4223,
+      "sha256": "e4356235e4b86b2f5fae6e5096ac9e27ddfb8a3774ea32b3a895e20e73ae9e64"
+    },
+    "hardware-model/velaride_contour_v9/case_parameters_final.json": {
+      "bytes": 4743,
+      "sha256": "f3852551045e33cc25a0602c57d7f4cd9adf5e17676425bae4bec38307caabb7"
+    },
+    "hardware-model/velaride_contour_v9/case_verification.json": {
+      "bytes": 5340,
+      "sha256": "9b046b4ae2374b2048f5cb5758d2d2efc5e29a3dc54e93264c79c7141f553c23"
+    },
+    "hardware-model/velaride_contour_v9/check_export_v9.py": {
+      "bytes": 6866,
+      "sha256": "04ee2422fc2b653238e7fb9ac68ba6e5e6f3d5c224dec09c086432812499a130"
+    },
+    "hardware-model/velaride_contour_v9/continuous_shell.py": {
+      "bytes": 1948,
+      "sha256": "c6d66ba417410ff83802b4f66606194b74db5dcdb3b35580186748bfbb5bf6b4"
+    },
+    "hardware-model/velaride_contour_v9/finish_geometry.py": {
+      "bytes": 1056,
+      "sha256": "d9bb0cc290d58f0d278fbaa81174cee3eef5780d7f8752ad55b1be3f95f60234"
+    },
+    "hardware-model/velaride_contour_v9/make_check.py": {
+      "bytes": 2086,
+      "sha256": "0f47cc823d78a24028b7b0cf5cbf597e09df0d24d7dacf2943f888e0a6a86e5a"
+    },
+    "hardware-model/velaride_contour_v9/make_v9.py": {
+      "bytes": 3256,
+      "sha256": "4082bfdbf3295599f21cbfce13dba00f505effda27e2f5648c57c22d52d3ca72"
+    },
+    "hardware-model/velaride_contour_v9/package_v9.py": {
+      "bytes": 8260,
+      "sha256": "1240c268acc11f71ed1b4a48dd3fa68abcff5e649328022f1a941a41af5bdc86"
+    },
+    "hardware-model/velaride_contour_v9/refine_fit_v9.py": {
+      "bytes": 3556,
+      "sha256": "66fcac22e45a6be3065d17a0b4ef7602cef1fed16fb8f08d4fcd3cd9c6f0105b"
+    },
+    "hardware-model/velaride_contour_v9/render_v9.py": {
+      "bytes": 2891,
+      "sha256": "8179698968e636c5f3af8da1e6b0e13a1fcc19c00184d656e0bc085e5fed023b"
+    },
+    "hardware-model/velaride_contour_v9/structure_v9.py": {
+      "bytes": 3219,
+      "sha256": "191e7789ae5dc9355522d37289b1a6eeab0a06791c1c88545f7d6e09b46d84cf"
+    },
+    "hardware-model/velaride_contour_v9/support_positions.json": {
+      "bytes": 48,
+      "sha256": "3a5f211907a96e7a55a2289868acbd5180285658dc488f8abe3ec667268122ec"
+    },
+    "hardware-model/velaride_contour_v9/verification_v9.json": {
+      "bytes": 4237,
+      "sha256": "ec1002806341763c48d70c2a66f9e48e96c4e9e56aef9fbcf8f8da5462399a72"
+    },
+    "hardware-model/velaride_easyprint_v2/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_easyprint_v2/build_v2.py": {
+      "bytes": 22276,
+      "sha256": "73cc49170e9e35c51ef76c6bf4ad4d8a2621a79b1db7ecdfc397c4fffa30ddca"
+    },
+    "hardware-model/velaride_easyprint_v2/case_parameters.json": {
+      "bytes": 1459,
+      "sha256": "3650246d4a83d04a3d650d0d46b6b85d462f07a5a038733c5b42ba96737d1375"
+    },
+    "hardware-model/velaride_easyprint_v2/case_verification.json": {
+      "bytes": 3789,
+      "sha256": "44dfdb5f046d18c1e850d768748d523850dae1cae827c90f75b21f72b3376ab4"
+    },
+    "hardware-model/velaride_easyprint_v2/make_v2.py": {
+      "bytes": 3430,
+      "sha256": "2b8bdd20419520076dccd47d708624bac2bba8ac0ad559bfc2f41ff9e680ae0a"
+    },
+    "hardware-model/velaride_easyprint_v2/sections.py": {
+      "bytes": 6853,
+      "sha256": "6e2c40be048b0eed94efdf53d567c4b6b120c29aa157b8841b0b1766925f227d"
+    },
+    "hardware-model/velaride_easyprint_v2/verify_finish_v2.py": {
+      "bytes": 5337,
+      "sha256": "565be1fad541eb86cc202fc4f6b526ce736b3f33e9e8c7aee057c0fcc4e94857"
+    },
+    "hardware-model/velaride_front_v6/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_front_v6/build_v6.py": {
+      "bytes": 26449,
+      "sha256": "a10d46509109efa15e661c5ed98faa95e482ffca60fec1987cee3e8ac1b2aa93"
+    },
+    "hardware-model/velaride_front_v6/case_parameters.json": {
+      "bytes": 2892,
+      "sha256": "a6a85e4836d327652ba170eaae5ab7e169f1cdedf1c19b4e93603d310a433483"
+    },
+    "hardware-model/velaride_front_v6/case_verification.json": {
+      "bytes": 4044,
+      "sha256": "47d54a66f6f89abd0c4c23c191c6d396e19f947df99cdf09c78aa86fdb0b498b"
+    },
+    "hardware-model/velaride_front_v6/check_export_v6.py": {
+      "bytes": 8346,
+      "sha256": "e4a328ffaba9b6ccf408db062acdd626c3b58f450c107535f0ae912b04b512a5"
+    },
+    "hardware-model/velaride_front_v6/finish_v6.py": {
+      "bytes": 6260,
+      "sha256": "a3c9fe61716c2877ac5c74d800caddeff94b20ff1006f573678b1924d4b1669a"
+    },
+    "hardware-model/velaride_front_v6/front_comparison_metrics.json": {
+      "bytes": 2643,
+      "sha256": "c8177488daade2f429ab7be170b3adc8afb2be341731c2f629a4205154bc2449"
+    },
+    "hardware-model/velaride_front_v6/make_v6.py": {
+      "bytes": 5104,
+      "sha256": "5ff8bc2bc96f8765e57cbf7e27408bf915d85af7dcd582616ba2fa673c306393"
+    },
+    "hardware-model/velaride_front_v6/package_v6.py": {
+      "bytes": 14256,
+      "sha256": "06a5be3e7cec7042df10ddcd89de4d752d29f3acfa4b3172a51beabcfa80cc34"
+    },
+    "hardware-model/velaride_front_v6/verification_v6.json": {
+      "bytes": 9839,
+      "sha256": "0871eca35b31723efdfc4720b72ceb5363184630523b5fa0d75e99f9c6b42f91"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/README.txt": {
+      "bytes": 2920,
+      "sha256": "b0543aef4a3ea75c9a35df411b3738661a9424521fec3e756a913363d983a428"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/build_v3.py": {
+      "bytes": 22481,
+      "sha256": "7669d4bfcc6e074d9962463c1e4b4b8643e27d9ce480be2402d2a063402e2b56"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/case_parameters.json": {
+      "bytes": 1553,
+      "sha256": "db1a70c79268eac7b9025ebe070d97fdfc61a62257eaddce1c5567d2eb0f5187"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/case_verification.json": {
+      "bytes": 3894,
+      "sha256": "84988dbb78bf56e7f4eafb184bc4196552824bae09d020a929037904e4ab3a61"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/make_v3.py": {
+      "bytes": 6576,
+      "sha256": "a1604ae086e44e6ced5dcb1bb71828d9154bfc5315a43da01f6ceabe198dca7d"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/package_vendor_v3.py": {
+      "bytes": 11408,
+      "sha256": "636d441f7d10875798e24e22e4a37d6ba3ffc851ee7091dea4c42934898a120d"
+    },
+    "hardware-model/velaride_hiddenkeys_v3/verify_finish_v3.py": {
+      "bytes": 5416,
+      "sha256": "4b7124e8d338662ce27d450cfdb789072d6ee77a7ab141b4d079932c11e996cb"
+    },
+    "hardware-model/velaride_largeparts_v8/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_largeparts_v8/build_v8.py": {
+      "bytes": 27705,
+      "sha256": "03bcc1a0d1f6bef4e224be453eb011ef258b04c9a0a6b4bee53e47ca1979b245"
+    },
+    "hardware-model/velaride_largeparts_v8/case_parameters.json": {
+      "bytes": 4114,
+      "sha256": "1030b678a173dd2a3ed449b69c9a5fe172d76f5a45b128775184be1e813daf82"
+    },
+    "hardware-model/velaride_largeparts_v8/case_verification.json": {
+      "bytes": 5233,
+      "sha256": "c4737480c09d68b738f210ebc2b5b883f9391417ee83648cf91980957f7dd883"
+    },
+    "hardware-model/velaride_largeparts_v8/make_v8.py": {
+      "bytes": 5566,
+      "sha256": "d19438046e7b177c80ad6e2ece2efe7c6ee4d1d78c0a67b9b1598067f183f211"
+    },
+    "hardware-model/velaride_largeparts_v8/structure_v8.py": {
+      "bytes": 3168,
+      "sha256": "354ce888ea941c5ea5490a81f03d4534ce8c58147324bf4758782da93a7ff7c3"
+    },
+    "hardware-model/velaride_refined_v5/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_refined_v5/build_v5.py": {
+      "bytes": 25452,
+      "sha256": "7ba0a4b1664c357a2a70b217a5be04da37e754957bd7e7a75b269260a608322a"
+    },
+    "hardware-model/velaride_refined_v5/case_parameters.json": {
+      "bytes": 2538,
+      "sha256": "733145283c7d9c2585aefc53dce9e86628d847e3d42090a339f498e16663c2c4"
+    },
+    "hardware-model/velaride_refined_v5/case_verification.json": {
+      "bytes": 3676,
+      "sha256": "3a77ebfc62a1f4fab3165908fb4f8dbf02d3ddd4e94027df91e78fd8063ce8fc"
+    },
+    "hardware-model/velaride_refined_v5/check_export_v5.py": {
+      "bytes": 8218,
+      "sha256": "e69524a0906b3849d0711edc0aba1c2b1ff402317ee97ffcb5c7d82c62b38de5"
+    },
+    "hardware-model/velaride_refined_v5/make_v5.py": {
+      "bytes": 7191,
+      "sha256": "0f800de8bc431fd17a11bfed74e9b3b8e3ef1130530a782a423065ba79793b82"
+    },
+    "hardware-model/velaride_refined_v5/package_v5.py": {
+      "bytes": 14888,
+      "sha256": "21d6637f8d63e77d23cc8f9d938211765d9e2c3e6d979bf3157c8ac1a74eb00e"
+    },
+    "hardware-model/velaride_refined_v5/render_v5.py": {
+      "bytes": 4246,
+      "sha256": "52f31086dec0e2f0ff0c7ef6da92b4cc6400c50a4bd503d17cee9085ab5f5a74"
+    },
+    "hardware-model/velaride_refined_v5/verification_v5.json": {
+      "bytes": 9843,
+      "sha256": "a324e80aae88315fcf5e77a7f11682b6f39980c9b6077a29bd650e94c9a50607"
+    },
+    "hardware-model/velaride_rolled_v7/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_rolled_v7/build_v7.py": {
+      "bytes": 27712,
+      "sha256": "628c36807feb199993b1755b77100182e7f8c65e986e8a258bc957ff2aeb4e94"
+    },
+    "hardware-model/velaride_rolled_v7/case_parameters.json": {
+      "bytes": 3180,
+      "sha256": "1dd6546dcd783cfbb96c20c5b6cad0ecd97b7dba924cbd44d341000f1aa2c0b2"
+    },
+    "hardware-model/velaride_rolled_v7/case_verification.json": {
+      "bytes": 4358,
+      "sha256": "f477a6d9c94bdd856fa49b502867a3b9909316f27fb5faa7cf7519760b6bb701"
+    },
+    "hardware-model/velaride_rolled_v7/check_export_v7.py": {
+      "bytes": 8523,
+      "sha256": "095eb9f6c8083fb9a454f0d22645e9a862efa69a85172214d1ec9e58712934c6"
+    },
+    "hardware-model/velaride_rolled_v7/finish_v7.py": {
+      "bytes": 3815,
+      "sha256": "49140708e178eb6ca53572609cb9348ef11266e967634fc2d81240e8eb1ab553"
+    },
+    "hardware-model/velaride_rolled_v7/make_v7.py": {
+      "bytes": 4356,
+      "sha256": "020c6ba80b6e12d11382982e53d33433171035c12dcc4d26d9e85de66d82ca21"
+    },
+    "hardware-model/velaride_rolled_v7/package_v7.py": {
+      "bytes": 12080,
+      "sha256": "57dd4082cca89b40deebc92cee49f0ae1d799e6947bb5482c1f953db5a48251d"
+    },
+    "hardware-model/velaride_rolled_v7/rolled_comparison_metrics.json": {
+      "bytes": 876,
+      "sha256": "356d987175d2d70dde2c499385c39f4aa683607259a75059fb75505aa1c0f345"
+    },
+    "hardware-model/velaride_rolled_v7/verification_v7.json": {
+      "bytes": 10120,
+      "sha256": "6229d2c0ea7e078d86a47c748872087796e9b01092d5fd13e5874f88c4bd1b98"
+    },
+    "hardware-model/velaride_wallfix_v4/README.txt": {
+      "bytes": 2889,
+      "sha256": "4bec86564a003ebb871a5ffee6fe1d5ebe06764f772ca3c788cca21c1bd6acd7"
+    },
+    "hardware-model/velaride_wallfix_v4/apple_profile.json": {
+      "bytes": 26706,
+      "sha256": "140f0d596eaa7ac77067679737e872b442a5c6f3c516b86384aa9982eff58c36"
+    },
+    "hardware-model/velaride_wallfix_v4/audit_thickness.py": {
+      "bytes": 1922,
+      "sha256": "923bb8ca54e3656d561953bc3e553e219f1d881b84440d523490b61901d648fe"
+    },
+    "hardware-model/velaride_wallfix_v4/build_v4.py": {
+      "bytes": 24140,
+      "sha256": "71551a21de7c9a7389bdd2d7b5c557bb9f42a1a0d8e5ee37580ae9c17a35d8e4"
+    },
+    "hardware-model/velaride_wallfix_v4/case_parameters.json": {
+      "bytes": 1880,
+      "sha256": "e02a3743052e8e6b399f8e8a8b1fa20165427e686bafaf812e1830a0facc32c9"
+    },
+    "hardware-model/velaride_wallfix_v4/case_verification.json": {
+      "bytes": 4239,
+      "sha256": "389af3eff0a80670c570ab7ef8e8fa512ebe07be55463abe1452cacedab50e0a"
+    },
+    "hardware-model/velaride_wallfix_v4/make_v4.py": {
+      "bytes": 5477,
+      "sha256": "8e75b44f2ec0f23737845ac3cbf5402296c6aea8314a3d931c99e8f4af55ab4c"
+    },
+    "hardware-model/velaride_wallfix_v4/package_v4.py": {
+      "bytes": 8578,
+      "sha256": "56f2def3982ccdbb971a36bdb1c6ac8ce4987b37baf6b463cb74e17a9af8e2d9"
+    },
+    "hardware-model/velaride_wallfix_v4/thickness_V3.json": {
+      "bytes": 224149,
+      "sha256": "7ed2cfd60c21c574e4208101d39a55838f2f592af66324b6856ff3f9a30801de"
+    },
+    "hardware-model/velaride_wallfix_v4/thickness_V4.json": {
+      "bytes": 51455,
+      "sha256": "0df9da4a8650c8b93713eb46309ecc21d8b6aa25e92fbd84bd66d10dbc4751f5"
+    },
+    "hardware-model/velaride_wallfix_v4/verify_finish_v4.py": {
+      "bytes": 5397,
+      "sha256": "132eb9dea0389f1ac14036730ea65359987d555b4c78bb8b9030acba2d833509"
+    },
+    "hardware-model/velaride_watch_case/README.txt": {
+      "bytes": 4744,
+      "sha256": "d7e0dc4557d33c5015d9710b0d93f96e0ca6b91ba5dd7f42e791d08c0b22c36b"
+    },
+    "hardware-model/velaride_watch_case/build_watch_case.py": {
+      "bytes": 17720,
+      "sha256": "8a89324c267f0b27e5071a87de2a27dd9a9fd661c63bc6ee25ef06577e502c85"
+    },
+    "hardware-model/velaride_watch_case/case_parameters.json": {
+      "bytes": 1178,
+      "sha256": "33729aba073282a7a309458a046d86fb3e9dd5b0a9ee2dca07ca111510037d79"
+    },
+    "hardware-model/velaride_watch_case/case_verification.json": {
+      "bytes": 2677,
+      "sha256": "ff4b67b6b9f47bf715291ce3f16ea805846c429598b2df4ddfcafbde26d9ae3e"
+    },
+    "hardware-model/velaride_watch_case/references/strap_source_excerpt.txt": {
+      "bytes": 5126,
+      "sha256": "e28890119fab9579c3b5e2b84bbfb7ce4418aa195d39afd824d14dbe426573d4"
+    },
+    "hardware-model/velaride_watch_case/render_case_views.py": {
+      "bytes": 3226,
+      "sha256": "498467c7d8a13eab8d51f155b013532eecabfb5e55c13027b154af7485742980"
+    },
+    "inspect_fit_sections.py": {
+      "bytes": 1701,
+      "sha256": "d81f1088454986ae29b3ede169a1bac9c33fc0194ec8585beb2823d107363cea"
+    },
+    "inspect_wall_regions.py": {
+      "bytes": 2258,
+      "sha256": "3034704fa6ba463464581843781fc1470753084add363727adada20e401ae07e"
+    },
+    "inspect_watch_mesh.py": {
+      "bytes": 1302,
+      "sha256": "d9e5b28954818ba83df6cd52353864b2dc0aa9bfe90878bc9fabe0b97fa2f28f"
+    },
+    "nuttx/drivers/mtd/mtd_config_nvs.c": {
+      "bytes": 73648,
+      "sha256": "c2597fd6d51b5423637031aa1dcdbded9b02a23bd3d0467c2a4b2ee72b4e0bc4"
+    },
+    "nuttx/drivers/sensors/CMakeLists.txt": {
+      "bytes": 9733,
+      "sha256": "7bde309b307a5424c7bcadd0fd1166ab17875cbf66a5d55fa035d24b3f9182d6"
+    },
+    "nuttx/drivers/sensors/Kconfig": {
+      "bytes": 42891,
+      "sha256": "c6b52f13fdc98810c5e178b38439212888dec1c122fd98059043234e68497ab5"
+    },
+    "nuttx/drivers/sensors/Make.defs": {
+      "bytes": 8384,
+      "sha256": "594890bb2f047b56d7e250d129861b36392dd40097ab20f3d6577275b891e434"
+    },
+    "nuttx/drivers/sensors/ltr303.c": {
+      "bytes": 4886,
+      "sha256": "0d33ec43bc51359aa6edb5ebe56ec5de6f9ac0e61379d43d5d0e55daa1cb28eb"
+    },
+    "nuttx/drivers/sensors/mmc5603.c": {
+      "bytes": 4281,
+      "sha256": "ab41a832867e28b319658f316dc4cebf0f17a09d81acb82f184144a59db29fb7"
+    },
+    "nuttx/drivers/timers/arch_timer.c": {
+      "bytes": 13720,
+      "sha256": "55e44094d0f6edd35f277ff666250ee440ed38626d730a8880307c63c04de65f"
+    },
+    "nuttx/include/nuttx/lcd/lcd_dev.h": {
+      "bytes": 5063,
+      "sha256": "854c8db63e48cedd22dbed2fd601eb28fca274a1e6dffd0ac16791662179306f"
+    },
+    "nuttx/include/nuttx/sensors/ltr303.h": {
+      "bytes": 657,
+      "sha256": "e23ef029a144bd800da5680d86a2b6d17586c1043f1a58fe0ceb48ef29ca64c4"
+    },
+    "nuttx/include/nuttx/sensors/mmc5603.h": {
+      "bytes": 462,
+      "sha256": "1a867f75839711c1414f7a2450ed7f08d2e430f6844c061ce6ea1ca28bd72ff0"
+    },
+    "nuttx/tools/ci/testrun/utils/data_model.py": {
+      "bytes": 10466,
+      "sha256": "8e9a134de73d5e4bb173764c9130b9da19976154c87b1b6ca47b13f97bd7f009"
+    },
+    "package_watch_v4.py": {
+      "bytes": 5796,
+      "sha256": "62839ff70c8a58e78c95628e67e77ce91be44d49913273b65fbe190e366a2524"
+    },
+    "package_watch_wallfix_v3.py": {
+      "bytes": 5568,
+      "sha256": "5a8f83c66c93cbf69d26b8c65387057013e0dd891d8ebc9e7c3c2c74ceda51a9"
+    },
+    "packages/ai_agent/agent_skills/ride-safety.md": {
+      "bytes": 1202,
+      "sha256": "bc47a6c38dcb942cf126d2abc362a5351c388e8ce42ff325f3a91cf9461b0d50"
+    },
+    "packages/ai_agent/src/tools/skill_loader.c": {
+      "bytes": 17531,
+      "sha256": "4c439f943c6ca861ff59d787670676440ad346abc44f542834b6581ffde42eb0"
+    },
+    "packages/ai_agent/src/tools/tool_shell.c": {
+      "bytes": 18962,
+      "sha256": "828ee6670b3a0ce17ab4571d9a4b8cdfc71fe447d74c1cc6fed408e8c1721f4d"
+    },
+    "project-docs/BUILD_FLASH.md": {
+      "bytes": 18250,
+      "sha256": "e6fc6211b02b609802365457248fe1323cb2a3a9fbc46bf4b488880b83f36659"
+    },
+    "project-docs/DEV_STATUS.md": {
+      "bytes": 511,
+      "sha256": "59651de80acf226323fb9c3e96ec6bc6895b389a8b314bc2425f0def3f934095"
+    },
+    "project-docs/NAVIGATION_ARCHITECTURE.md": {
+      "bytes": 2120,
+      "sha256": "49e7f0d1cfe1cb2e6501514174739303735f329605211165a8af4e0ef7d635c0"
+    },
+    "project-docs/PERF_FINDINGS.md": {
+      "bytes": 15691,
+      "sha256": "e4ddf1082a68436a6398a3f79bb42eda612c3842370cfb60f3aeff35b338c536"
+    },
+    "project-docs/README.md": {
+      "bytes": 4214,
+      "sha256": "7cfa80ad023d8220a8de81792ef1d9c8d8ba7dbb97971b0163be4cca4eee584d"
+    },
+    "project-docs/RIDE_PERSISTENCE_20260829.md": {
+      "bytes": 2287,
+      "sha256": "a2b0fd3b4959bd8f0c17977ae198678aa771dc0d1fa7cf20e86aef2f19d4e3bc"
+    },
+    "project-docs/RTC_BOOT_TIME_20260830.md": {
+      "bytes": 1666,
+      "sha256": "8452506b270b3e2f010b2242a26b1d096f1c1bfa452796df6a80492915a424cc"
+    },
+    "project-docs/SPORT_UI_20260829.md": {
+      "bytes": 5684,
+      "sha256": "5f83e94aaf2d6ac67fab1db7c0d883c11c16349ee51b1db6981e8e4bffe3f692"
+    },
+    "project-docs/SUMMARY.md": {
+      "bytes": 586,
+      "sha256": "c75f4eaae473543948233de5abde014b8d951147a53dad6a63f0c4a463cb76b0"
+    },
+    "project-docs/TRANSITION_EXPERIMENT_20260829.md": {
+      "bytes": 3819,
+      "sha256": "259e069021fbaf6dd2badd6226178865a01e4237b3480f8eb7dd9385bbb7a617"
+    },
+    "project-docs/WEB_GATEWAY_BLE_PROTOCOL.md": {
+      "bytes": 6231,
+      "sha256": "da71e758f28c4af5b30e9dd67862be542ebd66646c4c6e14f7307157688d5157"
+    },
+    "remesh_watch_v4.py": {
+      "bytes": 2290,
+      "sha256": "8b0165201fa4900b7c43be317ffda0de77a612c6298dad9fe035d4b49a54f3c0"
+    },
+    "render_watch_v4.py": {
+      "bytes": 1485,
+      "sha256": "737bc0d72842c64bafe1bc6fbec0e50ece1516dc23f721e36dd63558b415a116"
+    },
+    "render_watch_wallfix_v3.py": {
+      "bytes": 2290,
+      "sha256": "bc9cb79bc000eea05af1b7eb218af7529e25b56082ce67ddbef967095a05c560"
+    },
+    "repair_watch_mesh.py": {
+      "bytes": 6128,
+      "sha256": "1b0a8fb87e2a01add2d8c40c92284d6756450b3f9f68e38d17bafd496e4c6c23"
+    },
+    "test_watch_repair.py": {
+      "bytes": 1347,
+      "sha256": "677d27fb1749de1b8f9b7884dd4c6bc6a43a836dce55ea4f04eb15ef279ff608"
+    },
+    "tools/archive_speaker_baseline.py": {
+      "bytes": 5858,
+      "sha256": "862dbf1fa4ea5ae069bda5a9f41923d4fb909ee5f0db6d2f34ab1646f34b65e8"
+    },
+    "tools/backfill_contest_logs.py": {
+      "bytes": 8746,
+      "sha256": "b712e2bef0826756469e774a8020085692983e8dd5180712078a83b47b35234a"
+    },
+    "tools/ble_probe.py": {
+      "bytes": 5003,
+      "sha256": "9d367354d91b8392554ddfb28aba2ee6f9733faa6ada6302408aba0b67c3a7d9"
+    },
+    "tools/boot_check.py": {
+      "bytes": 280,
+      "sha256": "badebc51edb3d65be63079541e53a6c32e7d3295175a18449ddc6bc1c0b1e21a"
+    },
+    "tools/build_alarm_stage.sh": {
+      "bytes": 2112,
+      "sha256": "a77529cfa2651e0448f44a7d661f007d15ced223ef07b962f39bfe562c0177c7"
+    },
+    "tools/build_countdown_stage.sh": {
+      "bytes": 2173,
+      "sha256": "f5e2f888abf2dfbbd21552c8c5a824f36d7e068e6a1b2af13f3ab50abed5c559"
+    },
+    "tools/build_display_repair.sh": {
+      "bytes": 1053,
+      "sha256": "8c3ca2260c228b9db8e7e29bcdd9fee3ed6cee2fe165b974ff25609b420ed6ad"
+    },
+    "tools/build_handoff_bundle.py": {
+      "bytes": 8327,
+      "sha256": "f7605dd77b7318c325af589979a6fbe13b7ee3c6f7f390b9df3f5bc1846b2d0e"
+    },
+    "tools/build_microphone_stage.sh": {
+      "bytes": 1898,
+      "sha256": "548333a58deee7bad69ef4dc37c801f3e0323a8b040e172a3cdb493dedc26355"
+    },
+    "tools/build_night_stage.sh": {
+      "bytes": 2213,
+      "sha256": "d817788f06efc2a304ada546aa74eeaf044583e7aa57276ef43e43c1a4c6371e"
+    },
+    "tools/build_phone_gps_stage.sh": {
+      "bytes": 2780,
+      "sha256": "b1eaef819366c55f93c08ddc43cb45a901e92e26fdbf75a0fc33982b53d86de8"
+    },
+    "tools/build_product_features.sh": {
+      "bytes": 2865,
+      "sha256": "2ede3702977745aaed106c80c4e6cdadb2af24339fe5ac924c08789c12cb662a"
+    },
+    "tools/build_ride_gps_stage.sh": {
+      "bytes": 1942,
+      "sha256": "656f3fb4300523b3bb55f9cea3a7f7955b7f4c0f209f99ee30b33f39cecff1d0"
+    },
+    "tools/build_safety_stage.sh": {
+      "bytes": 2202,
+      "sha256": "378677db1a27497ce8264a9982e1a096cea9e901177834afedf39863888eeb6d"
+    },
+    "tools/build_sound_stage.sh": {
+      "bytes": 2731,
+      "sha256": "6814c2174d457afffc5e399da91e55c36983b68da6da4af7726ee7305ea55a46"
+    },
+    "tools/build_speaker_stage.sh": {
+      "bytes": 2240,
+      "sha256": "cd69bb59c679a7eb98636a0335c3acb21b55d7cbfe3bd60f4b7591f8ff7289b6"
+    },
+    "tools/build_tf_repair.sh": {
+      "bytes": 972,
+      "sha256": "da87a684585787adc08540fd87b1aa946c179687ae774526bfd8171c1cdd7584"
+    },
+    "tools/build_volume_stage.sh": {
+      "bytes": 2543,
+      "sha256": "710cd1df7e1a6820193caf3dc3714638dea8ff2ceaaec50752b2003f33d14777"
+    },
+    "tools/checkpoint_before_safety.py": {
+      "bytes": 2331,
+      "sha256": "8835444817640d915f1904e86e31ccf63dc6bbf94f2802c754cc38437aac5a85"
+    },
+    "tools/companion_basic_check.py": {
+      "bytes": 275,
+      "sha256": "fc649fa4104b34879b4397e93d71bd49dc6a7c534dfc3eff053f6b5005be9415"
+    },
+    "tools/deploy_all.ps1": {
+      "bytes": 2915,
+      "sha256": "b00ea7a49302100b43dd30a114b0b4a347278770b3138ea172281210bc79ce21"
+    },
+    "tools/deploy_quickapp.ps1": {
+      "bytes": 2110,
+      "sha256": "05bd6ebb255a8cda936e8eb56cef9bf5a307e3a342cf428f3bfbccb0bd8ac2b0"
+    },
+    "tools/features_readback.py": {
+      "bytes": 5441,
+      "sha256": "04ae81c2c0953a0e2ff2ad0c29fef25e66d76520d01f88517ba1a403108b92fb"
+    },
+    "tools/flash.ps1": {
+      "bytes": 2831,
+      "sha256": "67553eb6c75f7c948777f619159c16dc4f5cc84508d65c68aa5c8ccabbdbc4d1"
+    },
+    "tools/fps.ps1": {
+      "bytes": 4043,
+      "sha256": "d1ad65956d65e1252204728e66689e37f1d344c62327c08dd977e88759b5cdbb"
+    },
+    "tools/freeze_rc17_baseline.py": {
+      "bytes": 5507,
+      "sha256": "03d9c86bdf5b4b5a1e1901caf451ae20476d93787ca3e7c1fb88d29457eb8d38"
+    },
+    "tools/generate_watch_voice.ps1": {
+      "bytes": 1394,
+      "sha256": "e929422d9b74cc8aa82d90e1fd350d00e443f9f386cefd7c5d24c4e1e25cb7c6"
+    },
+    "tools/make_custom_watch_assets.py": {
+      "bytes": 2445,
+      "sha256": "c12a85220088fbc0af0100d1021bf0456775bb90a9532b5581a113108cea6740"
+    },
+    "tools/make_dial_asset.py": {
+      "bytes": 2658,
+      "sha256": "749c57632c77c06eff2addbd557255b0b404a72e25f8ad460217df5cba69a1e5"
+    },
+    "tools/make_sport_watchface_asset.py": {
+      "bytes": 5704,
+      "sha256": "04b55ef3843667eb04e09e1f962dd7315e72e6c263493c7c900780c34d9885bf"
+    },
+    "tools/make_transition_previews.py": {
+      "bytes": 6251,
+      "sha256": "5e15eb0b0c4e3f2182225383ac3be48d539b0b49e421848d6c97da1fb3b22756"
+    },
+    "tools/mic_capture.py": {
+      "bytes": 8475,
+      "sha256": "af44f1dff24315da7547e3c2b193d79ac5e7b58f2d14b3819d69752113293739"
+    },
+    "tools/nsh.ps1": {
+      "bytes": 1497,
+      "sha256": "4f9b94576f16b599839a341d742f7f6270ade5f5d771bbe51df713f86c1cb128"
+    },
+    "tools/pack_watch_voice.py": {
+      "bytes": 3853,
+      "sha256": "f95d5926f3af1b86d7de2b9351cf1ce5a8d2ad34c9a04acb61435dea54867cef"
+    },
+    "tools/package_display_repair.py": {
+      "bytes": 3144,
+      "sha256": "8e7e461e9cb9b2795fd68a462bf92f9dfd8a140d8170bc5660d5e8d69c7edf09"
+    },
+    "tools/package_product_features.py": {
+      "bytes": 4314,
+      "sha256": "3fb81bd3950483d919884c8b57724f85e53a23a1d75bef005d7c9bb986a42c9d"
+    },
+    "tools/package_safety_stage.py": {
+      "bytes": 5493,
+      "sha256": "8bf626f37cbfefe7ef8e385f795a24617b4cd825534ddb1b39a7c018d2ad5487"
+    },
+    "tools/package_tf_repair.py": {
+      "bytes": 2425,
+      "sha256": "9d58c7e03a2b696332470bdf7c6f867c9e9e7efd946ea53ffa6a95045420acb3"
+    },
+    "tools/patch_history_cache.py": {
+      "bytes": 6309,
+      "sha256": "b058fe0a1c86cce2de991ae9c0837ae6a0e24ed93436aeb24769330b5d027a8a"
+    },
+    "tools/patch_history_cache_test.py": {
+      "bytes": 1838,
+      "sha256": "5eee961c9bf98c24d1836c3444c03c4d2acb063897dac1d406cfc3112bd003a3"
+    },
+    "tools/patch_impact_window.py": {
+      "bytes": 1605,
+      "sha256": "f92388a0cc8e2c6f24db522aa82a7f9750b6e65d44797797fa38fbd0bf07fc8f"
+    },
+    "tools/patch_lcd_irq_priority.py": {
+      "bytes": 1295,
+      "sha256": "31e69626296321a900773d53a221578a0334fe66da22a3281ec04d279d93fb26"
+    },
+    "tools/patch_lcd_timeout_eof.py": {
+      "bytes": 2920,
+      "sha256": "c352e32aac660e22c476640d62c37fbf5d2d2136d14dd5596932bbff2e83b100"
+    },
+    "tools/patch_safety_alert_cue.py": {
+      "bytes": 3377,
+      "sha256": "22721b0e3ed4ecb224c0ef7c9706dafd055f1561e90c7c05dae3948e45aa0f45"
+    },
+    "tools/patch_safety_sound.py": {
+      "bytes": 4279,
+      "sha256": "c11e6a7348adc541b8e4faaacc6b4f2c5776434ab8537c9ab8bf4ed74cd91fdd"
+    },
+    "tools/patch_sensor_lock.py": {
+      "bytes": 3262,
+      "sha256": "f0683cb810d5495ca7093f3ce15c2f774dbd9f0164b5b6a1cbc778dce1e248e6"
+    },
+    "tools/patch_still_gyro.py": {
+      "bytes": 6434,
+      "sha256": "fde09c732754e29d405136abbb5335379511245b653f84da085a924d528b4f21"
+    },
+    "tools/phone_ble_check.py": {
+      "bytes": 5487,
+      "sha256": "0472aa7d415cad51f9e75c084dedc85f10b102b48a17d1eabadf19791edeaf44"
+    },
+    "tools/phone_message_demo.py": {
+      "bytes": 5399,
+      "sha256": "e4268cb070565d48aa60c1feae60f4439dc9d359986f2da5a0b4769f23eafe3e"
+    },
+    "tools/prepare_display_repair.py": {
+      "bytes": 5929,
+      "sha256": "fabed8e1b028a166a77bf3e9b525a6e6b237bdeb05f66019472d1f6817ab93b6"
+    },
+    "tools/prepare_frozen_rc17.sh": {
+      "bytes": 2912,
+      "sha256": "7f8ccc55bca0e15e8b1de07165b703bac72e394416289ff2dec543255c46a72d"
+    },
+    "tools/prepare_tf_repair.py": {
+      "bytes": 7385,
+      "sha256": "7136648a64f5e3a64ae9b4b8fa98fff0a106a0d63f2dc241db912e5c5ee91ea3"
+    },
+    "tools/prepare_user_tf_card.py": {
+      "bytes": 4995,
+      "sha256": "2f3a7dcbbae333f65437a1505527162868f3e36179e3869ba796a513a0e22bf9"
+    },
+    "tools/reproduce_speaker_baseline.py": {
+      "bytes": 5295,
+      "sha256": "0fa7ec05014f75162f4e26bfb66b426add64762f7c1e96a941cf286af7d70292"
+    },
+    "tools/reset.ps1": {
+      "bytes": 2130,
+      "sha256": "37882bbe74b92a9b6b187737599cd4a7e4b72b9aa40bdcbd54a4bb0dd06d0bc6"
+    },
+    "tools/serial_probe.py": {
+      "bytes": 1853,
+      "sha256": "90c26a25e6dfe53fa1e334c04edd8029597e66d8af8cef5597a4e5d679688687"
+    },
+    "tools/speaker_loop.py": {
+      "bytes": 5200,
+      "sha256": "41dc6ae030126c3394338c3cd01ee544537bca1727342d7255eab60745d1eeb3"
+    },
+    "tools/speaker_test.ps1": {
+      "bytes": 1097,
+      "sha256": "831359c66b98daa4df104701e9c2758c31bd688d0c4a1caa43d4b87a14a2007a"
+    },
+    "tools/test_alarm_ui.sh": {
+      "bytes": 1090,
+      "sha256": "11f7e17cbb7e34f5491291ddcd5baf0e564344a2de86b99a990456ab682cc63f"
+    },
+    "tools/test_countdown_ui.sh": {
+      "bytes": 1078,
+      "sha256": "5201713b65cb534922559a374775f4c60a331f905638200bd28cc320b892fb2a"
+    },
+    "tools/test_display_repair.sh": {
+      "bytes": 1442,
+      "sha256": "d56db022b25963aebeac82c46d1723a3c2d80e73a7bf5541b9385ba550899c08"
+    },
+    "tools/test_night_ui.sh": {
+      "bytes": 1130,
+      "sha256": "20959c7f7c6c0915fffea0050379cbff71712292c9061dda72e9ec52a2edf0f8"
+    },
+    "tools/test_phone_gps_stage_ui.sh": {
+      "bytes": 1417,
+      "sha256": "bec208bff1ca15c2fbb9445171a7704299c4314c3031c59d123126d7a75fd851"
+    },
+    "tools/test_product_features.sh": {
+      "bytes": 2321,
+      "sha256": "bbb1323f0bc6cf36a2102b2592c42963ffc2ca9e3e1a293084284be7af3f73ef"
+    },
+    "tools/test_ride_gps_stage_ui.sh": {
+      "bytes": 1419,
+      "sha256": "e4c5067ffec40c46e12b23c23eef167b205dbf4100b8c38a2cd7309441f9c057"
+    },
+    "tools/test_safety_stage_ui.sh": {
+      "bytes": 1242,
+      "sha256": "1f771951f07c1f2d8aec7e83b717f7880c3ad9663fbea200866f682ba66187e2"
+    },
+    "tools/test_sound_ui.sh": {
+      "bytes": 1110,
+      "sha256": "39f5229a5fd6450e1e96394f530544a3888f01ec4f33e7d1d3d94a4ea9ecfd6e"
+    },
+    "tools/test_tf_repair.sh": {
+      "bytes": 1437,
+      "sha256": "3ea67f141d108ee022f1a8075a709f6c222c2a3913e2f2b0b8fe7212bf47c1d8"
+    },
+    "tools/test_volume_ui.sh": {
+      "bytes": 1113,
+      "sha256": "eaa2af00b53a171871dafe72eadf1ad8052779eb344c2456a54223ed579af3d0"
+    },
+    "tools/verify_speaker_archive.sh": {
+      "bytes": 1286,
+      "sha256": "fcba30a8276d8e1f2e4c10a73c1c50c0f56963420adf4c50094eeb656161e028"
+    },
+    "tools/voice_upload.py": {
+      "bytes": 6393,
+      "sha256": "63fe359a76afab2a4c83ff5c30a20101898fb4606c4e8471c1cfb2136ca551db"
+    },
+    "tools/web_device_bridge.ps1": {
+      "bytes": 3178,
+      "sha256": "7f5e80098927c64a70bc99c7c2dcbc76e2a99dbea92ece31c547dbcd80cf2a61"
+    },
+    "tools/wsl_build.sh": {
+      "bytes": 7976,
+      "sha256": "d6a68d812a33c1a93b7e171055400fedd1ad83331f1386a153769421b752df09"
+    },
+    "tools/wsl_build_history_cache.sh": {
+      "bytes": 1850,
+      "sha256": "77b4182439a8495376e7783f3759c93f3a0a4ff997fca52456f71d4bf88a6625"
+    },
+    "tools/wsl_build_impact_window.sh": {
+      "bytes": 2857,
+      "sha256": "19534467ad7e158ec309e554bbf350dbadd927da2af510468af1cead6d2689ac"
+    },
+    "tools/wsl_build_irqprio.sh": {
+      "bytes": 2775,
+      "sha256": "58fe8beb19052559cf1f5f5547468dcc6aeae6bad32a6d240ad93a82039854ff"
+    },
+    "tools/wsl_build_lcd_eof.sh": {
+      "bytes": 2232,
+      "sha256": "e6a0ce4eedbc4da1c2af34b7c91a7ef7bdc6df42fe75474b7c7a0bb7490ef70a"
+    },
+    "tools/wsl_build_safety_cue.sh": {
+      "bytes": 2502,
+      "sha256": "8fd85216226933d857933952de29bf13aed8d449aa27a073a48459c1e2b99b04"
+    },
+    "tools/wsl_build_still_gyro.sh": {
+      "bytes": 2050,
+      "sha256": "25a5bdd4b79850e50089db3978a5e63d6d4b152827d11a09a5e4569be23c2c8d"
+    },
+    "tools/wsl_build_wake_shield.sh": {
+      "bytes": 2855,
+      "sha256": "02d073d01b45002d4e94def8f9e3cef658cf3b253f96c806549cdbd8e525497b"
+    },
+    "tools/wsl_check_gfx.sh": {
+      "bytes": 1003,
+      "sha256": "22308fa8c84ea16169d508966237b7586a8d3c1ea0b33f4568b7fd879fcd03b3"
+    },
+    "tools/wsl_check_jidl.sh": {
+      "bytes": 1281,
+      "sha256": "7ee2081cee41dc0cdac6539919fcf8cd56afea30a61e367d4a9775787c23095e"
+    },
+    "tools/wsl_check_lfs.sh": {
+      "bytes": 1237,
+      "sha256": "758565bb9e40399378c1ea8d945bff994b38cda1ce66a025f7ab1a2a52c593cc"
+    },
+    "tools/wsl_check_mic_tree.sh": {
+      "bytes": 557,
+      "sha256": "2ce61f06290f7b4b6f3ac5b55d41b230ba022e3fe411e6e293e6fc8d45d2170b"
+    },
+    "tools/wsl_check_mq.sh": {
+      "bytes": 1268,
+      "sha256": "e6b78f584ef9fdd995acccd13f4a95f2ff7f735a0cb05b67cbd6492341f422e3"
+    },
+    "tools/wsl_check_net.sh": {
+      "bytes": 551,
+      "sha256": "2cc367aade35297f3a08b06c3f504460cda9ec94b993ce400667e9d767417edf"
+    },
+    "tools/wsl_display_ab.sh": {
+      "bytes": 735,
+      "sha256": "e6b9d1eb920fe0d6bc11f61f0eed561b8e97d5aa21d6707b9804e5f6ad5c04d2"
+    },
+    "tools/wsl_dump_registry.sh": {
+      "bytes": 409,
+      "sha256": "55610f9494e174a70e92fb2cec034306ffb51791f55f802fdaa20d13500fe591"
+    },
+    "tools/wsl_fix_align.sh": {
+      "bytes": 1258,
+      "sha256": "496a9ecdc7a4cca61351674bd35c37086ba09958579cd2fd32f036a57104a91f"
+    },
+    "tools/wsl_fix_crlf.sh": {
+      "bytes": 1528,
+      "sha256": "d8260b401c12d88cdc8ac59d3cddf4b275c18fbd418be004ae487d13223c655f"
+    },
+    "tools/wsl_fix_env.sh": {
+      "bytes": 1429,
+      "sha256": "485b1bd37d2b45acb2e939a732286fadbd75df06d0bcede5b3fdeb1c7d7e5291"
+    },
+    "tools/wsl_fixlinks.sh": {
+      "bytes": 1558,
+      "sha256": "f8ad4e20c9a7ef9b9db2c76df405384c313791c1cb8951c491b5650cd341b1bc"
+    },
+    "tools/wsl_get_arm2d.sh": {
+      "bytes": 897,
+      "sha256": "b1b55bcd8cfe483c2d1be8fbd916f86d0de7b395fc03cbd94a8bd0b9cdb6bb87"
+    },
+    "tools/wsl_get_sifli.sh": {
+      "bytes": 908,
+      "sha256": "2de530d114fdb1adb7dc918ba7d9fc06baaaaac699bedf71b0b277b47e4337bb"
+    },
+    "tools/wsl_gps_fresh_rebuild.sh": {
+      "bytes": 986,
+      "sha256": "c23de36d49ed2b67351c0df1557abaefc8c20cb423f6d3778c476f620adf84dd"
+    },
+    "tools/wsl_grep_lsm.sh": {
+      "bytes": 255,
+      "sha256": "de5a3887e70ec10de01e4d16b9d7dacb3030e2ba677e286d87c7288fce7af950"
+    },
+    "tools/wsl_inspect_trees.sh": {
+      "bytes": 365,
+      "sha256": "30c40d05dc3721536c1501161444f708433e70f4094bfe9152401e60f562de6b"
+    },
+    "tools/wsl_probe_arm2d.sh": {
+      "bytes": 917,
+      "sha256": "7931ca4afbcce93a1865995cf6e3756f1cf07a63f97f7118002044cc77691792"
+    },
+    "tools/wsl_probe_watch.sh": {
+      "bytes": 695,
+      "sha256": "d8ca577d004076079063ca4cedb2aa516b7d61f3a3e6e5e6d9ddac5c978082d1"
+    },
+    "tools/wsl_probe_watch2.sh": {
+      "bytes": 747,
+      "sha256": "ea6fc945334bc4359bfd21b755b685db9123c974f37190c0c7c7bde3fbb2c71a"
+    },
+    "tools/wsl_read_trans2.sh": {
+      "bytes": 301,
+      "sha256": "4e9d73289b6c9301ed67c4310a1c5ff9c809dfbf5466dc749549f9a701809cc7"
+    },
+    "tools/wsl_read_trans_anim.sh": {
+      "bytes": 510,
+      "sha256": "8312a581428a0cc0c542999c9e2b1de5483c9a7c962f840214d1e287475399c0"
+    },
+    "tools/wsl_setup.sh": {
+      "bytes": 1293,
+      "sha256": "5c1991b8cc581876bfc88525aca46adfc2b080bb450564bcf4f40447a4be04db"
+    },
+    "tools/wsl_sync.sh": {
+      "bytes": 672,
+      "sha256": "043240074ad3b7694dfea2ae92e3d4fb29ee0df98024f58eabc97180d9e34f3f"
+    },
+    "tools/wsl_sync_board.sh": {
+      "bytes": 861,
+      "sha256": "7be17fdcdd1a226ac90278f2904f23d247c4f6813ade0f82f4c9ed5df68c3efb"
+    },
+    "tools/wsl_sync_drivers.sh": {
+      "bytes": 1531,
+      "sha256": "8b894bf8ca006e3202cbf4ae61a90caa4659fa545dc6538b42ae9ec0ffe414c2"
+    },
+    "tools/wsl_sync_external.sh": {
+      "bytes": 2134,
+      "sha256": "a972da3ff6407216dedaddc40e33eb1e9808e9c48a23b409986aa323e1250ac8"
+    },
+    "tools/wsl_test_arm2d.sh": {
+      "bytes": 1943,
+      "sha256": "82adcd602bb0d3237680b03bb142b4b890d18790c669ba2aa6cb1045e7d4cb29"
+    },
+    "tools/wsl_test_history_cache.sh": {
+      "bytes": 397,
+      "sha256": "9beb7e15c6228455e8985bd69c00e8defca25d01146430072192b1c273906a64"
+    },
+    "tools/wsl_toolchain.sh": {
+      "bytes": 1034,
+      "sha256": "abe6c345f87e88c95d5f5df8e1f17662255ba378a0a1ef6d560af0429a58d78e"
+    },
+    "tools/wsl_tree_diff.sh": {
+      "bytes": 240,
+      "sha256": "8334bcde378e661ad3dc115faf6e8fe33c37f274af1a4712cfd8d857de612eb1"
+    },
+    "tools/wsl_watch_files.sh": {
+      "bytes": 539,
+      "sha256": "d81483026d4dc35d50a85e99940840e6c440c1dbdced2159ebcbf6d2d8dc5f90"
+    },
+    "trial_wall_additions.py": {
+      "bytes": 1351,
+      "sha256": "62efa44171db16f4970544fe4b72a538a1c5088b0018b91fba2e67e97c9cbe91"
+    },
+    "vela-quickapp/package-lock.json": {
+      "bytes": 369400,
+      "sha256": "eb83f27d1e3dfe2ba95887f8ab3c1849e2625bbf54d66e8227f66d6272987e4d"
+    },
+    "vela-quickapp/package.json": {
+      "bytes": 352,
+      "sha256": "7f07cc55d668ae919420ca41d4bdfae7f1b9508078cb096c546e3627b7c82a1c"
+    },
+    "vela-quickapp/src/app.ux": {
+      "bytes": 225,
+      "sha256": "4c4c7951304f7a7fe56b75144cf23b0f2e1b02de4dad06af0e5cd8f39088e42f"
+    },
+    "vela-quickapp/src/common/js/ai.js": {
+      "bytes": 3164,
+      "sha256": "ea665a564407fa9727dc52a741a28dec2f0a9eaeda160f52c1301a2d194f19ac"
+    },
+    "vela-quickapp/src/common/js/format.js": {
+      "bytes": 1553,
+      "sha256": "4164a925c2235846ffbe667f4b81c979ca68319db6750ce170f28152babfcb3d"
+    },
+    "vela-quickapp/src/common/logo.png": {
+      "bytes": 3502,
+      "sha256": "de0989cb611908a259080417f291ac62b99d10b2ad964f94fef9105f288410f9"
+    },
+    "vela-quickapp/src/config-watch.json": {
+      "bytes": 3,
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+    },
+    "vela-quickapp/src/i18n/defaults.json": {
+      "bytes": 122,
+      "sha256": "55ed8a0147dc580adf254bd4c6e6be240b63f73866f7004939ce09065ffc72f4"
+    },
+    "vela-quickapp/src/i18n/zh-CN.json": {
+      "bytes": 122,
+      "sha256": "55ed8a0147dc580adf254bd4c6e6be240b63f73866f7004939ce09065ffc72f4"
+    },
+    "vela-quickapp/src/manifest.json": {
+      "bytes": 766,
+      "sha256": "d2ab8f6b1dff5ff61bb416477f9e965b35f10ed901673d484d1fe9ff91330654"
+    },
+    "vela-quickapp/src/pages/alert/index.ux": {
+      "bytes": 6398,
+      "sha256": "bc7761f25d95089781652268822cb732a14379668a6db1c2cb90ed1ae561e826"
+    },
+    "vela-quickapp/src/pages/cards/index.ux": {
+      "bytes": 6763,
+      "sha256": "34e57bd1a0e7c5133d92e31541741c3bf677bc0ee3469e8aee45bd41dcbc25bf"
+    },
+    "vela-quickapp/src/pages/home/index.ux": {
+      "bytes": 7409,
+      "sha256": "9f96da977927f4099629d43cb31e9fd2e6b02dde1cba2e97160e949d158f8a71"
+    },
+    "vela-quickapp/src/pages/review/index.ux": {
+      "bytes": 8520,
+      "sha256": "e0305e7b43e874e6402d0b0f6eed53e9b4d7c611793679a18908eb014a139975"
+    },
+    "vela-quickapp/src/pages/ride/index.ux": {
+      "bytes": 9479,
+      "sha256": "8afc8611a44943eee3f72877d9e6b192b8d024bb174b2bf57228790fffd1995e"
+    },
+    "vendor/sifli/boards/sf32lb52/drivers/input/ft6146.c": {
+      "bytes": 10192,
+      "sha256": "aa68c5a550238502b59f521e49a3d0ff690169c573cce7ac553b7451b056f23b"
+    },
+    "vendor/sifli/boards/sf32lb52/drivers/lcd/co5300.c": {
+      "bytes": 19881,
+      "sha256": "50f4a6fb22eaa369185f129f11b72f8c836c9fe132487fd77b3164ea985f55c3"
+    },
+    "vendor/sifli/boards/sf32lb52/drivers/lcd/sf32lb_lcd.c": {
+      "bytes": 37725,
+      "sha256": "9275d04beb8b9d3fdecacdc3623165ec66a18fb15390253c84c7a6eee136c16b"
+    },
+    "vendor/sifli/boards/sf32lb52/drivers/lcd/sf32lb_lcd.h": {
+      "bytes": 3163,
+      "sha256": "5d53c3e6f9d88ea417d00a5d9a336b54e3306ccebdba8e9cbad0d0313c6b32df"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/configs/nsh/defconfig": {
+      "bytes": 6817,
+      "sha256": "6266e6a78e9f403a7a2ce9a3bb6f4f35d03bb22c8719d0e2fe11b704e1db2b84"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/scripts/ld.script": {
+      "bytes": 6644,
+      "sha256": "58343792ebb3dfa1b8b7252f72064b0e4f67b5cbb6216ef8b59c631659860205"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/bsp_lcd_tp.c": {
+      "bytes": 1431,
+      "sha256": "61365ceb4ca4fc777610c46707f1e1b4c1e4963dc5413efe244842346ecd0ac7"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/META-INF/CERT": {
+      "bytes": 3962,
+      "sha256": "cc2657c137fde5ee7cdcac6bef08115bff3a2d20c57cd0f3e24630fdfee0b2a3"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/common/logo.png": {
+      "bytes": 2485,
+      "sha256": "cd7f7c75230c905a75583d062dfac387048963273414400c0439512459433c31"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/common/nav.png": {
+      "bytes": 6906,
+      "sha256": "58762738da99e9128e3a15c25c3eeb530563686431110df5189018eb63856d44"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.application.lyra.demo/manifest.json": {
+      "bytes": 4023,
+      "sha256": "f210498926af96d89d3beddbcbb66e53d7f4913a70d2816c9fe417f2bed88135"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/META-INF/CERT": {
+      "bytes": 3690,
+      "sha256": "e8ddaf3d26aeac21fecf9db050e275af2ad16d9e41bbfbf6f1db18c3271271cf"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/META-INF/build.txt": {
+      "bytes": 122,
+      "sha256": "9ab6054fd4ffc89dd9356e2e48e45c2f59bee4508e176304c365ac3b46d9d703"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/app.js": {
+      "bytes": 4434,
+      "sha256": "fac028ba8f4eca77ec76e2039365c4d9f174285fa6256a1be6da3bab0d31848a"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/common/logo.png": {
+      "bytes": 3502,
+      "sha256": "de0989cb611908a259080417f291ac62b99d10b2ad964f94fef9105f288410f9"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/config-watch.json": {
+      "bytes": 3,
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/i18n/defaults.json": {
+      "bytes": 122,
+      "sha256": "55ed8a0147dc580adf254bd4c6e6be240b63f73866f7004939ce09065ffc72f4"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/i18n/zh-CN.json": {
+      "bytes": 122,
+      "sha256": "55ed8a0147dc580adf254bd4c6e6be240b63f73866f7004939ce09065ffc72f4"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/manifest-watch.json": {
+      "bytes": 766,
+      "sha256": "d2ab8f6b1dff5ff61bb416477f9e965b35f10ed901673d484d1fe9ff91330654"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/manifest.json": {
+      "bytes": 767,
+      "sha256": "556e313d41b3fc05880cd3fb4d117e6d287586a68646f4332e9bbfee42277cdd"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/app/com.velaride.ai/pages/cards/index.js": {
+      "bytes": 34493,
+      "sha256": "17aefdf928717c85c303276b9b56d454f1d738feb86af5fdb0070925f900af87"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/init.d/rcS": {
+      "bytes": 61,
+      "sha256": "94a4e84f4de42040eff1f5626371d62a6930e4a5a98601d6e417ddc64e64f88f"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_ap.c": {
+      "bytes": 22330,
+      "sha256": "f5202d397e1b9c49b76626e6cfbf96cb03f70632c3a0a47a2f712d25c74587e9"
+    },
+    "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/sifli_gpio.c": {
+      "bytes": 13173,
+      "sha256": "ca50238cc78e1793777d7fe5d833271642d53315b0db1f4ddd15842a6cec679e"
+    },
+    "vendor/sifli/chips/drivers/epic/drv_epic.c": {
+      "bytes": 44348,
+      "sha256": "c3ddfe82f01330be2f3378ae36ed381cdb5b66d1e93846dfb6254b23de77e414"
+    },
+    "vendor/sifli/chips/drivers/epic/drv_epic.h": {
+      "bytes": 5506,
+      "sha256": "74235e1e04421aae43b5090b68d9fdfd6a19c646f08472cf04b660a803d4fd23"
+    },
+    "vendor/sifli/chips/drivers/epic/drv_epic_priv.h": {
+      "bytes": 4948,
+      "sha256": "afc92788d461f3d0dfb870cb66d94ebd46ef0e11149951a07c0e95542ee32933"
+    },
+    "vendor/sifli/chips/drivers/hal/bf0_hal.c": {
+      "bytes": 18119,
+      "sha256": "f4a7fcc611f29180a85bbc5b3c8249c0894b9b5934e6b989732d96092fdd4af0"
+    },
+    "vendor/sifli/chips/sf32lb52/CMakeLists.txt": {
+      "bytes": 4849,
+      "sha256": "db570e3611b7434734d9a83ce91c4148954aa4f39d59be925acf540df3f77d01"
+    },
+    "vendor/sifli/chips/sf32lb52/sf32lb52_bt_adapter.c": {
+      "bytes": 24187,
+      "sha256": "7289fafd160809ae910e7f4e49738c948127e380f93681eb621fefb90bed9b79"
+    },
+    "vendor/sifli/chips/sf32lb52/sf32lb52_bth4.c": {
+      "bytes": 9849,
+      "sha256": "99d015640772ecc8bfbaf795a6bf96b4ef034ec12599059bfc0090b9e15a2ff2"
+    },
+    "vendor/sifli/chips/sf32lb52/sf32lb52_lcpu_boot.c": {
+      "bytes": 6303,
+      "sha256": "3e474c4157a6597520b8fc4bc8154be5165a953c9b1c5b44780fc6a6a122e082"
+    },
+    "vendor/sifli/chips/sf32lb52/sf32lb_adc.c": {
+      "bytes": 12049,
+      "sha256": "3ddcab1839173235e6c5408d185de28ed4228a58f6f51cd586a50c921b16db9e"
+    },
+    "vendor/sifli/chips/sf32lb52/sf32lb_adc.h": {
+      "bytes": 1282,
+      "sha256": "d1f8a5b0b608073324532f7500183a86f21d794274152c640dc6c626aa647f80"
+    },
+    "vendor/sifli/chips/sf32lb52/sf32lb_flash.c": {
+      "bytes": 40097,
+      "sha256": "7b55b49d2a646236eb78b856ae11a92dc3eb76b087e5845f745312a72339fd0f"
+    },
+    "vendor/sifli/chips/sf32lb52/sf32lb_rtc.c": {
+      "bytes": 15362,
+      "sha256": "44c692d940fc25f3befeef430a5218fd1518f59f2b2cfe16332d7ac3dc901053"
+    },
+    "vendor/sifli/chips/sf32lb52/sifli_allocateheap.c": {
+      "bytes": 6329,
+      "sha256": "2b8fca40432d6b12af2d99f6535e438984d001ac61654e27189f820cd9cd9432"
+    },
+    "vendor/sifli/chips/sf32lb52/sifli_i2c.c": {
+      "bytes": 22815,
+      "sha256": "a76d88dd9b0ac5ce535c97cbd74733bce1a9d8c77197438735b84eda5b11a671"
+    },
+    "verify_watch_v4.py": {
+      "bytes": 2772,
+      "sha256": "609006643dba5021b61847867c1b6edce10b17705cf6c569b8edd1f096eb1132"
+    },
+    "watch_wallfix_simple_v3.py": {
+      "bytes": 4381,
+      "sha256": "daebf9f94dc2d900e03f61830ab7fa3937f1866d1bced6b33eb85e0cf949cce0"
+    },
+    "开发记录.md": {
+      "bytes": 2895,
+      "sha256": "a681a8edc4af8eca9db4833f50331ccad2404f4ae45d18508c19e39b4fff6513"
+    }
+  },
+  "explicit_omissions": [
+    {
+      "path": "apps/examples/velaride/velaride_mickey_390.png",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "apps/examples/velaride/velaride_mickey_rgb565.inc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/001_bug_report.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/002_feature_request.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/003_help.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.gitee/ISSUE_TEMPLATE/config.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.gitee/PULL_REQUEST_TEMPLATE.md",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/CODEOWNERS",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/001_bug_report.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/002_feature_request.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/003_help.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/ISSUE_TEMPLATE/config.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/PULL_REQUEST_TEMPLATE.md",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/workflows/checkpatch.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/workflows/ci.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/.github/workflows/stale.yml",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/data/BBS.dat",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/data/data.bad_rng",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/data/data.e",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/data/data.pi",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/data/data.sha1",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/data/data.sqrt2",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/data/data.sqrt3",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/experiments/create-dir-script",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/cephes.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/config.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/decls.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/defs.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/externs.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/generators.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/genutils.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/matrix.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/stat_fncs.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/include/utilities.h",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/makefile",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/approximateEntropy.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/assess.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/blockFrequency.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/cephes.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/cusum.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/dfft.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/discreteFourierTransform.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/frequency.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/generators.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/genutils.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/linearComplexity.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/longestRunOfOnes.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/matrix.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/nonOverlappingTemplateMatchings.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/overlappingTemplateMatchings.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/randomExcursions.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/randomExcursionsVariant.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/rank.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/runs.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/serial.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/universal.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/src/utilities.c",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/dataInfo",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template10",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template11",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template12",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template13",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template14",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template15",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template16",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template17.Z",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template18.Z",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template19.Z",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template2",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template20.Z",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template21.Z",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template3",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template4",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template5",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template6",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template7",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template8",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "apps/testing/drivers/nist-sts/sts/templates/template9",
+      "reason": "nested upstream dependency"
+    },
+    {
+      "path": "build/epic_official/apps121.tar",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/build_nsh.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/build_nsh_cpu.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/lvgl41.tar",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/out/bench_ab_off.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/out/bench_ab_on.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/out/bench_cpu_run1.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/out/bench_epic_run1.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/out/official_nsh.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/out/official_nsh_cpu.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/epic_official/vendor31.tar",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/lvgl",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/bench_mig75_a.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/bench_mig75_b.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/bench_mig75_c.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/drv_lcd_fb.c.rc11.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/flash_a.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/flash_mig75.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/guard_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/keepopen_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/lv_lcd.c.rc11.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/lv_lcd.c.rc12.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/lv_lcd.c.rc14.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_bench.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_bench.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_bench_a.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_bench_a.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_bench_b.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_bench_b.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_guard.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_guard.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_keepopen.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_keepopen.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_prod.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_prod.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_prod_order.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_prod_order.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_ramclk.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_ramclk.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc1.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc1.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc10.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc10.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc11.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc11.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc12.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc12.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc13.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc13.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc14.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc14.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc15.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc15.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc16.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc16.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc17.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc17.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc2.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc2.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc3.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc3.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc4.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc4.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc5te.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc5te.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc6chk.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc6chk.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc7.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc7.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc8.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc8.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc9.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig75_rc9.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig_try1.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/mig_try1.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/phone_companion_20261026_v17.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/phone_companion_20261026_v17.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/phone_companion_20261026_v18.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/phone_companion_20261026_v18.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/phone_display_20261026_v19.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/phone_display_20261026_v19.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/prod_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/prod_boot2.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/prod_boot3.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/prod_ps.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/ramclk_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/ramclk_diag.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc12_crash.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc14_test.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc15_uibench.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc16_uibench.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc17_test.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc1_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc1_crash.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc1_hang.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc2_soak.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc3_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc4_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc4_epicoff.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc4_full.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc6_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc6_check.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc7_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc7_fullwin.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc8_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc8_test.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc9_test.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/rc9_test2.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_audiofix_20261025_v9.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_audiofix_20261025_v9.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_cache_20261025_v12.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_cache_20261025_v12.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_format_20261020_v7.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_format_20261020_v7.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_gain_20261025_v8.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_gain_20261025_v8.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_internal_20261025_v10.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_internal_20261025_v10.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_mic_20261025_v14.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_mic_20261025_v14.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_music_20261020_v5.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_music_20261020_v5.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_noise_20261020_v6.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_noise_20261020_v6.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_steady_20261025_v11.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_steady_20261025_v11.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020_v2.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020_v2.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020_v3.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020_v3.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020_v4.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_test_20261020_v4.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_usb_20261025_v13.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/speaker_usb_20261025_v13.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/velaride_shell.c.rc14.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/velaride_shell.rc13.c.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/velaride_shell.rc15.c.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/velaride_shell.rc16.c.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/velaride_shell.rc8.c.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/velaride_sport_ui.c.rc14.bak",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/voice_loopback_20261026_v15.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/voice_loopback_20261026_v15.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/voice_transfer_20261026_v16.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/out/voice_transfer_20261026_v16.config",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/te_sfconfig.patch",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/migrate/vendor_sifli",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/bench_ours_run1.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/flash.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/flash_u7.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/ourbench.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/readback_config.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/readback_u7.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/u7_boot.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/u7_lcd.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/ourbench/out/u7_readback.log",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/transition_previews/scene_0.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/transition_previews/scene_1.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/transition_previews/scene_2.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/transition_previews/scene_3.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/transition_previews/scene_4.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/transition_previews/scene_5.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/transition_previews/scene_6.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_dial_390.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_dial_png.inc",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_dial_rgb565.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_dial_rgb565.inc",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_mickey_390.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_mickey_rgb565.inc",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_sport_face_390.png",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_sport_face_rgb565.bin",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_sport_face_rgb565.inc",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/baseline/velaride/velaride_transition_previews.inc",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/countdown/countdown.patch",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/alarm_mode-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/alarm_mode.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/countdown_mode-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/countdown_mode.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/go-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/go.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/one-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/one.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/ride_mode-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/ride_mode.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/stopwatch_mode-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/stopwatch_mode.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/three-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/three.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/two-normalized.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/stages/sound/assets/two.wav",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "build/velaride-font/NotoSansSC-SemiBold-600.ttf",
+      "reason": "build output or binary dependency"
+    },
+    {
+      "path": "vendor/sifli/boards/sf32lb52/lckfb_huangshan_pi/src/etc/data/font/MiSans-Demibold.ttf",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "tools/__pycache__/archive_speaker_baseline.cpython-313.pyc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "tools/__pycache__/boot_check.cpython-313.pyc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "tools/__pycache__/companion_basic_check.cpython-313.pyc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "tools/__pycache__/mic_capture.cpython-313.pyc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "tools/__pycache__/speaker_loop.cpython-313.pyc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "tools/__pycache__/voice_upload.cpython-313.pyc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    },
+    {
+      "path": "tools/tests/__pycache__/test_boot_check.cpython-313.pyc",
+      "reason": "credential, dependency, cache, or unused third-party artwork/font"
+    }
+  ],
+  "scope_omissions": [
+    "Unmodified upstream repositories and toolchains",
+    "WSL filesystem/build trees (accepted source snapshots already archived separately)",
+    "Raw audio/video, private credentials/signing keys, node_modules and caches",
+    "Generated CAD meshes, vendor reference models and reference SDK checkouts",
+    "Historical root web-gateway mirror (older than repository version)"
+  ]
+}

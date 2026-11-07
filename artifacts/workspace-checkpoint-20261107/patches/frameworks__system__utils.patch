@@ -1,0 +1,39 @@
+diff --git a/kvdb/direct.c b/kvdb/direct.c
+index f7c6357e88b056e0f8a0399a49a29863ba6ff5cb..05f16e51806fedb85d33e5a9aebe1875bb2962b9 100644
+--- a/kvdb/direct.c
++++ b/kvdb/direct.c
+@@ -222,3 +222,34 @@ int property_exit(void)
+ {
+     return 0;
+ }
++
++int property_monitor_open(const char* key)
++{
++    return key == NULL ? -EINVAL : -ENOSYS;
++}
++
++ssize_t property_monitor_read(int fd, char* newkey, void* newvalue,
++    size_t val_len)
++{
++    (void)fd;
++    (void)newkey;
++    (void)newvalue;
++    (void)val_len;
++    return -ENOSYS;
++}
++
++int property_monitor_close(int fd)
++{
++    (void)fd;
++    return -ENOSYS;
++}
++
++/****************************************************************************
++ * Direct-backend monitor compatibility
++ *
++ * The socket-backed KVDB client exposes monitor file descriptors.  Direct
++ * mode has no server/event socket, but prebuilt QuickApp components still
++ * link these public APIs for runtime locale hot-reload.  Report the feature
++ * as unsupported explicitly; callers already treat a negative fd as
++ * "monitor unavailable" and keep the startup locale.
++ ****************************************************************************/

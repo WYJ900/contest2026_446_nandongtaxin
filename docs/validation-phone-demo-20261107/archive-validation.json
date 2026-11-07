@@ -1,0 +1,16 @@
+{
+  "archive_integrity": "passed",
+  "archived_source_files": 530,
+  "patch_syntax": "passed",
+  "patch_count": 15,
+  "new_files_secret_scan": "passed; firmware contains compiled PEM delimiter strings, no matching encoded private-key block",
+  "accepted_firmware_sha256": "424e7a2c41fe57dbd581e1c313bfe8793067415e0af449166700f501d3c1a734",
+  "accepted_firmware_unchanged": true,
+  "firmware_rebuilt_or_flashed": false,
+  "hardware_ui_observation": "pending user observation",
+  "timed_demo_script": "CLI help loaded; timed sequence not executed",
+  "web_gateway_tests": {
+    "passed": 41,
+    "failed": 0
+  }
+}

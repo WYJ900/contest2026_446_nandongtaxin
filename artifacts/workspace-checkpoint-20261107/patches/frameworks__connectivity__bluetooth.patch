@@ -1,0 +1,39 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 59d6ab1655e171531e6797f793aba3448ab78278..27f9db800f86a5c7c7cc53e3eb95cdcc382908e1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -283,7 +283,20 @@ if(CONFIG_BLUETOOTH)
+     endif()
+ 
+     if(CONFIG_BLUETOOTH_STACK_BREDR_ZBLUE OR CONFIG_BLUETOOTH_STACK_LE_ZBLUE)
+-      list(APPEND INCDIR ${BLUETOOTH_DIR}/service/stacks/zephyr/include)
++      # Keep the CMake path aligned with the Makefile ZBlue include list.
++      # Depending on the zblue target only controls build order; its private
++      # include directories are not propagated to libbluetooth.
++      list(
++        APPEND INCDIR
++        ${BLUETOOTH_DIR}/service/stacks/zephyr/include
++        ${NUTTX_APPS_DIR}/external/zblue/zblue/port/include
++        ${NUTTX_APPS_DIR}/external/zblue/zblue/port/include/zephyr
++        ${NUTTX_APPS_DIR}/external/zblue/zblue/port/kernel/include
++        ${NUTTX_APPS_DIR}/external/zblue/zblue/include
++        ${NUTTX_APPS_DIR}/external/zblue/zblue/subsys/bluetooth
++        ${NUTTX_APPS_DIR}/external/zblue/zblue/subsys/bluetooth/host
++        ${NUTTX_APPS_DIR}/external/zblue/zblue/subsys/settings/include/settings
++      )
+       list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/hci_h4.c)
+       list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_debug_interface.c)
+       list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_zblue.c)
+diff --git a/framework/include/callbacks_list.h b/framework/include/callbacks_list.h
+index f18c6e505f0aa58cb1a13a777cbb27c7e60b9d5e..86b37b609ac45745b9c7fd66f0f9d452e4d27d62 100644
+--- a/framework/include/callbacks_list.h
++++ b/framework/include/callbacks_list.h
+@@ -43,6 +43,8 @@ typedef struct {
+         callbacks_list_t* __cbsl = _cbsl;                                                      \
+         if (__cbsl == NULL)                                                                    \
+             break;                                                                             \
++        if (__cbsl->registed == 0)                                                             \
++            break;                                                                             \
+         bt_list_node_t* _node;                                                                 \
+         bt_list_t* _list = __cbsl->list;                                                       \
+         pthread_mutex_lock(&__cbsl->lock);                                                     \

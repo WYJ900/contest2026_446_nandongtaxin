@@ -1,0 +1,698 @@
+diff --git a/drivers/mtd/mtd_config_nvs.c b/drivers/mtd/mtd_config_nvs.c
+index 60ee18982d8778f6eddcfc3e07a4fa6aa042dac1..41c03a56397f09fb7419f0290de9c07ff8b7407e 100644
+--- a/drivers/mtd/mtd_config_nvs.c
++++ b/drivers/mtd/mtd_config_nvs.c
+@@ -1612,7 +1612,14 @@ static int nvs_startup(FAR struct nvs_fs *fs)
+                 last_ate->offset);
+ 
+ #if CONFIG_MTD_CONFIG_CACHE_SIZE > 0
+-          fs->cache[nvs_cache_index(last_ate->id)] = last_addr;
++          /* Recovery walks newest to oldest.  Keep the first address in
++           * each cache bucket; an older entry must not replace it.
++           */
++
++          if (fs->cache[nvs_cache_index(last_ate->id)] == NVS_CACHE_NO_ADDR)
++            {
++              fs->cache[nvs_cache_index(last_ate->id)] = last_addr;
++            }
+ #endif
+           while (1)
+             {
+@@ -1623,12 +1630,23 @@ static int nvs_startup(FAR struct nvs_fs *fs)
+                   return rc;
+                 }
+ 
+-              if (nvs_ate_valid(fs, second_ate)
+-                  && !nvs_ate_expired(fs, second_ate))
+-                {
+ #if CONFIG_MTD_CONFIG_CACHE_SIZE > 0
++              /* Cache tombstones too so a deleted key cannot be revived
++               * by an older surviving entry after interrupted writes.
++               */
++
++              if (nvs_ate_valid(fs, second_ate) &&
++                  second_ate->id != nvs_special_ate_id(fs) &&
++                  fs->cache[nvs_cache_index(second_ate->id)] ==
++                    NVS_CACHE_NO_ADDR)
++                {
+                   fs->cache[nvs_cache_index(second_ate->id)] = second_addr;
++                }
+ #endif
++
++              if (nvs_ate_valid(fs, second_ate)
++                  && !nvs_ate_expired(fs, second_ate))
++                {
+                   if (second_ate->id == last_ate->id)
+                     {
+                       finfo("same id at 0x%" PRIx32 ", key_len %" PRIu16 ", "
+@@ -2502,7 +2520,13 @@ int mtdconfig_register_by_path(FAR struct mtd_dev_s *mtd,
+   FAR struct nvs_fs *fs;
+   int rc;
+ 
+-  fs = kmm_malloc(sizeof(struct nvs_fs));
++  /* poll state (`fds`/`events`) and cache bookkeeping must start at zero.
++   * The first successful write calls mtdconfig_notify(); an uninitialized
++   * `fds` pointer from kmm_malloc is otherwise passed to poll_notify and can
++   * hard-fault even though the flash write itself completed successfully.
++   */
++
++  fs = kmm_zalloc(sizeof(struct nvs_fs));
+   if (fs == NULL)
+     {
+       return -ENOMEM;
+diff --git a/drivers/sensors/CMakeLists.txt b/drivers/sensors/CMakeLists.txt
+index 49e0dbc808897985972350920b018a4e3d7fc2ff..ecc83d8f50e67e08c1a94fcbad501a865200124d 100644
+--- a/drivers/sensors/CMakeLists.txt
++++ b/drivers/sensors/CMakeLists.txt
+@@ -300,6 +300,14 @@ if(CONFIG_SENSORS)
+       list(APPEND SRCS t67xx.c)
+     endif()
+ 
++    if(CONFIG_SENSORS_LTR303)
++      list(APPEND SRCS ltr303.c)
++    endif()
++
++    if(CONFIG_SENSORS_MMC5603)
++      list(APPEND SRCS mmc5603.c)
++    endif()
++
+     if(CONFIG_SENSORS_LTR308)
+       list(APPEND SRCS ltr308_uorb.c)
+     endif()
+diff --git a/drivers/sensors/Kconfig b/drivers/sensors/Kconfig
+index 0bcae5c7a69cf261d8998821f830a37e05160067..0f0ad3ec29c5896ea96dcdd46c9ff143f48f37ce 100644
+--- a/drivers/sensors/Kconfig
++++ b/drivers/sensors/Kconfig
+@@ -1732,6 +1732,20 @@ config HDC1008_DEBUG
+ 
+ endif # SENSORS_HDC1008
+ 
++config SENSORS_LTR303
++	bool "Lite-On LTR303 ambient light sensor"
++	depends on I2C
++	help
++	  Fetch-mode uORB light sensor. Open with O_NONBLOCK and read
++	  sensor_light samples. Uses 1x gain and 100 ms integration.
++
++config SENSORS_MMC5603
++	bool "MEMSIC MMC5603 magnetometer"
++	depends on I2C
++	help
++	  Fetch-mode magnetic field sensor in microtesla, with bounded
++	  single-shot reads. Open sensor_magN with O_NONBLOCK.
++
+ config SENSORS_LTR308
+ 	bool "LTR308 Lite-On ambient light sensor"
+ 	default n
+diff --git a/drivers/sensors/Make.defs b/drivers/sensors/Make.defs
+index 391b5e62b1b69ebbb73004f42cdc25ac86bfe226..7a7d507fccd8edfc99b472b49e8d656e9fb33645 100644
+--- a/drivers/sensors/Make.defs
++++ b/drivers/sensors/Make.defs
+@@ -299,6 +299,14 @@ ifeq ($(CONFIG_SENSORS_T67XX),y)
+   CSRCS += t67xx.c
+ endif
+ 
++ifeq ($(CONFIG_SENSORS_LTR303),y)
++CSRCS += ltr303.c
++endif
++
++ifeq ($(CONFIG_SENSORS_MMC5603),y)
++CSRCS += mmc5603.c
++endif
++
+ ifeq ($(CONFIG_SENSORS_LTR308),y)
+   CSRCS += ltr308_uorb.c
+ endif
+diff --git a/drivers/timers/arch_timer.c b/drivers/timers/arch_timer.c
+index eea3c8d6d05c8c687e89178ea34a34245dc74749..d4426ccf6495d2c95f88fa058ac7c66af9dcfd30 100644
+--- a/drivers/timers/arch_timer.c
++++ b/drivers/timers/arch_timer.c
+@@ -106,7 +106,13 @@ static uint64_t current_usec(void)
+     }
+   while (timebase != g_timer.timebase);
+ 
+-  return TICK2USEC(timebase) + (status.timeout - status.timeleft);
++  /* Promote before multiplying. With 32-bit clock_t, the intermediate
++   * microsecond count otherwise wraps after about 71 minutes even though
++   * the tick counter itself still has ample range.
++   */
++
++  return TICK2USEC((uint64_t)timebase) +
++         (status.timeout - status.timeleft);
+ }
+ 
+ static void udelay_accurate(useconds_t microseconds)
+@@ -281,8 +287,14 @@ int weak_function up_timer_gettime(struct timespec *ts)
+ 
+   if (g_timer.lower != NULL)
+     {
+-      ts->tv_sec  = current_usec() / USEC_PER_SEC;
+-      ts->tv_nsec = (current_usec() % USEC_PER_SEC) * NSEC_PER_USEC;
++      uint64_t usec = current_usec();
++
++      /* Use one sample so a second boundary cannot mix an old second
++       * with the fractional part of the following second.
++       */
++
++      ts->tv_sec  = usec / USEC_PER_SEC;
++      ts->tv_nsec = (usec % USEC_PER_SEC) * NSEC_PER_USEC;
+       ret = OK;
+     }
+ 
+diff --git a/include/nuttx/lcd/lcd_dev.h b/include/nuttx/lcd/lcd_dev.h
+index 91f455b2905b768cab8d3e9e7720d088b24a8e32..32be1c7c22717bbffcad7951bcc94ea6938869bd 100644
+--- a/include/nuttx/lcd/lcd_dev.h
++++ b/include/nuttx/lcd/lcd_dev.h
+@@ -65,6 +65,13 @@
+ #define LCDDEVIO_GETFRAMERATE _LCDIOC(16) /* Arg: int* */
+ 
+ #define LCDDEVIO_GETAREAALIGN _LCDIOC(17) /* Arg: struct lcddev_area_align_s* */
++#define LCDDEVIO_PUTAREA_ASYNC _LCDIOC(18) /* Arg: const struct lcddev_area_s* */
++#define LCDDEVIO_WAITAREA      _LCDIOC(19) /* Arg: timeout in milliseconds */
++#define LCDDEVIO_REINITIALIZE  _LCDIOC(20) /* Arg: none; caller stops drawing */
++#define LCDDEVIO_DUMPSTATE     _LCDIOC(21) /* Arg: none; driver diagnostics */
++#define LCDDEVIO_CHECKSTATE    _LCDIOC(22) /* Return: 0 healthy, 1 state lost */
++#define LCDDEVIO_SETBRIGHTNESS _LCDIOC(23) /* Arg: percent; between frames */
++#define LCDDEVIO_GETBRIGHTNESS _LCDIOC(24) /* Return: last applied percent */
+ 
+ /****************************************************************************
+  * Public Data
+diff --git a/tools/ci/testrun/utils/data_model.py b/tools/ci/testrun/utils/data_model.py
+index ada95415b225f3a57fdb64bc2cc6552a32fac618..a4dc3d3d9cf4b6b74721ca7cf5fcdfd8663082db 100644
+--- a/tools/ci/testrun/utils/data_model.py
++++ b/tools/ci/testrun/utils/data_model.py
+@@ -1,257 +1,257 @@
+-############################################################################
+-# tools/ci/testrun/utils/data_model.py
+-#
+-# SPDX-License-Identifier: Apache-2.0
+-#
+-# Licensed to the Apache Software Foundation (ASF) under one or more
+-# contributor license agreements.  See the NOTICE file distributed with
+-# this work for additional information regarding copyright ownership.  The
+-# ASF licenses this file to you under the Apache License, Version 2.0 (the
+-# "License"); you may not use this file except in compliance with the
+-# License.  You may obtain a copy of the License at
+-#
+-#   http://www.apache.org/licenses/LICENSE-2.0
+-#
+-# Unless required by applicable law or agreed to in writing, software
+-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+-# License for the specific language governing permissions and limitations
+-# under the License.
+-#
+-############################################################################
+-
+-import re
+-from datetime import datetime
+-from typing import Dict, List
+-
+-"""
+-cmocka.json
+-"""
+-
+-Passed = "Passed"
+-Failed = "Failed"
+-Unexecuted = "Unexecuted"
+-
+-
+-class CaseInfo:
+-    def __init__(self, test_suite_name, test_case_name, status, log=None):
+-        self.test_suite_name = test_suite_name
+-        # case name，e.g. "TestNuttxMm01"
+-        self.test_case_name = test_case_name
+-        # result: Passed or Failed
+-        self.status = status
+-        # log
+-        self.log: List = [""] if log is None else log
+-
+-
+-class SuiteInfo:
+-    def __init__(self, test_suite_name):
+-        # suite name, e.g. "NuttxMmTestSuites"
+-        self.test_suite_name = test_suite_name
+-        # all test cases in the current test suite
+-        self.test_cases: Dict[str, CaseInfo] = dict()
+-        # number of cases passed in the current test suites
+-        self.passed_count = 0
+-        # number of cases failed in the current test suites
+-        self.failed_count = 0
+-        # case run count
+-        self.run_count = 0
+-        # unexecuted count
+-        self.unexecuted_count = 0
+-        # number of cases in the current test suites
+-        self.cases_count = 0
+-        # suite run flag
+-        self.is_suite_run = False
+-
+-
+-class CmockaSummary:
+-    def __init__(self, duration=0):
+-        # number of all test suites
+-        self.total_suites_count = 0
+-        # all test cases number
+-        self.total_cases_count = 0
+-        # number of all passed cases
+-        self.total_passed_count = 0
+-        # number of all failed cases
+-        self.total_failed_count = 0
+-        # number of all unknown cases
+-        self.total_unexecuted_count = 0
+-        # duration
+-        self.duration = duration
+-
+-
+-class CmockaSingleCoreRecord:
+-    def __init__(self, lines, core="", board="", log="", duration=0):
+-        # create time
+-        self.create_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+-        # core
+-        self.core = "" if core is None else core
+-        # board
+-        self.board = "" if board is None else board
+-        # cmocka info
+-        self.test_suites: Dict[str, SuiteInfo] = dict()
+-        # summary
+-        self.summary = CmockaSummary(duration)
+-        # log path
+-        self.log = "" if log is None else log
+-        # bad_case
+-        self.bad_case_tip = ""
+-
+-        suite_pattern = r"\] (?P<test_suite_name>[a-zA-Z]*TestSuites)"
+-        case_pattern = r"\]\s+(?P<test_case_name>TestNuttx\w+)"
+-        lines_iter = iter(lines)
+-
+-        current_suite = None
+-        while True:
+-            try:
+-                line = next(lines_iter)
+-                if (suite_match := re.search(suite_pattern, line)) is not None:
+-                    current_suite = suite_match.group("test_suite_name")
+-
+-                elif (
+-                    current_suite is not None
+-                    and (case_match := re.search(case_pattern, line)) is not None
+-                ):
+-                    current_case = case_match.group("test_case_name")
+-                    self.append(CaseInfo(current_suite, current_case, Unexecuted))
+-
+-            except StopIteration:
+-                break
+-
+-    def append(self, object: CaseInfo):
+-        suite: SuiteInfo = self.test_suites.get(object.test_suite_name)
+-        if suite is None:
+-            suite = SuiteInfo(object.test_suite_name)
+-            self.test_suites.update({object.test_suite_name: suite})
+-        suite.test_cases.update({object.test_case_name: object})
+-
+-        passed_count = 0
+-        failed_count = 0
+-        unexecuted_count = 0
+-
+-        test_case: CaseInfo
+-        for test_case in suite.test_cases.values():
+-            if test_case.status == Passed:
+-                passed_count += 1
+-            elif test_case.status == Failed:
+-                failed_count += 1
+-            else:
+-                unexecuted_count += 1
+-        suite.passed_count = passed_count
+-        suite.failed_count = failed_count
+-        suite.unexecuted_count = unexecuted_count
+-        suite.run_count = passed_count + failed_count
+-        suite.cases_count = passed_count + failed_count + unexecuted_count
+-        if passed_count + failed_count != 0:
+-            suite.is_suite_run = True
+-
+-        total_passed_count = 0
+-        total_failed_count = 0
+-        total_unexecuted_count = 0
+-        total_cases_count = 0
+-
+-        suite: SuiteInfo
+-        for suite in self.test_suites.values():
+-            total_passed_count += suite.passed_count
+-            total_failed_count += suite.failed_count
+-            total_unexecuted_count += suite.unexecuted_count
+-            total_cases_count += suite.cases_count
+-
+-        self.summary.total_passed_count = total_passed_count
+-        self.summary.total_failed_count = total_failed_count
+-        self.summary.total_unexecuted_count = total_unexecuted_count
+-        self.summary.total_cases_count = total_cases_count
+-        self.summary.total_suites_count = len(self.test_suites)
+-
+-    def process(self, lines, err_code):
+-        # regular expression
+-        suite_start_pattern = r"\] (?P<test_suite_name>[a-zA-Z]*TestSuites): Running (?P<cases_count>\d+) test\(s\)"
+-        case_run_pattern = r"\[\s+RUN\s+\] (?P<test_case_name>TestNuttx\w+)"
+-        case_pass_pattern = r"\[\s+OK\s+\] (?P<test_case_name>TestNuttx\w+)"
+-        case_fail_pattern = r"\[\s+FAILED\s+\] (?P<test_case_name>TestNuttx\w+)"
+-
+-        lines_iter = iter(lines)
+-        line = next(lines_iter)
+-        while True:
+-            try:
+-                interrupt_flag = False
+-                # matching new test suites
+-                if (
+-                    suite_start_match := re.search(suite_start_pattern, line)
+-                ) is not None:
+-                    test_suite_name = suite_start_match.group("test_suite_name")
+-                    cases_count = int(suite_start_match.group("cases_count"))
+-                    suite_end_pattern = r"{}: {} test(s) run.".format(
+-                        test_suite_name, cases_count
+-                    )
+-
+-                    line = next(lines_iter)
+-                    while True:
+-                        if (
+-                            case_run_match := re.search(case_run_pattern, line)
+-                        ) is not None:
+-                            test_case_name = case_run_match.group("test_case_name")
+-                            log = [line]
+-
+-                            while True:
+-                                try:
+-                                    line = next(lines_iter)
+-                                    log.append(line)
+-                                except StopIteration:
+-                                    self.append(
+-                                        CaseInfo(
+-                                            test_suite_name, test_case_name, Failed, log
+-                                        )
+-                                    )
+-                                    if err_code == -3:
+-                                        self.bad_case_tip = f"This case was not executed, \
+-                                             because crash occurred after running '{test_case_name}'."
+-                                    elif err_code == -4:
+-                                        self.bad_case_tip = f"This case was not executed, \
+-                                             because no response for a long time after running '{test_case_name}'."
+-                                    elif err_code == -1:
+-                                        self.bad_case_tip = f"This case was not executed, \
+-                                             because the maximum waiting time has been exceeded \
+-                                             while running '{test_case_name}'."
+-                                    else:
+-                                        self.bad_case_tip = "This case was not executed due to unknown reasons."
+-                                    raise StopIteration
+-
+-                                if re.search(case_pass_pattern, line) is not None:
+-                                    self.append(
+-                                        CaseInfo(
+-                                            test_suite_name, test_case_name, Passed, log
+-                                        )
+-                                    )
+-                                    break
+-
+-                                elif re.search(case_fail_pattern, line) is not None:
+-                                    self.append(
+-                                        CaseInfo(
+-                                            test_suite_name, test_case_name, Failed, log
+-                                        )
+-                                    )
+-                                    break
+-
+-                                elif re.search(suite_start_pattern, line) is not None:
+-                                    self.append(
+-                                        CaseInfo(
+-                                            test_suite_name, test_case_name, Failed, log
+-                                        )
+-                                    )
+-                                    interrupt_flag = True
+-                                    break
+-
+-                        elif suite_end_pattern in line:
+-                            break
+-
+-                        if interrupt_flag:
+-                            break
+-
+-                        line = next(lines_iter)
+-
+-                    if interrupt_flag:
+-                        continue
+-                line = next(lines_iter)
+-            except StopIteration:
+-                break
++############################################################################
++# tools/ci/testrun/utils/data_model.py
++#
++# SPDX-License-Identifier: Apache-2.0
++#
++# Licensed to the Apache Software Foundation (ASF) under one or more
++# contributor license agreements.  See the NOTICE file distributed with
++# this work for additional information regarding copyright ownership.  The
++# ASF licenses this file to you under the Apache License, Version 2.0 (the
++# "License"); you may not use this file except in compliance with the
++# License.  You may obtain a copy of the License at
++#
++#   http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
++# License for the specific language governing permissions and limitations
++# under the License.
++#
++############################################################################
++
++import re
++from datetime import datetime
++from typing import Dict, List
++
++"""
++cmocka.json
++"""
++
++Passed = "Passed"
++Failed = "Failed"
++Unexecuted = "Unexecuted"
++
++
++class CaseInfo:
++    def __init__(self, test_suite_name, test_case_name, status, log=None):
++        self.test_suite_name = test_suite_name
++        # case name，e.g. "TestNuttxMm01"
++        self.test_case_name = test_case_name
++        # result: Passed or Failed
++        self.status = status
++        # log
++        self.log: List = [""] if log is None else log
++
++
++class SuiteInfo:
++    def __init__(self, test_suite_name):
++        # suite name, e.g. "NuttxMmTestSuites"
++        self.test_suite_name = test_suite_name
++        # all test cases in the current test suite
++        self.test_cases: Dict[str, CaseInfo] = dict()
++        # number of cases passed in the current test suites
++        self.passed_count = 0
++        # number of cases failed in the current test suites
++        self.failed_count = 0
++        # case run count
++        self.run_count = 0
++        # unexecuted count
++        self.unexecuted_count = 0
++        # number of cases in the current test suites
++        self.cases_count = 0
++        # suite run flag
++        self.is_suite_run = False
++
++
++class CmockaSummary:
++    def __init__(self, duration=0):
++        # number of all test suites
++        self.total_suites_count = 0
++        # all test cases number
++        self.total_cases_count = 0
++        # number of all passed cases
++        self.total_passed_count = 0
++        # number of all failed cases
++        self.total_failed_count = 0
++        # number of all unknown cases
++        self.total_unexecuted_count = 0
++        # duration
++        self.duration = duration
++
++
++class CmockaSingleCoreRecord:
++    def __init__(self, lines, core="", board="", log="", duration=0):
++        # create time
++        self.create_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
++        # core
++        self.core = "" if core is None else core
++        # board
++        self.board = "" if board is None else board
++        # cmocka info
++        self.test_suites: Dict[str, SuiteInfo] = dict()
++        # summary
++        self.summary = CmockaSummary(duration)
++        # log path
++        self.log = "" if log is None else log
++        # bad_case
++        self.bad_case_tip = ""
++
++        suite_pattern = r"\] (?P<test_suite_name>[a-zA-Z]*TestSuites)"
++        case_pattern = r"\]\s+(?P<test_case_name>TestNuttx\w+)"
++        lines_iter = iter(lines)
++
++        current_suite = None
++        while True:
++            try:
++                line = next(lines_iter)
++                if (suite_match := re.search(suite_pattern, line)) is not None:
++                    current_suite = suite_match.group("test_suite_name")
++
++                elif (
++                    current_suite is not None
++                    and (case_match := re.search(case_pattern, line)) is not None
++                ):
++                    current_case = case_match.group("test_case_name")
++                    self.append(CaseInfo(current_suite, current_case, Unexecuted))
++
++            except StopIteration:
++                break
++
++    def append(self, object: CaseInfo):
++        suite: SuiteInfo = self.test_suites.get(object.test_suite_name)
++        if suite is None:
++            suite = SuiteInfo(object.test_suite_name)
++            self.test_suites.update({object.test_suite_name: suite})
++        suite.test_cases.update({object.test_case_name: object})
++
++        passed_count = 0
++        failed_count = 0
++        unexecuted_count = 0
++
++        test_case: CaseInfo
++        for test_case in suite.test_cases.values():
++            if test_case.status == Passed:
++                passed_count += 1
++            elif test_case.status == Failed:
++                failed_count += 1
++            else:
++                unexecuted_count += 1
++        suite.passed_count = passed_count
++        suite.failed_count = failed_count
++        suite.unexecuted_count = unexecuted_count
++        suite.run_count = passed_count + failed_count
++        suite.cases_count = passed_count + failed_count + unexecuted_count
++        if passed_count + failed_count != 0:
++            suite.is_suite_run = True
++
++        total_passed_count = 0
++        total_failed_count = 0
++        total_unexecuted_count = 0
++        total_cases_count = 0
++
++        suite: SuiteInfo
++        for suite in self.test_suites.values():
++            total_passed_count += suite.passed_count
++            total_failed_count += suite.failed_count
++            total_unexecuted_count += suite.unexecuted_count
++            total_cases_count += suite.cases_count
++
++        self.summary.total_passed_count = total_passed_count
++        self.summary.total_failed_count = total_failed_count
++        self.summary.total_unexecuted_count = total_unexecuted_count
++        self.summary.total_cases_count = total_cases_count
++        self.summary.total_suites_count = len(self.test_suites)
++
++    def process(self, lines, err_code):
++        # regular expression
++        suite_start_pattern = r"\] (?P<test_suite_name>[a-zA-Z]*TestSuites): Running (?P<cases_count>\d+) test\(s\)"
++        case_run_pattern = r"\[\s+RUN\s+\] (?P<test_case_name>TestNuttx\w+)"
++        case_pass_pattern = r"\[\s+OK\s+\] (?P<test_case_name>TestNuttx\w+)"
++        case_fail_pattern = r"\[\s+FAILED\s+\] (?P<test_case_name>TestNuttx\w+)"
++
++        lines_iter = iter(lines)
++        line = next(lines_iter)
++        while True:
++            try:
++                interrupt_flag = False
++                # matching new test suites
++                if (
++                    suite_start_match := re.search(suite_start_pattern, line)
++                ) is not None:
++                    test_suite_name = suite_start_match.group("test_suite_name")
++                    cases_count = int(suite_start_match.group("cases_count"))
++                    suite_end_pattern = r"{}: {} test(s) run.".format(
++                        test_suite_name, cases_count
++                    )
++
++                    line = next(lines_iter)
++                    while True:
++                        if (
++                            case_run_match := re.search(case_run_pattern, line)
++                        ) is not None:
++                            test_case_name = case_run_match.group("test_case_name")
++                            log = [line]
++
++                            while True:
++                                try:
++                                    line = next(lines_iter)
++                                    log.append(line)
++                                except StopIteration:
++                                    self.append(
++                                        CaseInfo(
++                                            test_suite_name, test_case_name, Failed, log
++                                        )
++                                    )
++                                    if err_code == -3:
++                                        self.bad_case_tip = f"This case was not executed, \
++                                             because crash occurred after running '{test_case_name}'."
++                                    elif err_code == -4:
++                                        self.bad_case_tip = f"This case was not executed, \
++                                             because no response for a long time after running '{test_case_name}'."
++                                    elif err_code == -1:
++                                        self.bad_case_tip = f"This case was not executed, \
++                                             because the maximum waiting time has been exceeded \
++                                             while running '{test_case_name}'."
++                                    else:
++                                        self.bad_case_tip = "This case was not executed due to unknown reasons."
++                                    raise StopIteration
++
++                                if re.search(case_pass_pattern, line) is not None:
++                                    self.append(
++                                        CaseInfo(
++                                            test_suite_name, test_case_name, Passed, log
++                                        )
++                                    )
++                                    break
++
++                                elif re.search(case_fail_pattern, line) is not None:
++                                    self.append(
++                                        CaseInfo(
++                                            test_suite_name, test_case_name, Failed, log
++                                        )
++                                    )
++                                    break
++
++                                elif re.search(suite_start_pattern, line) is not None:
++                                    self.append(
++                                        CaseInfo(
++                                            test_suite_name, test_case_name, Failed, log
++                                        )
++                                    )
++                                    interrupt_flag = True
++                                    break
++
++                        elif suite_end_pattern in line:
++                            break
++
++                        if interrupt_flag:
++                            break
++
++                        line = next(lines_iter)
++
++                    if interrupt_flag:
++                        continue
++                line = next(lines_iter)
++            except StopIteration:
++                break

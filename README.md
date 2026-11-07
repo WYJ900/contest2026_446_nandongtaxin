@@ -8,6 +8,8 @@ MiMo 或兼容 OpenAI / Anthropic 的服务与中转站，生成中文复盘并�
 
 当前真机：手表 `424e7a2c`（`artifacts/phone-bridge-20261106/`）、真我手机 App 0.3.6、openvela 模拟器 ai_agent + 自定义 Skill `agent_skills/ride-coach.md` 经 MCP 操作真手表。
 
+2026-11-07：[工作区源码归档与蓝牙消息演示](docs/WORKSPACE_CHECKPOINT_20261107.md)。保留多仓库改动、辅助工具及旧源码状态，未替换上述已验收版本；电脑模拟手机发送天气/消息已收到真表 BLE 确认，画面尚待人工确认。
+
 以下为早期（2026-10）说明，保留作历史记录。
 
 **继续开发先读：[当前成果与接续说明](docs/CURRENT_STATE.md)（2026-10-10）。**

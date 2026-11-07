@@ -41,3 +41,6 @@ app/velaride/velaride_dial_rgb565.bin
 app/velaride/velaride_sport_face_rgb565.bin
 
 # AI Coding logs are intentionally NOT ignored.
+
+# Preserved with provenance notes in artifacts/workspace-checkpoint-20261107/.
+/artifacts/_tmp_gps_fresh/

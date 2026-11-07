@@ -1,0 +1,7 @@
+diff --git a/subprojects/dlg b/subprojects/dlg
+index a5ab091353062a5680fe1481e78c9ada32a99856..97efd1124cac0ce97e7435d5f939577450988dd4 160000
+--- a/subprojects/dlg
++++ b/subprojects/dlg
+@@ -1 +1 @@
+-Subproject commit a5ab091353062a5680fe1481e78c9ada32a99856
++Subproject commit 97efd1124cac0ce97e7435d5f939577450988dd4
